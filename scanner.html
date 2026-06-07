@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>レジ用スマホスキャナー</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; margin: 0; padding: 20px; background: #f5f5f5; }
+        #reader { width: 100%; max-width: 500px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }
+        #status { margin-top: 20px; font-weight: bold; font-size: 1.2rem; color: #333; }
+        .log { margin-top: 10px; color: #666; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <h1>レジ・スキャナー</h1>
+    <div id="reader"></div>
+    <div id="status">カメラ準備中...</div>
+    <div id="log" class="log"></div>
+
+    <script>
+        // 2. Supabaseの接続設定（ご自身のプロジェクトのものに書き換えてください）// 2. Supabaseの接続設定
+const SUPABASE_URL = "https://kjmtrlgxvfaklctfvmos.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_M0xqBe2ClIG7Tl5qR9k7ag_8hq8rTqW";
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const statusDiv = document.getElementById('status');
+        const logDiv = document.getElementById('log');
+
+        // 3. バーコードが正常に読み取れた時の処理
+        async function onScanSuccess(decodedText, decodedResult) {
+            // 連続で何度も同じバーコードを読み込まないように一時停止
+            html5QrcodeScanner.clear();
+            statusDiv.innerText = `読み込み中: ${decodedText}`;
+            statusDiv.style.color = "#007bff";
+
+            try {
+                // 商品マスタ(products)からJANコードで検索
+                let { data: product, error } = await supabase
+                    .from('products')
+                    .select('*')
+                    .eq('jan_code', decodedText)
+                    .single();
+
+                if (error || !product) {
+                    statusDiv.innerText = "商品が見つかりません";
+                    statusDiv.style.color = "red";
+                    setTimeout(startScanner, 2000); // 2秒後に再開
+                    return;
+                }
+
+                // カートテーブル(cart_items)に商品をインサート
+                // ※本来は「すでにカートにあれば数量+1」の処理が必要ですが、まずは単純挿入
+                const { error: insertError } = await supabase
+                    .from('cart_items')
+                    .insert([
+                        { 
+                            jan_code: product.jan_code, 
+                            name: product.name, 
+                            price: product.price, 
+                            quantity: 1 
+                        }
+                    ]);
+
+                if (insertError) throw insertError;
+
+                // 成功したら音を鳴らすか画面に表示
+                statusDiv.innerText = `追加完了: ${product.name}`;
+                statusDiv.style.color = "green";
+                logDiv.innerText = `${product.name}（￥${product.price}）をカートに入れました`;
+
+            } catch (err) {
+                console.error(err);
+                statusDiv.innerText = "エラーが発生しました";
+                statusDiv.style.color = "red";
+            }
+
+            // 1.5秒後にスキャナーを再起動して次の商品の読み込みに備える
+            setTimeout(startScanner, 1500);
+        }
+
+        // 4. スキャナーを起動する関数
+        let html5QrcodeScanner;
+        function startScanner() {
+            statusDiv.innerText = "バーコードをかざしてください";
+            statusDiv.style.color = "#333";
+            
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
+                fps: 10,       // 1秒間に何回スキャンを試みるか
+                qrbox: { width: 250, height: 150 } // スマホ画面上の読み取り枠のサイズ
+            });
+            html5QrcodeScanner.render(onScanSuccess);
+        }
+
+        // 画面を開いたら自動でスキャナーを起動
+        startScanner();
+    </script>
+</body>
+</html>
