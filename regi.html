@@ -881,16 +881,13 @@ let g_localAddedTotal = 0; // GAS取得後にローカルで追加した売上
 
 function updateSalesBadge() {
     // 初回はGASから取得
-    google.script.run
-            .withSuccessHandler(function(data) {
+    GAS.getTodaySalesData().then(function(data) {
                 if (data) {
                     g_todaySalesData = data;
                     var displayTotal = data.total + g_localAddedTotal;
                     document.getElementById('sales-badge').textContent = '本日 ' + displayTotal.toLocaleString() + '円';
                 }
-            })
-            .withFailureHandler(function(){})
-            .getTodaySalesData();
+            }).catch(function(){});
 
     // ローカルでも即座に表示（GAS未接続時やGAS応答前のフォールバック）
     var today = new Date().toLocaleDateString('ja-JP');
@@ -925,8 +922,7 @@ function recordSale(total) {
 
 function openSalesModal() {
     // GASから最新データを取得して表示
-    google.script.run
-            .withSuccessHandler(function(data) {
+    GAS.getTodaySalesData().then(function(data) {
                 if (data) {
                     g_todaySalesData = data;
                     var displayData = {
@@ -939,11 +935,9 @@ function openSalesModal() {
                 } else {
                     renderSalesModalLocal();
                 }
-            })
-            .withFailureHandler(function() {
+            }).catch(function() {
                 renderSalesModalLocal();
-            })
-            .getTodaySalesData();
+            });
     document.getElementById('sales-modal').classList.add('show');
 }
 
@@ -1020,10 +1014,9 @@ function loadCustomDiscounts() {
     catch(e) { return []; }
 }
 
-// 起動時：google.script.runで設定を取得
+// 起動時：Supabaseから設定を取得
 function initSettings() {
-    google.script.run
-            .withSuccessHandler(function(data) {
+    GAS.getSettings().then(function(data) {
                 if (!data) return;
                 let updated = false;
                 if (Array.isArray(data.customButtons) && data.customButtons.length > 0) {
@@ -1040,9 +1033,7 @@ function initSettings() {
                     renderGrid();
                     renderDiscountGrid();
                 }
-            })
-            .withFailureHandler(function() {})
-            .getSettings();
+            }).catch(function() {});
 }
 
 // ═══ 割引券定義 ══════════════════════════════════
@@ -1362,17 +1353,14 @@ function sendQueueAsync() {
     const q = loadQueue();
     if (q.length === 0) return;
     const item = q[0];
-    google.script.run
-        .withSuccessHandler(function() {
+    GAS.saveOrderFromRegi(JSON.stringify(item)).then(function() {
             const q2 = loadQueue();
             q2.shift();
             saveQueue(q2);
-            if (q2.length > 0) sendQueueAsync(); // 次を送信
-        })
-        .withFailureHandler(function() {
+            if (q2.length > 0) sendQueueAsync();
+        }).catch(function() {
             // 失敗しても次回起動時に再送
-        })
-        .saveOrderFromRegi(JSON.stringify(item));
+        });
 }
 
 // ═══ 絵文字ピッカー ═══════════════════════════════
@@ -1555,10 +1543,7 @@ function renderCfgDiscList() {
 }
 
 function cfgSaveToGas() {
-    google.script.run
-            .withSuccessHandler(function(){})
-            .withFailureHandler(function(){})
-            .saveSettings(JSON.stringify(customButtons), JSON.stringify(customDiscounts));
+    GAS.saveSettings(JSON.stringify(customButtons), JSON.stringify(customDiscounts)).catch(function(){});
     localStorage.setItem('customButtons', JSON.stringify(customButtons));
     localStorage.setItem('customDiscounts', JSON.stringify(customDiscounts));
 }
