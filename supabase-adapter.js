@@ -116,7 +116,7 @@ GAS.testConnection = function() {
 // ─ getAllData ─
 GAS.getAllData = function() {
   return Promise.all([
-    sbGet('products', 'select=*&order=sort_order.asc,id.asc'),
+    sbGet('products', 'select=id,name,cat,stock,min,price,unit,exp,buy_price,buy_qty,memo,status,sort_order&order=sort_order.asc,id.asc'),
     sbGet('restock',  'select=*&order=id.desc')
   ]).then(function(results) {
     var products = (results[0] || []).map(function(p) {
@@ -262,6 +262,13 @@ GAS.applyRestock = function(restockId) {
     });
 };
 
+
+// ─ getProductImg（詳細表示時に個別取得） ─
+GAS.getProductImg = function(id) {
+  return sbGet('products', 'id=eq.' + id + '&select=img').then(function(rows) {
+    return rows && rows[0] ? rows[0].img : null;
+  });
+};
 // ─ saveImageData / updateImg ─
 GAS.saveImageData = function(base64data, productId) {
   return sbPatch('products', 'id=eq.' + productId, { img: base64data })
