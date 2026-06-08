@@ -612,6 +612,8 @@ function loadData(){
     rshist=data.restock||[];
     renderAll(); setSS('ok'); updateOrderBadge();
     document.getElementById('ssync').textContent='最終更新: '+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+    // 画像をバックグラウンドで分割取得
+    loadImgsBatch();
   }).catch(function(e){setSS('er');toast('読込エラー: '+(e.message||e));});
 }
 function reloadData(){
@@ -2270,6 +2272,27 @@ function _doOpenFax(){
   }
 }
 
+
+// ── 画像バックグラウンド取得 ──
+function loadImgsBatch(){
+  var activeProds = prods.filter(function(p){ return p.status !== 'discontinued'; });
+  var batchSize = 30;
+  var idx = 0;
+  function next(){
+    if(idx >= activeProds.length) return;
+    var batch = activeProds.slice(idx, idx + batchSize);
+    idx += batchSize;
+    var ids = batch.map(function(p){ return p.id; });
+    GAS.getProductImgsBatch(ids).then(function(map){
+      batch.forEach(function(p){
+        if(map[p.id] !== undefined) p.img = map[p.id];
+      });
+      renderP(); // 画像更新でカード再描画
+      setTimeout(next, 200); // 次のバッチ
+    }).catch(function(){ setTimeout(next, 500); });
+  }
+  setTimeout(next, 500); // 初期表示後に開始
+}
 // ── 起動 ──
 function showApp(){document.getElementById('loading').style.display='none';document.getElementById('app').style.display='block';}
 
