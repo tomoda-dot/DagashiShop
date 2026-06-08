@@ -576,7 +576,6 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
 <div id="toast"></div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
 var TODAY = new Date();
 var prods = [], rshist = [], pending = {};
 var imgPid = null, pendingB64 = null;
@@ -2271,7 +2270,7 @@ function _doOpenFax(){
 function showApp(){document.getElementById('loading').style.display='none';document.getElementById('app').style.display='block';}
 loadData().then(function(){showApp();loadOrdersData();setInterval(loadData,30000);}).catch(function(e){showApp();setSS('er');toast('接続エラー: '+(e.message||e));});
 
-}); // DOMContentLoaded
+
 </script>
 </body>
 </html>
