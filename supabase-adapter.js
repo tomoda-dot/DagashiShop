@@ -63,51 +63,44 @@ function run2(fn, a, b) {
 var gas_successHandler = null;
 var gas_failureHandler = function(e) { console.error('GAS error:', e); };
 
+// ── GasProxy クラス定義 ──────────────────────────────
+function GasProxy() {
+  this._success = null;
+  this._failure = function(e) { console.error(e); };
+}
+GasProxy.prototype.withSuccessHandler = function(fn) {
+  this._success = fn; return this;
+};
+GasProxy.prototype.withFailureHandler = function(fn) {
+  this._failure = fn; return this;
+};
+(function() {
+  var fns = [
+    'getAllData','updateProduct','addProduct','updateStock',
+    'addRestock','applyRestock','saveImageData','updateImg',
+    'saveSortOrder','getSuppliers','addSupplier','updateSupplier',
+    'deleteSupplier','getOrders','saveOrder','deleteOrder',
+    'receiveOrderItem','sendFaxEmail','getSettings','saveSettings',
+    'saveRegiDefaults','getTodaySalesData','saveOrderFromRegi',
+    'getSummaryData','saveClosingData','getDetailByDate',
+    'invalidateDetailRow','updateDetailRow','getSavingsData',
+    'addSavingsRow','testConnection'
+  ];
+  fns.forEach(function(name) {
+    GasProxy.prototype[name] = function(arg1, arg2) {
+      var self = this;
+      GAS[name](arg1, arg2)
+        .then(function(res) { if (self._success) self._success(res); })
+        .catch(function(e)  { if (self._failure) self._failure(e);  });
+    };
+  });
+})();
+
+// google.script.run 互換オブジェクト
+// google.script.run.withSuccessHandler(fn).someFunc(arg) の形で使える
 var google = {
   script: {
-    run: (function() {
-      function GasProxy() {
-        this._success = null;
-        this._failure = function(e) { console.error(e); };
-      }
-      GasProxy.prototype.withSuccessHandler = function(fn) {
-        this._success = fn; return this;
-      };
-      GasProxy.prototype.withFailureHandler = function(fn) {
-        this._failure = fn; return this;
-      };
-      // 各GAS関数を動的にプロキシ
-      var fns = [
-        'getAllData','updateProduct','addProduct','updateStock',
-        'addRestock','applyRestock','saveImageData','updateImg',
-        'saveSortOrder','getSuppliers','addSupplier','updateSupplier',
-        'deleteSupplier','getOrders','saveOrder','deleteOrder',
-        'receiveOrderItem','sendFaxEmail','getSettings','saveSettings',
-        'saveRegiDefaults','getTodaySalesData','saveOrderFromRegi',
-        'getSummaryData','saveClosingData','getDetailByDate',
-        'invalidateDetailRow','updateDetailRow','getSavingsData',
-        'addSavingsRow','testConnection'
-      ];
-      fns.forEach(function(name) {
-        GasProxy.prototype[name] = function(arg1, arg2) {
-          var self = this;
-          GAS[name](arg1, arg2)
-            .then(function(res) { if (self._success) self._success(res); })
-            .catch(function(e)  { if (self._failure) self._failure(e);  });
-        };
-      });
-      // run を返すたびに新しいプロキシを返す
-      var handler = {
-        get: function(target, prop) {
-          if (prop === 'run') return new GasProxy();
-          return target[prop];
-        }
-      };
-      // Proxy非対応ブラウザ対応のためfactoryで返す
-      return {
-        get run() { return new GasProxy(); }
-      };
-    })()
+    get run() { return new GasProxy(); }
   }
 };
 
