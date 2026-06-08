@@ -8,12 +8,18 @@
 function sbFetch(path, opts) {
   opts = opts || {};
   var url = SUPABASE_URL + '/rest/v1/' + path;
+  var method = opts.method || 'GET';
   var headers = {
     'apikey':        SUPABASE_ANON,
     'Authorization': 'Bearer ' + SUPABASE_ANON,
     'Content-Type':  'application/json',
     'Prefer':        opts.prefer || 'return=representation'
   };
+  // GETリクエストは最大10000件を取得
+  if (method === 'GET') {
+    headers['Range-Unit'] = 'items';
+    headers['Range'] = '0-9999';
+  }
   return fetch(url, {
     method:  opts.method  || 'GET',
     headers: headers,
