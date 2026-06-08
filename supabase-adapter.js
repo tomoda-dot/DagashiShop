@@ -263,6 +263,17 @@ GAS.applyRestock = function(restockId) {
 };
 
 
+
+// ─ getProductImgs（バッチ取得・ページ単位） ─
+GAS.getProductImgsBatch = function(ids) {
+  // idリストで画像を取得（最大50件ずつ）
+  var idStr = 'id=in.(' + ids.join(',') + ')';
+  return sbGet('products', idStr + '&select=id,img').then(function(rows) {
+    var map = {};
+    (rows || []).forEach(function(r) { map[r.id] = r.img || null; });
+    return map;
+  });
+};
 // ─ getProductImg（詳細表示時に個別取得） ─
 GAS.getProductImg = function(id) {
   return sbGet('products', 'id=eq.' + id + '&select=img').then(function(rows) {
