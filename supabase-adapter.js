@@ -632,87 +632,61 @@ GAS.updateDetailRow = function(rowNumber, values) {
 // ─ getSavingsData ─
 GAS.getSavingsData = function() {
   return Promise.all([
-    sbGet('order_items', 'select=order_code,ts,label,subtotal,status&limit=10000'),
-    sbGet('daily_summary', 'select=date,diff'),
-    sbGet('savings', 'select=*&order=date.asc')
+    sbGet('daily_summary', 'select=date,sales_total&order=date.asc'),
+    sbGet('savings',       'select=date,partner,content,withdrawal&order=date.asc')
   ]).then(function(results) {
-    var items    = results[0] || [];
-    var diffs    = results[1] || [];
-    var savings  = results[2] || [];
+    var daily   = results[0] || [];
+    var savings = results[1] || [];
 
-    // 日付別売上集計（JST基準で日付を取得）
-    var salesByDate = {};
-    items.forEach(function(r) {
-      if (r.status === '無効') return;
-      if ((r.label||'').indexOf('無料') >= 0) return;
-      var ts = r.ts || '';
-      if (!ts) return;
-      // SupabaseはUTCで返すのでJST(+9h)に変換して日付を取る
-      var jstMs = new Date(ts).getTime() + 9 * 60 * 60 * 1000;
-      var jstDate = new Date(jstMs);
-      var d = jstDate.getUTCFullYear() + '-'
-        + String(jstDate.getUTCMonth() + 1).padStart(2, '0') + '-'
-        + String(jstDate.getUTCDate()).padStart(2, '0');
-      if (!d) return;
-      salesByDate[d] = (salesByDate[d] || 0) + (r.subtotal || 0);
-    });
-
-    // 日付別過不足
-    var diffByDate = {};
-    diffs.forEach(function(r) { if (r.date) diffByDate[r.date] = r.diff || 0; });
-
+    // 全行をまとめて日付順ソート
     var allRows = [];
 
-    // 入金行
-    Object.keys(salesByDate).forEach(function(date) {
-      var s    = salesByDate[date];
-      var diff = diffByDate[date] || 0;
-      allRows.push({
-        type:       'deposit',
-        date:       date,
-        partner:    '',
-        content:    diff !== 0 ? '売上 ¥' + s.toLocaleString() + '（過不足 ' + (diff>0?'+':'') + diff + '）' : '売上',
-        deposit:    s + diff,
-        withdrawal: 0
-      });
+    // 入金行（日計表の売上）
+    daily.forEach(function(r) {
+      var sales = Number(r.sales_total) || 0;
+      if (!r.date || sales === 0) return;
+      allRows.push({ type:'deposit', date:r.date, partner:'', content:'売上', deposit:sales, withdrawal:0 });
     });
 
-    // 出金行
+    // 出金行（仕入れ等）
     savings.forEach(function(r) {
-      allRows.push({
-        type:       'withdrawal',
-        date:       r.date || '',
-        partner:    r.partner || '',
-        content:    r.content || '',
-        deposit:    0,
-        withdrawal: r.withdrawal || 0
-      });
+      var w = Number(r.withdrawal) || 0;
+      if (!r.date) return;
+      allRows.push({ type:'withdrawal', date:r.date, partner:r.partner||'', content:r.content||'', deposit:0, withdrawal:w });
     });
 
-    // 日付ソート
+    // 日付昇順ソート（同日は入金→出金の順）
     allRows.sort(function(a, b) {
-      var c = a.date.localeCompare(b.date);
-      if (c !== 0) return c;
+      if (a.date < b.date) return -1;
+      if (a.date > b.date) return 1;
       return a.type === 'deposit' ? -1 : 1;
     });
 
-    // 残高累積 & 前月繰越挿入
-    var balance  = 0;
+    // 残高累積 & 月変わりに前月繰越を挿入
+    var balance   = 0;
     var lastMonth = '';
-    var result   = [];
+    var result    = [];
+
     allRows.forEach(function(row) {
-      var month = row.date.substring(0, 7);
-      if (month !== lastMonth && lastMonth !== '') {
-        result.push({ type:'carryover', date:month+'-01', partner:'', content:'前月繰越', deposit:0, withdrawal:0, balance:balance });
+      var month = row.date.substring(0, 7); // "2026-06"
+      if (lastMonth && month !== lastMonth) {
+        // 月が変わったら前月繰越行を先頭に挿入
+        result.push({
+          type: 'carryover', date: month + '-01',
+          partner: '', content: '前月繰越',
+          deposit: 0, withdrawal: 0, balance: balance
+        });
       }
       lastMonth = month;
       balance += row.deposit - row.withdrawal;
       row.balance = balance;
       result.push(row);
     });
+
     return result;
   });
 };
+
 
 // ─ addSavingsRow ─
 GAS.addSavingsRow = function(rowData) {
