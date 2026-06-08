@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>📊 売上管理システム</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    body { background-color: #f1f5f9; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .loading-overlay { background: rgba(255,255,255,0.8); display: none; position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
+    .regi-container .input-label { font-size: 0.85rem; font-weight: bold; color: #475569; width: 70px; text-align: right; }
+    .regi-container .input-box { border: 2px solid #cbd5e1; border-radius: 6px; text-align: right; font-family: monospace; font-size: 0.9rem; width: 75px; padding: 1px 5px; background: #fff; }
+    .regi-container .step-btn { background: #e2e8f0; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: bold; cursor: pointer; color: #64748b; }
+    #notification { display: none; position: fixed; top: 20px; right: 20px; z-index: 1000; min-width: 250px; }
+    details summary::-webkit-details-marker { display: none; }
+
+    /* 明細テーブル */
+
+    /* 印刷用スタイル */
+    .no-print { }
+    .print-only { display: none !important; }
+    @media print {
+      body { background: white !important; height: auto !important; overflow: visible !important; }
+      header, nav, .no-print, .loading-overlay,
+      #content-summary, #content-regi, #content-detail, #content-config,
+      .edit-modal-overlay, #savings-add-modal { display: none !important; }
+
+      main { overflow: visible !important; height: auto !important; }
+      #content-savings {
+        display: flex !important; overflow: visible !important;
+        height: auto !important; padding: 0 !important;
+      }
+      #content-savings > div:last-child {
+        overflow: visible !important; height: auto !important;
+        box-shadow: none !important; border: none !important;
+      }
+
+      .print-only { display: block !important; }
+
+      .detail-table { font-size: 8pt; }
+      .detail-table th {
+        background: #333 !important; color: white !important;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        padding: 3px 6px; font-size: 7pt;
+      }
+      .detail-table td {
+        padding: 2px 6px; border-bottom: 1px solid #ccc;
+        font-size: 8pt; line-height: 1.3;
+      }
+      .detail-table tr.carryover-row td {
+        background: #e8f4f8 !important;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        border-top: 1.5px solid #666; border-bottom: 1.5px solid #666;
+      }
+      .detail-table tr.withdrawal-row td {
+        background: #fff0f0 !important;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 8mm 10mm;
+      }
+    }
+
+    .detail-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; table-layout: auto; }
+    .detail-table th {
+      background: #1e293b; color: white;
+      padding: 10px 12px; text-align: left;
+      font-size: 0.75rem; font-weight: 700;
+      letter-spacing: 0.05em; white-space: nowrap;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .detail-table td {
+      padding: 8px 12px; border-bottom: 1px solid #f1f5f9;
+      white-space: nowrap; color: #334155;
+      min-width: 60px;
+    }
+    .detail-table th:nth-child(7),
+    .detail-table td:nth-child(7) { min-width: 80px; }
+    .detail-table th:nth-child(8),
+    .detail-table td:nth-child(8),
+    .detail-table th:nth-child(9),
+    .detail-table td:nth-child(9) { min-width: 75px; }
+    .detail-table tr:hover td { background: #f8fafc; }
+    .detail-table tr.free-row td  { background: #fff7ed; }
+    .detail-table tr.disc-row td  { background: #fefce8; }
+    .detail-table tr.void-row td  { background: #f8fafc; color: #94a3b8; text-decoration: line-through; opacity: 0.6; }
+    .detail-table tr.carryover-row td {
+      background: #f0f9ff; font-weight: 700; color: #0369a1;
+      border-top: 2px solid #7dd3fc; border-bottom: 2px solid #7dd3fc;
+    }
+    .detail-table tr.deposit-row td  { }
+    .detail-table tr.withdrawal-row td { background: #fef2f2; }
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 999px; font-size: 0.7rem; font-weight: 700;
+    }
+    .badge-normal { background: #dbeafe; color: #1e40af; }
+    .badge-free   { background: #fed7aa; color: #9a3412; }
+    .badge-disc   { background: #fef08a; color: #854d0e; }
+    .badge-void   { background: #f1f5f9; color: #94a3b8; }
+
+    /* 操作ボタン */
+    .btn-edit {
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      color: #1d4ed8; border-radius: 6px; padding: 3px 8px;
+      font-size: 0.72rem; font-weight: 700; cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-void {
+      background: #fff1f2; border: 1px solid #fecdd3;
+      color: #be123c; border-radius: 6px; padding: 3px 8px;
+      font-size: 0.72rem; font-weight: 700; cursor: pointer;
+      white-space: nowrap; margin-left: 4px;
+    }
+    .btn-edit:hover { background: #dbeafe; }
+    .btn-void:hover { background: #ffe4e6; }
+
+    /* 編集モーダル */
+    .edit-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    .edit-modal-overlay.show { display: flex; }
+    .edit-modal {
+      background: white; border-radius: 16px;
+      padding: 24px; width: 90vw; max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .edit-modal h3 { font-size: 1rem; font-weight: 800; color: #1e293b; margin-bottom: 16px; }
+    .edit-field { display: flex; flex-direction: column; gap: 3px; margin-bottom: 12px; }
+    .edit-label { font-size: 0.72rem; font-weight: 700; color: #64748b; }
+    .edit-input {
+      border: 2px solid #e2e8f0; border-radius: 8px;
+      padding: 8px 10px; font-size: 0.9rem; color: #1e293b; outline: none;
+    }
+    .edit-input:focus { border-color: #3b82f6; }
+    .edit-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .btn-save-edit {
+      flex: 1; background: #2563eb; color: white; border: none;
+      border-radius: 10px; padding: 12px; font-weight: 800;
+      font-size: 0.95rem; cursor: pointer;
+    }
+    .btn-cancel-edit {
+      background: #f1f5f9; color: #64748b; border: none;
+      border-radius: 10px; padding: 12px; font-weight: 700;
+      font-size: 0.95rem; cursor: pointer;
+    }
+
+    /* 日付ピッカー */
+    #detail-date-input {
+      border: 2px solid #cbd5e1; border-radius: 8px;
+      padding: 6px 12px; font-size: 0.9rem; font-weight: 700;
+      color: #334155; outline: none; cursor: pointer;
+      background: white;
+    }
+    #detail-date-input:focus { border-color: #3b82f6; }
+
+    /* 集計バー */
+    .summary-bar {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      background: white; border-radius: 10px;
+      padding: 10px 16px; margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .summary-item { text-align: center; }
+    .summary-item .label { font-size: 0.68rem; color: #94a3b8; font-weight: 700; }
+    .summary-item .value { font-size: 1.1rem; font-weight: 800; color: #1e293b; }
+    .summary-item .value.green { color: #16a34a; }
+    .summary-item .value.red   { color: #dc2626; }
+  </style>
+<script src="supabase-config.js"></script>
+<script src="supabase-adapter.js"></script>
+</head>
+<body>
+
+  <div id="notification" class="p-4 rounded-lg shadow-xl font-bold text-white transition-all duration-300"></div>
+
+  <header class="bg-slate-800 text-white p-4 shadow-md flex justify-between items-center shrink-0">
+    <div class="flex items-center gap-3">
+      <button onclick="goMenu()" class="bg-slate-700 hover:bg-slate-600 p-2 rounded-full transition" title="メニューに戻る">
+        <span class="material-icons text-sm">home</span>
+      </button>
+      <span class="material-icons text-blue-400">analytics</span>
+      <h1 class="text-xl font-bold tracking-tight">売上管理システム</h1>
+    </div>
+    <div class="flex items-center gap-4 text-sm font-medium">
+      <span id="clock" class="font-mono bg-slate-700 px-3 py-1 rounded"></span>
+      <button onclick="loadData()" class="bg-blue-600 hover:bg-blue-500 p-2 rounded-full transition shadow-lg">
+        <span class="material-icons">refresh</span>
+      </button>
+    </div>
+  </header>
+
+  <nav class="bg-white flex border-b sticky z-40">
+    <button onclick="switchTab('summary')" id="tab-summary" class="flex-1 py-3 text-sm tab-active">📊 日計表</button>
+    <button onclick="switchTab('regi')"    id="tab-regi"    class="flex-1 py-3 text-sm text-gray-500">🧮 レジ締め入力</button>
+    <button onclick="switchTab('detail')"  id="tab-detail"  class="flex-1 py-3 text-sm text-gray-500">📋 明細管理</button>
+    <button onclick="switchTab('savings')" id="tab-savings" class="flex-1 py-3 text-sm text-gray-500">💰 積立金管理</button>
+    <button onclick="switchTab('config')"  id="tab-config"  class="flex-1 py-3 text-sm text-gray-500">⚙️ 設定</button>
+  </nav>
+
+  <main class="flex-1 overflow-hidden relative">
+    <div id="loading" class="loading-overlay">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+
+    <!-- 日計表 -->
+    <section id="content-summary" class="p-4 max-w-4xl mx-auto overflow-y-auto h-full">
+      <div class="flex items-center gap-3 mb-4">
+        <select id="month-selector" class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none" onchange="filterDataByMonth()"></select>
+        <span class="text-sm text-slate-400 font-medium" id="summary-count"></span>
+      </div>
+      <div id="summary-cards" class="grid gap-4"></div>
+    </section>
+
+    <!-- レジ締め入力 -->
+    <section id="content-regi" class="hidden h-full flex p-3 gap-3 overflow-hidden bg-slate-100 regi-container">
+      <div class="flex-[1.2] flex flex-col gap-3 h-full">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex-1 flex flex-col overflow-hidden">
+          <div class="flex justify-between items-center mb-3">
+            <h2 id="target-date-display" class="text-lg font-bold text-slate-700 italic">読み込み中...</h2>
+            <div class="flex items-center gap-2">
+              <button onclick="applyRegiDefaults(true)" class="bg-slate-200 hover:bg-slate-300 text-slate-600 px-3 py-1 rounded-lg text-xs font-bold transition">📥 初期値</button>
+              <select id="in-location" class="bg-blue-50 border-2 border-blue-200 text-blue-700 font-bold px-3 py-1 rounded-xl text-sm outline-none">
+                <option value="事業所" selected>事業所</option>
+                <option value="外販">外販</option>
+              </select>
+            </div>
+          </div>
+          <div id="denom-container" class="grid grid-cols-2 gap-x-8 gap-y-1 overflow-y-auto pr-2"></div>
+          <div class="pt-3 mt-1 border-t border-slate-100 flex justify-between items-end">
+            <div class="text-slate-400 font-bold text-xs tracking-widest uppercase">レジ内現金 合計</div>
+            <div id="total-actual" class="text-3xl font-black text-slate-800 font-mono tracking-tighter">¥0</div>
+          </div>
+        </div>
+      </div>
+      <div class="flex-1 flex flex-col gap-3">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <h3 class="text-center text-xs font-bold text-slate-400 tracking-[0.2em] uppercase mb-3">レジ締め照合結果</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between items-center border-b border-slate-50 pb-1">
+              <span class="text-slate-500 font-medium">固定準備金</span>
+              <div class="flex items-center gap-1">
+                <span class="text-slate-400 text-sm">¥</span>
+                <input type="number" id="in-fixed" class="font-bold font-mono text-right border-2 border-slate-200 rounded-lg px-2 py-1 w-28 outline-none focus:border-blue-300" value="33300" oninput="onFixedChange()">
+              </div>
+            </div>
+            <div class="flex justify-between items-center border-b border-slate-50 pb-1">
+              <span class="text-blue-600 font-bold">本日の売上合計</span>
+              <span id="disp-sales" class="font-bold font-mono text-blue-600">¥0</span>
+            </div>
+            <div class="py-2 flex justify-between items-center">
+              <span class="font-bold text-slate-700">過不足金</span>
+              <span id="total-diff" class="text-2xl font-black font-mono">¥0</span>
+            </div>
+            <div class="text-left">
+              <label class="text-xs font-bold text-slate-400 mb-1 block uppercase">備考</label>
+              <textarea id="in-memo" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-2 text-sm focus:border-blue-300 outline-none transition" rows="2" placeholder="備考を入力"></textarea>
+            </div>
+            <button onclick="executeSave()" id="save-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl font-bold text-sm shadow flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+              <span class="material-icons text-sm">cloud_done</span> 保存して確定
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 明細管理 -->
+    <section id="content-detail" class="hidden h-full flex flex-col p-4 gap-3 overflow-hidden">
+
+      <!-- 操作バー -->
+      <div class="flex items-center gap-3 flex-shrink-0">
+        <label class="text-sm font-bold text-slate-600">📅 日付：</label>
+        <input type="date" id="detail-date-input" onchange="loadDetailData()">
+        <button onclick="loadDetailData()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+          <span class="material-icons text-sm">search</span> 表示
+        </button>
+        <span id="detail-status" class="text-sm text-slate-400 font-medium"></span>
+      </div>
+
+      <!-- 集計バー -->
+      <div class="summary-bar flex-shrink-0" id="detail-summary-bar" style="display:none;">
+        <div class="summary-item">
+          <div class="label">会計件数</div>
+          <div class="value" id="d-count">0</div>
+        </div>
+        <div class="summary-item">
+          <div class="label">売上合計</div>
+          <div class="value green" id="d-total">¥0</div>
+        </div>
+        <div class="summary-item">
+          <div class="label">割引合計</div>
+          <div class="value red" id="d-discount">¥0</div>
+        </div>
+        <div class="summary-item">
+          <div class="label">割引後売上</div>
+          <div class="value" style="color:#0369a1;" id="d-net">¥0</div>
+        </div>
+        <div class="summary-item">
+          <div class="label">無料（当たり）</div>
+          <div class="value" id="d-free">0件</div>
+        </div>
+        <div class="summary-item">
+          <div class="label">明細行数</div>
+          <div class="value" id="d-rows">0</div>
+        </div>
+      </div>
+
+      <!-- テーブル -->
+      <div class="flex-1 overflow-auto bg-white rounded-xl shadow-sm border border-slate-200 min-h-0">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>注文ID</th>
+              <th>日時</th>
+              <th>種別</th>
+              <th>商品名</th>
+              <th>単価</th>
+              <th>個数</th>
+              <th>小計</th>
+              <th>預り金</th>
+              <th>おつり</th>
+              <th>状態</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="detail-tbody">
+            <tr><td colspan="10" class="text-center text-slate-400 py-12">日付を選択して「表示」を押してください</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 積立金管理 -->
+    <section id="content-savings" class="hidden h-full flex flex-col p-4 gap-3 overflow-hidden">
+
+      <!-- 操作バー -->
+      <div class="flex items-center gap-3 flex-shrink-0 no-print">
+        <select id="savings-month-selector" class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none" onchange="filterSavingsByMonth()"></select>
+        <button onclick="loadSavingsData()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+          <span class="material-icons text-sm">refresh</span> 更新
+        </button>
+        <button onclick="openSavingsAddModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+          <span class="material-icons text-sm">add</span> 出金を追加
+        </button>
+        <button onclick="printSavings()" class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+          <span class="material-icons text-sm">print</span> 印刷
+        </button>
+        <span id="savings-status" class="text-sm text-slate-400 font-medium"></span>
+        <div class="ml-auto flex items-center gap-4">
+          <div class="text-right">
+            <div class="text-xs text-slate-400 font-bold">現在の残高（工賃原資）</div>
+            <div class="text-2xl font-black text-emerald-600" id="savings-balance-total">¥0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 印刷用ヘッダー（画面では非表示） -->
+      <div id="print-header" class="print-only" style="display:none;">
+        <h2 style="font-size:1rem;font-weight:800;margin-bottom:2px;">💰 積立金管理表</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span id="print-month" style="font-size:0.8rem;color:#555;"></span>
+          <span id="print-balance" style="font-size:0.85rem;font-weight:800;color:#16a34a;"></span>
+        </div>
+      </div>
+
+      <!-- テーブル -->
+      <div class="flex-1 overflow-auto bg-white rounded-xl shadow-sm border border-slate-200 min-h-0">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>日付</th>
+              <th>取引先</th>
+              <th>内容</th>
+              <th class="text-right">入金額（積立）</th>
+              <th class="text-right">出金額（使用）</th>
+              <th class="text-right">残高（工賃原資）</th>
+            </tr>
+          </thead>
+          <tbody id="savings-tbody">
+            <tr><td colspan="6" class="text-center text-slate-400 py-12">「更新」を押してデータを読み込んでください</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 設定 -->
+    <section id="content-config" class="hidden h-full overflow-y-auto p-4 max-w-4xl mx-auto">
+
+      <!-- レジ締め初期値設定 -->
+      <div class="card p-5">
+        <h3 class="font-bold text-slate-700 text-base mb-4">🧮 レジ締め初期値</h3>
+        <div class="mb-4">
+          <div class="flex items-center gap-3 mb-3 bg-blue-50 rounded-lg px-4 py-3 border-2 border-blue-200">
+            <span class="text-sm font-bold text-blue-700 w-28">固定準備金</span>
+            <span class="text-2xl font-black font-mono text-blue-700" id="cfg-fixed-cash-display">¥33,300</span>
+            <input type="hidden" id="cfg-fixed-cash" value="33300">
+          </div>
+          <div class="text-xs font-bold text-slate-400 mb-2">金種の標準枚数（変更すると固定準備金が自動計算されます）</div>
+          <div class="grid grid-cols-3 gap-2">
+            <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+              <span class="text-xs font-bold text-slate-500 w-16 text-right">10,000円</span>
+              <input type="number" id="cfg-d-10000" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="0" min="0" oninput="calcCfgFixed()">
+            </div>
+            <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+              <span class="text-xs font-bold text-slate-500 w-16 text-right">5,000円</span>
+              <input type="number" id="cfg-d-5000" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="2" min="0" oninput="calcCfgFixed()">
+            </div>
+            <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+              <span class="text-xs font-bold text-slate-500 w-16 text-right">1,000円</span>
+              <input type="number" id="cfg-d-1000" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="10" min="0" oninput="calcCfgFixed()">
+            </div>
+            <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+              <span class="text-xs font-bold text-slate-500 w-16 text-right">500円</span>
+              <input type="number" id="cfg-d-500" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="20" min="0" oninput="calcCfgFixed()">
+            </div>
+            <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+              <span class="text-xs font-bold text-slate-500 w-16 text-right">100円</span>
+              <input type="number" id="cfg-d-100" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="20" min="0" oninput="calcCfgFixed()">
+            </div>
+            <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+              <span class="text-xs font-bold text-slate-500 w-16 text-right">50円</span>
+              <input type="number" id="cfg-d-50" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="20" min="0" oninput="calcCfgFixed()">
+            </div>
+            <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+              <span class="text-xs font-bold text-slate-500 w-16 text-right">10円</span>
+              <input type="number" id="cfg-d-10" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="20" min="0" oninput="calcCfgFixed()">
+            </div>
+            <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+              <span class="text-xs font-bold text-slate-500 w-16 text-right">5円</span>
+              <input type="number" id="cfg-d-5" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="20" min="0" oninput="calcCfgFixed()">
+            </div>
+            <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+              <span class="text-xs font-bold text-slate-500 w-16 text-right">1円</span>
+              <input type="number" id="cfg-d-1" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="0" min="0" oninput="calcCfgFixed()">
+            </div>
+          </div>
+        </div>
+        <button onclick="cfgSaveRegiDefaults()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
+          💾 レジ締め初期値を保存
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- 積立金 出金追加モーダル -->
+  <div class="edit-modal-overlay" id="savings-add-modal">
+    <div class="edit-modal">
+      <h3>💸 出金（使用）を追加</h3>
+      <div class="edit-field">
+        <label class="edit-label">日付</label>
+        <input type="date" id="savings-date-input" class="edit-input">
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">取引先</label>
+        <input type="text" id="savings-partner" class="edit-input" placeholder="例：○○商店">
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">内容</label>
+        <input type="text" id="savings-content" class="edit-input" placeholder="例：工賃支払い">
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">出金額（円）</label>
+        <input type="number" id="savings-withdrawal" class="edit-input" placeholder="0" min="0">
+      </div>
+      <div class="edit-actions">
+        <button class="btn-cancel-edit" onclick="closeSavingsAddModal()">キャンセル</button>
+        <button class="btn-save-edit"   onclick="saveSavingsRow()">💾 追加する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 明細編集モーダル -->
+  <div class="edit-modal-overlay" id="edit-modal-overlay">
+    <div class="edit-modal">
+      <h3>✏️ 明細を編集</h3>
+      <input type="hidden" id="edit-row-number">
+      <div class="edit-field">
+        <label class="edit-label">注文ID</label>
+        <input type="text" id="edit-order-id" class="edit-input">
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">日時</label>
+        <input type="text" id="edit-timestamp" class="edit-input" placeholder="2026/04/24 13:00">
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">商品名</label>
+        <input type="text" id="edit-label" class="edit-input">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+        <div class="edit-field">
+          <label class="edit-label">単価（円）</label>
+          <input type="number" id="edit-price" class="edit-input">
+        </div>
+        <div class="edit-field">
+          <label class="edit-label">個数</label>
+          <input type="number" id="edit-qty" class="edit-input">
+        </div>
+        <div class="edit-field">
+          <label class="edit-label">小計（円）</label>
+          <input type="number" id="edit-subtotal" class="edit-input">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="edit-field">
+          <label class="edit-label">預り金（円）</label>
+          <input type="number" id="edit-deposit" class="edit-input">
+        </div>
+        <div class="edit-field">
+          <label class="edit-label">おつり（円）</label>
+          <input type="number" id="edit-change" class="edit-input">
+        </div>
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">状態</label>
+        <select id="edit-status" class="edit-input">
+          <option value="有効">有効</option>
+          <option value="無効">無効</option>
+        </select>
+      </div>
+      <div class="edit-actions">
+        <button class="btn-cancel-edit" onclick="closeEditModal()">キャンセル</button>
+        <button class="btn-save-edit"   onclick="saveEdit()">💾 保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DISPLAY_ORDER = [10000, 50, 5000, 10, 1000, 5, 500, 1, 100];
+    const ALL_DENOMS    = [10000, 5000, 1000, 500, 100, 50, 10, 5, 1];
+    let g_fixed = 33300, g_sales = 0, g_currentDate = "";
+    let g_allData = [];
+
+    // ── メニューに戻る ─────────────────────────────
+    function goMenu() {
+      var baseUrl = location.href.split('?')[0];
+      location.href = baseUrl + '?page=menu';
+    }
+
+    // ── タブ切り替え ──────────────────────────────
+    function switchTab(tab) {
+      ['summary','regi','detail','savings','config'].forEach(t => {
+        document.getElementById('content-' + t).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById('tab-' + t);
+        btn.className = t === tab
+          ? 'flex-1 py-3 text-sm tab-active'
+          : 'flex-1 py-3 text-sm text-gray-500';
+      });
+      if (tab === 'detail')  initDetailDate();
+      if (tab === 'savings') {
+        if (!document.getElementById('savings-month-selector').options.length) initSavingsMonthSelector();
+        loadSavingsData();
+      }
+      if (tab === 'config') loadConfigData();
+    }
+
+    // ── 月選択 ───────────────────────────────────
+    function initMonthSelector() {
+      const sel = document.getElementById('month-selector');
+      const now = new Date();
+      sel.innerHTML = '';
+      for (let i = -6; i <= 1; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        const y = d.getFullYear(), m = d.getMonth() + 1;
+        const val = `${y}/${m.toString().padStart(2,'0')}`;
+        const opt = document.createElement('option');
+        opt.value = val; opt.innerText = `${y}年 ${m}月`;
+        if (i === 0) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+
+    // ── 日計表 ───────────────────────────────────
+    function loadData() {
+      document.getElementById('loading').style.display = 'flex';
+      google.script.run.withSuccessHandler((data) => {
+        g_allData = data;
+        filterDataByMonth();
+        if (data && data.length > 0) {
+          const t = data[0];
+          g_currentDate = t["日付"];
+          document.getElementById('target-date-display').innerText = g_currentDate + " のレジ締め";
+          g_fixed = Number(t["固定準備金"]) || parseInt(document.getElementById('in-fixed').value) || 33300;
+          g_sales = Number(t["今日の売上合計"] || 0);
+          document.getElementById('in-fixed').value = g_fixed;
+          document.getElementById('disp-sales').innerText = '¥' + g_sales.toLocaleString();
+          if (t["販売場所"]) document.getElementById('in-location').value = t["販売場所"];
+          document.getElementById('in-memo').value = t["備考"] || "";
+          calculate();
+        }
+        document.getElementById('loading').style.display = 'none';
+      }).getSummaryData();
+    }
+
+    function filterDataByMonth() {
+      const sel = document.getElementById('month-selector').value;
+      renderSummary(g_allData.filter(item => item["日付"] && item["日付"].startsWith(sel)));
+    }
+
+    function renderSummary(data) {
+      const container = document.getElementById('summary-cards');
+      if (!data || data.length === 0) {
+        container.innerHTML = `<p class="text-center text-gray-500 mt-10">データがありません</p>`;
+        return;
+      }
+      container.innerHTML = data.map(item => {
+        const diff = item["過不足"] || 0;
+        const diffColor = diff < 0 ? 'text-red-600' : (diff > 0 ? 'text-green-600' : 'text-gray-600');
+        return `
+          <div class="card p-4 border-l-4 ${diff < 0 ? 'border-red-500' : 'border-blue-500'}">
+            <div class="flex justify-between items-start mb-2 text-left">
+              <div>
+                <h3 class="font-bold text-lg text-gray-800">${item["日付"]}</h3>
+                <p class="text-xs text-gray-500 font-mono">📍 ${item["販売場所"] || '---'}</p>
+              </div>
+              <span class="text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-400">更新: ${item["最終更新時刻"] || '---'}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mt-3 text-left">
+              <div class="bg-blue-50 p-2 rounded">
+                <p class="text-[10px] text-blue-600 font-bold uppercase">売上合計</p>
+                <p class="text-lg font-bold text-blue-800">¥${Number(item["今日の売上合計"]).toLocaleString()}</p>
+              </div>
+              <div class="${diff < 0 ? 'bg-red-50' : 'bg-green-50'} p-2 rounded">
+                <p class="text-[10px] font-bold uppercase">過不足</p>
+                <p class="text-lg font-bold ${diffColor}">¥${Number(diff).toLocaleString()}</p>
+              </div>
+            </div>
+            <details class="mt-4 border-t pt-2">
+              <summary class="text-xs text-gray-400 cursor-pointer hover:text-gray-600">詳細を表示</summary>
+              <div class="grid grid-cols-2 gap-2 mt-2 text-sm text-gray-600 text-left">
+                <p>準備金: ¥${Number(item["固定準備金"]).toLocaleString()}</p>
+                <p>レジ内現金残高: ¥${Number(item["レジ内現金残高"]).toLocaleString()}</p>
+                <p>レジにあるべき現金: ¥${Number(item["レジにあるべき現金"]).toLocaleString()}</p>
+                <p>銀行入金額: ¥${Number(item["銀行入金額"]).toLocaleString()}</p>
+              </div>
+              ${item["備考"] ? `<p class="mt-2 p-2 bg-yellow-50 text-xs rounded border border-yellow-100 italic">📝 ${item["備考"]}</p>` : ''}
+            </details>
+          </div>`;
+      }).join('');
+    }
+
+    // ── レジ締め ─────────────────────────────────
+    function initInputs() {
+      const container = document.getElementById('denom-container');
+      container.innerHTML = DISPLAY_ORDER.map(v => `
+        <div class="flex items-center justify-between p-1 hover:bg-slate-50 rounded-lg transition">
+          <label class="input-label">${v.toLocaleString()}円</label>
+          <div class="flex items-center gap-2 ml-3">
+            <div class="step-btn" onclick="step(${v}, -1)">−</div>
+            <input type="number" id="in-${v}" class="input-box" value="0" min="0" oninput="calculate()">
+            <div class="step-btn" onclick="step(${v}, 1)">＋</div>
+          </div>
+        </div>`).join('');
+    }
+
+    function step(v, d) {
+      const el = document.getElementById(`in-${v}`);
+      el.value = Math.max(0, (parseInt(el.value) || 0) + d);
+      calculate();
+    }
+
+    function calculate() {
+      let sum = 0;
+      ALL_DENOMS.forEach(v => {
+        const el = document.getElementById(`in-${v}`);
+        if (el) sum += v * (parseInt(el.value) || 0);
+      });
+      document.getElementById('total-actual').innerText = '¥' + sum.toLocaleString();
+      const diff = sum - (g_fixed + g_sales);
+      const dEl = document.getElementById('total-diff');
+      dEl.innerText = (diff > 0 ? '+' : '') + diff.toLocaleString();
+      dEl.style.color = diff === 0 ? "#10b981" : (diff < 0 ? "#f43f5e" : "#f59e0b");
+    }
+
+    function onFixedChange() {
+      g_fixed = parseInt(document.getElementById('in-fixed').value) || 0;
+      calculate();
+    }
+
+    function executeSave() {
+      const btn = document.getElementById('save-btn');
+      btn.disabled = true;
+      const actual = parseInt(document.getElementById('total-actual').innerText.replace(/[¥,]/g,''));
+      google.script.run.withSuccessHandler(msg => {
+        showNotify(msg, 'success');
+        btn.disabled = false;
+        loadData();
+      }).saveClosingData({
+        date: g_currentDate,
+        actualCash: actual,
+        fixedCash: parseInt(document.getElementById('in-fixed').value) || 33300,
+        location: document.getElementById('in-location').value,
+        memo: document.getElementById('in-memo').value
+      });
+    }
+
+    // ── 明細管理 ─────────────────────────────────
+    function initDetailDate() {
+      const el = document.getElementById('detail-date-input');
+      if (!el.value) {
+        const now = new Date();
+        el.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        loadDetailData();
+      }
+    }
+
+    function loadDetailData() {
+      const dateInput = document.getElementById('detail-date-input').value;
+      if (!dateInput) return;
+
+      // yyyy-mm-dd → yyyy/MM/dd に変換してシートの形式に合わせる
+      const parts = dateInput.split('-');
+      const searchDate = `${parts[0]}/${parts[1]}/${parts[2]}`;
+
+      document.getElementById('detail-status').textContent = '読み込み中...';
+      document.getElementById('detail-summary-bar').style.display = 'none';
+
+      google.script.run
+        .withSuccessHandler(function(rows) {
+          renderDetailTable(rows, searchDate);
+        })
+        .withFailureHandler(function(e) {
+          document.getElementById('detail-status').textContent = 'エラー: ' + e.message;
+        })
+        .getDetailByDate(searchDate);
+    }
+
+    function renderDetailTable(rows, date) {
+      const tbody = document.getElementById('detail-tbody');
+
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center text-slate-400 py-12">${date} のデータはありません</td></tr>`;
+        document.getElementById('detail-status').textContent = '0件';
+        document.getElementById('detail-summary-bar').style.display = 'none';
+        return;
+      }
+
+      // 集計（有効行のみ）
+      const orderIds = new Set();
+      let totalSales = 0, totalDisc = 0, freeCount = 0;
+
+      rows.forEach(r => {
+        if (String(r[8]) === '無効') return;
+        orderIds.add(r[0]);
+        const label    = String(r[2] || '');
+        const subtotal = Number(r[5]) || 0;
+        if (label.includes('割引')) totalDisc += Math.abs(subtotal);
+        else if (label.includes('無料')) freeCount++;
+        else totalSales += subtotal;
+      });
+
+      document.getElementById('d-count').textContent    = orderIds.size + '件';
+      document.getElementById('d-total').textContent    = '¥' + totalSales.toLocaleString();
+      document.getElementById('d-discount').textContent = '¥' + totalDisc.toLocaleString();
+      document.getElementById('d-net').textContent      = '¥' + (totalSales - totalDisc).toLocaleString();
+      document.getElementById('d-free').textContent     = freeCount + '件';
+      document.getElementById('d-rows').textContent     = rows.length + '行';
+      document.getElementById('detail-summary-bar').style.display = 'flex';
+      document.getElementById('detail-status').textContent = rows.length + '件';
+
+      tbody.innerHTML = rows.map(r => {
+        const label   = String(r[2] || '');
+        const status  = String(r[8] || '');
+        const rowNum  = r[9]; // 行番号
+        const isVoid  = status === '無効';
+        const isDisc  = label.includes('割引');
+        const isFree  = label.includes('無料');
+
+        let rowClass = isVoid ? 'void-row' : (isDisc ? 'disc-row' : (isFree ? 'free-row' : ''));
+        let badge    = isVoid
+          ? `<span class="badge badge-void">無効</span>`
+          : isDisc ? `<span class="badge badge-disc">割引</span>`
+          : isFree ? `<span class="badge badge-free">無料</span>`
+          : `<span class="badge badge-normal">通常</span>`;
+
+        const price    = Number(r[3]);
+        const qty      = Number(r[4]) || 1;
+        const subtotal = Number(r[5]);
+        const deposit  = Number(r[6]);
+        const change   = Number(r[7]);
+
+        // 操作ボタン（無効行には「有効に戻す」を表示）
+        const ops = isVoid
+          ? `<button class="btn-edit" onclick='openEditModal(${JSON.stringify(r)})'>✏️ 編集</button>`
+          : `<button class="btn-edit" onclick='openEditModal(${JSON.stringify(r)})'>✏️ 編集</button>
+             <button class="btn-void" onclick="voidRow(${rowNum})">🚫 無効</button>`;
+
+        return `<tr class="${rowClass}">
+          <td class="font-mono text-xs text-slate-400">${String(r[0]).replace('ID:','')}</td>
+          <td>${r[1] || ''}</td>
+          <td>${badge}</td>
+          <td class="font-semibold">${label}</td>
+          <td class="text-right font-mono">${price.toLocaleString()}円</td>
+          <td class="text-center">${qty}</td>
+          <td class="text-right font-mono font-bold ${isDisc?'text-amber-600':'text-blue-600'}">${subtotal.toLocaleString()}円</td>
+          <td class="text-right font-mono text-slate-500">${deposit ? deposit.toLocaleString()+'円' : '-'}</td>
+          <td class="text-right font-mono text-slate-500">${change!==undefined&&change!==''?change.toLocaleString()+'円':'-'}</td>
+          <td><span class="text-xs ${isVoid?'text-slate-400':'text-slate-600'}">${status}</span></td>
+          <td>${ops}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ── 無効化 ────────────────────────────────────
+    function voidRow(rowNumber) {
+      if (!confirm('この行を「無効」にしますか？')) return;
+      google.script.run
+        .withSuccessHandler(function(msg) {
+          showNotify(msg, 'success');
+          loadDetailData();
+        })
+        .withFailureHandler(function(e) {
+          showNotify('エラー: ' + e.message, 'error');
+        })
+        .invalidateDetailRow(rowNumber);
+    }
+
+    // ── 編集モーダル ──────────────────────────────
+    function openEditModal(r) {
+      document.getElementById('edit-row-number').value  = r[9];
+      document.getElementById('edit-order-id').value   = r[0] || '';
+      document.getElementById('edit-timestamp').value  = r[1] || '';
+      document.getElementById('edit-label').value      = r[2] || '';
+      document.getElementById('edit-price').value      = r[3] || 0;
+      document.getElementById('edit-qty').value        = r[4] || 1;
+      document.getElementById('edit-subtotal').value   = r[5] || 0;
+      document.getElementById('edit-deposit').value    = r[6] || 0;
+      document.getElementById('edit-change').value     = r[7] || 0;
+      document.getElementById('edit-status').value     = r[8] || '有効';
+      document.getElementById('edit-modal-overlay').classList.add('show');
+    }
+    function closeEditModal() {
+      document.getElementById('edit-modal-overlay').classList.remove('show');
+    }
+    function saveEdit() {
+      const rowNumber = parseInt(document.getElementById('edit-row-number').value);
+      const values = [
+        document.getElementById('edit-order-id').value,
+        document.getElementById('edit-timestamp').value,
+        document.getElementById('edit-label').value,
+        parseFloat(document.getElementById('edit-price').value) || 0,
+        parseInt(document.getElementById('edit-qty').value)     || 1,
+        parseFloat(document.getElementById('edit-subtotal').value) || 0,
+        parseFloat(document.getElementById('edit-deposit').value)  || 0,
+        parseFloat(document.getElementById('edit-change').value)   || 0,
+        document.getElementById('edit-status').value,
+      ];
+      google.script.run
+        .withSuccessHandler(function(msg) {
+          showNotify(msg, 'success');
+          closeEditModal();
+          loadDetailData();
+        })
+        .withFailureHandler(function(e) {
+          showNotify('エラー: ' + e.message, 'error');
+        })
+        .updateDetailRow(rowNumber, values);
+    }
+
+    // ── 積立金管理 ───────────────────────────────
+    function loadSavingsData() {
+      document.getElementById('savings-status').textContent = '読み込み中...';
+      google.script.run
+        .withSuccessHandler(function(rows) {
+          renderSavingsTable(rows);
+        })
+        .withFailureHandler(function(e) {
+          document.getElementById('savings-status').textContent = 'エラー: ' + e.message;
+        })
+        .getSavingsData();
+    }
+
+    function renderSavingsTable(rows) {
+      const tbody = document.getElementById('savings-tbody');
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-slate-400 py-12">データがありません。「新規追加」で追加してください</td></tr>`;
+        document.getElementById('savings-status').textContent = '0件';
+        document.getElementById('savings-balance-total').textContent = '¥0';
+        return;
+      }
+
+      document.getElementById('savings-status').textContent = rows.length + '件';
+      const lastBalance = rows[rows.length - 1].balance;
+      document.getElementById('savings-balance-total').textContent = '¥' + lastBalance.toLocaleString();
+
+      tbody.innerHTML = rows.map(r => {
+        const hasWithdrawal = r.withdrawal > 0;
+        return `<tr>
+          <td class="font-mono text-sm">${r.date}</td>
+          <td class="text-slate-600">${r.partner || ''}</td>
+          <td class="text-slate-600">${r.content || ''}</td>
+          <td class="text-right font-mono font-bold text-blue-600">${r.deposit > 0 ? '¥' + r.deposit.toLocaleString() : '-'}</td>
+          <td class="text-right font-mono font-bold ${hasWithdrawal ? 'text-red-500' : 'text-slate-300'}">${hasWithdrawal ? '¥' + r.withdrawal.toLocaleString() : '-'}</td>
+          <td class="text-right font-mono font-black text-emerald-600 text-base">¥${r.balance.toLocaleString()}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ── 積立金管理 ───────────────────────────────
+    function initSavingsMonthSelector() {
+      const sel = document.getElementById('savings-month-selector');
+      const now = new Date();
+      sel.innerHTML = '';
+      for (let i = -6; i <= 1; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        const y = d.getFullYear(), m = d.getMonth() + 1;
+        const val = `${y}/${m.toString().padStart(2,'0')}`;
+        const opt = document.createElement('option');
+        opt.value = val; opt.innerText = `${y}年 ${m}月`;
+        if (i === 0) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+
+    let g_allSavingsData = [];
+
+    function loadSavingsData() {
+      document.getElementById('savings-status').textContent = '読み込み中...';
+      google.script.run
+        .withSuccessHandler(function(rows) {
+          g_allSavingsData = rows || [];
+          filterSavingsByMonth();
+        })
+        .withFailureHandler(function(e) {
+          document.getElementById('savings-status').textContent = 'エラー: ' + e.message;
+        })
+        .getSavingsData();
+    }
+
+    function filterSavingsByMonth() {
+      const selectedMonth = document.getElementById('savings-month-selector').value;
+
+      // 全データから最新残高を取得
+      const lastRow = g_allSavingsData.length > 0
+        ? g_allSavingsData[g_allSavingsData.length - 1]
+        : null;
+      const currentBalance = lastRow ? lastRow.balance : 0;
+      document.getElementById('savings-balance-total').textContent = '¥' + currentBalance.toLocaleString();
+
+      // 選択月のデータをフィルタ
+      const monthRows = g_allSavingsData.filter(r => {
+        if (r.type === 'carryover') return r.date.startsWith(selectedMonth);
+        return r.date.startsWith(selectedMonth);
+      });
+
+      // 前月繰越を計算（選択月より前のデータの最終残高）
+      let carryover = 0;
+      g_allSavingsData.forEach(r => {
+        if (r.type === 'carryover') return;
+        if (r.date < selectedMonth + '/01') {
+          carryover = r.balance;
+        }
+      });
+
+      renderSavingsTable(monthRows, carryover, selectedMonth);
+    }
+
+    function renderSavingsTable(rows, carryover, month) {
+      const tbody = document.getElementById('savings-tbody');
+
+      if ((!rows || rows.length === 0) && carryover === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-slate-400 py-12">この月のデータはありません</td></tr>`;
+        document.getElementById('savings-status').textContent = '0件';
+        return;
+      }
+
+      document.getElementById('savings-status').textContent = rows.length + '件';
+
+      let html = '';
+
+      // 前月繰越行を先頭に表示
+      if (carryover !== 0) {
+        html += `<tr class="carryover-row">
+          <td class="font-mono text-sm">${month}/01</td>
+          <td></td>
+          <td>📋 前月繰越</td>
+          <td></td>
+          <td></td>
+          <td class="text-right font-mono font-black text-sky-700 text-base">¥${carryover.toLocaleString()}</td>
+        </tr>`;
+      }
+
+      // 降順に並べて表示
+      const reversed = [...rows].filter(r => r.type !== 'carryover').reverse();
+
+      html += reversed.map(r => {
+        const isDeposit = r.type === 'deposit';
+        const rowClass  = isDeposit ? 'deposit-row' : 'withdrawal-row';
+
+        return `<tr class="${rowClass}">
+          <td class="font-mono text-sm">${r.date}</td>
+          <td class="text-slate-600">${r.partner || ''}</td>
+          <td class="text-slate-600">${r.content || ''}</td>
+          <td class="text-right font-mono font-bold text-blue-600">${r.deposit > 0 ? '¥' + r.deposit.toLocaleString() : ''}</td>
+          <td class="text-right font-mono font-bold ${r.withdrawal > 0 ? 'text-red-500' : ''}">${r.withdrawal > 0 ? '¥' + r.withdrawal.toLocaleString() : ''}</td>
+          <td class="text-right font-mono font-black text-emerald-600 text-base">¥${r.balance.toLocaleString()}</td>
+        </tr>`;
+      }).join('');
+
+      tbody.innerHTML = html;
+    }
+
+    function openSavingsAddModal() {
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      document.getElementById('savings-date-input').value = dateStr;
+      document.getElementById('savings-partner').value    = '';
+      document.getElementById('savings-content').value    = '';
+      document.getElementById('savings-withdrawal').value = '';
+      document.getElementById('savings-add-modal').classList.add('show');
+    }
+
+    function closeSavingsAddModal() {
+      document.getElementById('savings-add-modal').classList.remove('show');
+    }
+
+    function printSavings() {
+      const sel = document.getElementById('savings-month-selector');
+      const monthLabel = sel.options[sel.selectedIndex].innerText;
+      const balance = document.getElementById('savings-balance-total').textContent;
+
+      // テーブルのHTMLを取得
+      var tableEl = document.querySelector('#content-savings .detail-table');
+      var tableHTML = tableEl.outerHTML;
+
+      // 別ウィンドウで印刷（元の全画面は維持される）
+      var pw = window.open('', '_blank', 'width=900,height=700');
+      pw.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+        <title>積立金管理表 印刷</title>
+        <style>
+          body { font-family: sans-serif; padding: 20px; color: #333; }
+          h2 { font-size: 1.2rem; margin-bottom: 4px; }
+          .meta { font-size: 0.9rem; color: #555; margin-bottom: 2px; }
+          .balance { font-size: 1rem; font-weight: 800; color: #16a34a; margin-bottom: 16px; }
+          table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+          th { background: #333; color: white; padding: 6px 10px; text-align: left;
+               font-size: 8pt; font-weight: 700; white-space: nowrap;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          td { padding: 4px 10px; border-bottom: 1px solid #ccc; white-space: nowrap; }
+          tr.carryover-row td { background: #e8f4f8 !important; font-weight: 700; color: #0369a1;
+               border-top: 2px solid #666; border-bottom: 2px solid #666;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          tr.withdrawal-row td { background: #fff0f0 !important;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          @page { size: A4 portrait; margin: 8mm 10mm; }
+          @media print { .no-print { display: none; } }
+        </style>
+      </head><body>
+        <h2>💰 積立金管理表</h2>
+        <p class="meta">対象月：${monthLabel}</p>
+        <p class="balance">現在の残高（工賃原資）：${balance}</p>
+        ${tableHTML}
+        <div class="no-print" style="margin-top:20px;text-align:center;">
+          <button onclick="window.print()" style="padding:10px 30px;font-size:1rem;font-weight:700;
+            background:#2563eb;color:white;border:none;border-radius:10px;cursor:pointer;">
+            🖨 印刷する
+          </button>
+          <button onclick="window.close()" style="padding:10px 30px;font-size:1rem;font-weight:700;
+            background:#e5e7eb;color:#333;border:none;border-radius:10px;cursor:pointer;margin-left:10px;">
+            閉じる
+          </button>
+        </div>
+      </body></html>`);
+      pw.document.close();
+    }
+
+    function saveSavingsRow() {
+      const dateInput  = document.getElementById('savings-date-input').value;
+      const partner    = document.getElementById('savings-partner').value.trim();
+      const content    = document.getElementById('savings-content').value.trim();
+      const withdrawal = parseInt(document.getElementById('savings-withdrawal').value) || 0;
+
+      if (!dateInput)     { showNotify('日付を選択してください', 'error'); return; }
+      if (withdrawal <= 0) { showNotify('出金額を入力してください', 'error'); return; }
+
+      const parts = dateInput.split('-');
+      const dateStr = `${parts[0]}/${parts[1]}/${parts[2]}`;
+
+      google.script.run
+        .withSuccessHandler(function(msg) {
+          showNotify(msg, 'success');
+          closeSavingsAddModal();
+          loadSavingsData();
+        })
+        .withFailureHandler(function(e) {
+          showNotify('エラー: ' + e.message, 'error');
+        })
+        .addSavingsRow({ date: dateStr, partner, content, withdrawal });
+    }
+    // ── 設定タブ ──────────────────────────────────
+    function loadConfigData() {
+      google.script.run
+        .withSuccessHandler(function(data) {
+          if (!data) data = {};
+          if (data.regiDefaults) {
+            var d = data.regiDefaults;
+            [10000,5000,1000,500,100,50,10,5,1].forEach(function(v) {
+              if (d['d'+v] !== undefined) document.getElementById('cfg-d-'+v).value = d['d'+v];
+            });
+          }
+          calcCfgFixed();
+        })
+        .withFailureHandler(function() {})
+        .getSettings();
+    }
+
+    function calcCfgFixed() {
+      var denoms = [10000,5000,1000,500,100,50,10,5,1];
+      var total = 0;
+      denoms.forEach(function(v) {
+        var el = document.getElementById('cfg-d-'+v);
+        total += v * (parseInt(el.value) || 0);
+      });
+      document.getElementById('cfg-fixed-cash').value = total;
+      document.getElementById('cfg-fixed-cash-display').textContent = '¥' + total.toLocaleString();
+    }
+
+    function cfgSaveRegiDefaults() {
+      const defaults = { fixedCash: parseInt(document.getElementById('cfg-fixed-cash').value) || 33300 };
+      [10000,5000,1000,500,100,50,10,5,1].forEach(v => {
+        defaults['d'+v] = parseInt(document.getElementById('cfg-d-'+v).value) || 0;
+      });
+      google.script.run
+        .withSuccessHandler(function() { showNotify('レジ締め初期値を保存しました', 'success'); })
+        .withFailureHandler(function(e) { showNotify('エラー: ' + e.message, 'error'); })
+        .saveRegiDefaults(JSON.stringify(defaults));
+    }
+
+    // レジ締め初期値を適用（ボタン押下時）
+    function applyRegiDefaults(showMsg) {
+      google.script.run
+        .withSuccessHandler(function(data) {
+          if (data && data.regiDefaults) {
+            const d = data.regiDefaults;
+            if (d.fixedCash !== undefined) {
+              g_fixed = d.fixedCash;
+              document.getElementById('in-fixed').value = d.fixedCash;
+            }
+            [10000,5000,1000,500,100,50,10,5,1].forEach(v => {
+              const el = document.getElementById('in-'+v);
+              if (el && d['d'+v] !== undefined) el.value = d['d'+v];
+            });
+            calculate();
+            if (showMsg) showNotify('初期値を読み込みました', 'success');
+          } else {
+            if (showMsg) showNotify('初期値が未設定です。設定タブで保存してください', 'error');
+          }
+        })
+        .withFailureHandler(function() {
+          if (showMsg) showNotify('読み込みエラー', 'error');
+        })
+        .getSettings();
+    }
+
+    function showNotify(msg, type) {
+      const n = document.getElementById('notification');
+      n.innerText = msg;
+      n.className = `p-4 rounded-lg shadow-xl font-bold text-white transition-all duration-300 ${type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`;
+      n.style.display = 'block';
+      setTimeout(() => { n.style.display = 'none'; }, 3000);
+    }
+
+    // ── 時計 ─────────────────────────────────────
+    function updateClock() {
+      document.getElementById('clock').innerText = new Date().toLocaleTimeString('ja-JP', {hour12:false});
+    }
+
+    window.onload = () => {
+      initMonthSelector();
+      initSavingsMonthSelector();
+      initInputs();
+      loadData();
+      setInterval(updateClock, 1000);
+    };
+  </script>
+</body>
+</html>
