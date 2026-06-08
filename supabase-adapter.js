@@ -480,7 +480,7 @@ GAS.getTodaySalesData = function() {
   var gte = today + 'T00%3A00%3A00%2B09%3A00';
   var lte = today + 'T23%3A59%3A59%2B09%3A00';
   return sbGet('order_items',
-    'select=order_code,label,qty,subtotal,status&ts=gte.' + gte + '&ts=lte.' + lte
+    'select=order_code,label,qty,subtotal,status&ts=gte.' + gte + '&ts=lte.' + lte + '&limit=10000'
   ).then(function(rows) {
     var orderIds = {};
     var itemMap  = {};
@@ -592,7 +592,7 @@ GAS.getDetailByDate = function(searchDate) {
   var gte = d + 'T00%3A00%3A00%2B09%3A00';
   var lte = d + 'T23%3A59%3A59%2B09%3A00';
   return sbGet('order_items',
-    'select=*&ts=gte.' + gte + '&ts=lte.' + lte + '&order=id.asc'
+    'select=*&ts=gte.' + gte + '&ts=lte.' + lte + '&order=id.asc&limit=10000'
   ).then(function(rows) {
     return (rows || []).map(function(r, idx) {
       // GASの行配列形式に合わせる [orderId, ts, label, price, qty, subtotal, deposit, change, status, rowNumber]
@@ -626,7 +626,7 @@ GAS.updateDetailRow = function(rowNumber, values) {
 // ─ getSavingsData ─
 GAS.getSavingsData = function() {
   return Promise.all([
-    sbGet('order_items', 'select=order_code,ts,label,subtotal,status'),
+    sbGet('order_items', 'select=order_code,ts,label,subtotal,status&limit=10000'),
     sbGet('daily_summary', 'select=date,diff'),
     sbGet('savings', 'select=*&order=date.asc')
   ]).then(function(results) {
