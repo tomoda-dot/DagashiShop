@@ -1054,8 +1054,6 @@
             閉じる
           </button>
         </div>
-      <script src="supabase-config.js"></script>
-<script src="supabase-adapter.js"></script>
 </body></html>`);
       pw.document.close();
     }
@@ -1149,6 +1147,11 @@
       document.getElementById('clock').innerText = new Date().toLocaleTimeString('ja-JP', {hour12:false});
     }
 
+  
+</script>
+<script src="supabase-config.js"></script>
+<script src="supabase-adapter.js"></script>
+<script>
     window.onload = () => {
       initMonthSelector();
       initSavingsMonthSelector();
@@ -1156,7 +1159,6 @@
       loadData();
       setInterval(updateClock, 1000);
     };
-  
 </script>
 </body>
 </html>
