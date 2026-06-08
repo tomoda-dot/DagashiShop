@@ -34,7 +34,7 @@
 
         .container { width: 100%; max-width: 1100px; z-index: 1; }
 
-        header { margin-bottom: 45px; text-align: left; padding-left: 75px; }
+        header { margin-bottom: 45px; text-align: left; padding-left: 10px; }
         .logo { font-weight: bold; line-height: 1.1; color: var(--text-main); text-transform: uppercase; }
         .logo .brand-name { display: block; font-size: 44px; letter-spacing: 2px; }
         .logo .sub-name { display: block; font-size: 34px; letter-spacing: 1px; }
@@ -135,17 +135,17 @@
         </header>
 
         <div class="grid">
-            <div class="card" onclick="openApp('https://script.google.com/macros/s/AKfycbz2jvVWg1Hn46G17xkMn2wzdHS83gWipB_OmlLXmPrO-1t38zaKTzQoYbWrTlhRqAZz5Q/exec')">
+            <div class="card" onclick="openApp('regi.html')">
                 <div class="icon-wrap"><img src="icon-pos.png" alt="レジ"></div>
                 <h2>レジシステム</h2>
                 <p>新規注文へ</p>
             </div>
-            <div class="card" onclick="openApp('https://script.google.com/macros/s/AKfycbz2jvVWg1Hn46G17xkMn2wzdHS83gWipB_OmlLXmPrO-1t38zaKTzQoYbWrTlhRqAZz5Q/exec?page=admin')">
+            <div class="card" onclick="openApp('admin.html')">
                 <div class="icon-wrap"><img src="icon-sales.png" alt="売上"></div>
                 <h2>売上管理</h2>
                 <p>本日の売上表示</p>
             </div>
-            <div class="card" onclick="openApp('https://script.google.com/macros/s/AKfycbymOi6GXmAPwVw27yicLIJtKoSXqa9TqmflcQFiHWSV9PasY8fr-5XcUVOblKX2cSo/exec')">
+            <div class="card" onclick="openApp('inventory.html')">
                 <div class="icon-wrap"><img src="icon-stock.png" alt="在庫"></div>
                 <h2>在庫管理</h2>
                 <p>在庫データ確認</p>
@@ -181,8 +181,7 @@
             <h3>⚙️ 管理用リンク</h3>
             <div class="settings-list">
                 <p style="margin-bottom:10px; color:var(--accent-color);">スプレッドシート 閲覧</p>
-                <a href="javascript:void(0)" onclick="openApp('https://docs.google.com/spreadsheets/d/1oWXqfUGiAWUo3_FX5EUBg6Im6DUqRb3E2DiozJ8ZyNg/edit')" class="link-btn">📊 レジ売上データ</a>
-                <a href="javascript:void(0)" onclick="openApp('https://docs.google.com/spreadsheets/d/1duTmkTscsCWhOIlVeYq_IwiXnw9sN20hgArtZ8btW5Q/edit')" class="link-btn">📊 在庫データ</a>
+                <a href="https://supabase.com/dashboard/project/wkaijkredavfjvfzunte" target="_blank" class="link-btn">🗄️ Supabase ダッシュボード</a>
             </div>
         </div>
     </div>
@@ -229,7 +228,7 @@
         }
 
         let currentPin = "";
-        const CORRECT_PIN = "5611";
+        const CORRECT_PIN = "1234";
 
         function openPinModal() {
             if(event) event.stopPropagation();
