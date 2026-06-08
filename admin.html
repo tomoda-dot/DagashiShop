@@ -581,7 +581,7 @@
     // ── 日計表 ───────────────────────────────────
     function loadData() {
       document.getElementById('loading').style.display = 'flex';
-      google.script.run.withSuccessHandler((data) => {
+      GAS.getSummaryData().then((data) => {
         g_allData = data;
         filterDataByMonth();
         if (data && data.length > 0) {
@@ -597,7 +597,7 @@
           calculate();
         }
         document.getElementById('loading').style.display = 'none';
-      }).getSummaryData();
+      }).catch(() => { document.getElementById('loading').style.display = 'none'; });
     }
 
     function filterDataByMonth() {
@@ -689,16 +689,19 @@
       const btn = document.getElementById('save-btn');
       btn.disabled = true;
       const actual = parseInt(document.getElementById('total-actual').innerText.replace(/[¥,]/g,''));
-      google.script.run.withSuccessHandler(msg => {
-        showNotify(msg, 'success');
-        btn.disabled = false;
-        loadData();
-      }).saveClosingData({
+      GAS.saveClosingData({
         date: g_currentDate,
         actualCash: actual,
         fixedCash: parseInt(document.getElementById('in-fixed').value) || 33300,
         location: document.getElementById('in-location').value,
         memo: document.getElementById('in-memo').value
+      }).then(function(msg) {
+        showNotify(msg, 'success');
+        btn.disabled = false;
+        loadData();
+      }).catch(function(e) {
+        showNotify('エラー: ' + e, 'error');
+        btn.disabled = false;
       });
     }
 
@@ -723,14 +726,11 @@
       document.getElementById('detail-status').textContent = '読み込み中...';
       document.getElementById('detail-summary-bar').style.display = 'none';
 
-      google.script.run
-        .withSuccessHandler(function(rows) {
+      GAS.getDetailByDate(searchDate).then(function(rows) {
           renderDetailTable(rows, searchDate);
-        })
-        .withFailureHandler(function(e) {
-          document.getElementById('detail-status').textContent = 'エラー: ' + e.message;
-        })
-        .getDetailByDate(searchDate);
+        }).catch(function(e) {
+          document.getElementById('detail-status').textContent = 'エラー: ' + e;
+        });
     }
 
     function renderDetailTable(rows, date) {
@@ -812,15 +812,12 @@
     // ── 無効化 ────────────────────────────────────
     function voidRow(rowNumber) {
       if (!confirm('この行を「無効」にしますか？')) return;
-      google.script.run
-        .withSuccessHandler(function(msg) {
+      GAS.invalidateDetailRow(rowNumber).then(function(msg) {
           showNotify(msg, 'success');
           loadDetailData();
-        })
-        .withFailureHandler(function(e) {
-          showNotify('エラー: ' + e.message, 'error');
-        })
-        .invalidateDetailRow(rowNumber);
+        }).catch(function(e) {
+          showNotify('エラー: ' + e, 'error');
+        });
     }
 
     // ── 編集モーダル ──────────────────────────────
@@ -853,29 +850,23 @@
         parseFloat(document.getElementById('edit-change').value)   || 0,
         document.getElementById('edit-status').value,
       ];
-      google.script.run
-        .withSuccessHandler(function(msg) {
+      GAS.updateDetailRow(rowNumber, values).then(function(msg) {
           showNotify(msg, 'success');
           closeEditModal();
           loadDetailData();
-        })
-        .withFailureHandler(function(e) {
-          showNotify('エラー: ' + e.message, 'error');
-        })
-        .updateDetailRow(rowNumber, values);
+        }).catch(function(e) {
+          showNotify('エラー: ' + e, 'error');
+        });
     }
 
     // ── 積立金管理 ───────────────────────────────
     function loadSavingsData() {
       document.getElementById('savings-status').textContent = '読み込み中...';
-      google.script.run
-        .withSuccessHandler(function(rows) {
+      GAS.getSavingsData().then(function(rows) {
           renderSavingsTable(rows);
-        })
-        .withFailureHandler(function(e) {
-          document.getElementById('savings-status').textContent = 'エラー: ' + e.message;
-        })
-        .getSavingsData();
+        }).catch(function(e) {
+          document.getElementById('savings-status').textContent = 'エラー: ' + e;
+        });
     }
 
     function renderSavingsTable(rows) {
@@ -924,15 +915,12 @@
 
     function loadSavingsData() {
       document.getElementById('savings-status').textContent = '読み込み中...';
-      google.script.run
-        .withSuccessHandler(function(rows) {
+      GAS.getSavingsData().then(function(rows) {
           g_allSavingsData = rows || [];
           filterSavingsByMonth();
-        })
-        .withFailureHandler(function(e) {
-          document.getElementById('savings-status').textContent = 'エラー: ' + e.message;
-        })
-        .getSavingsData();
+        }).catch(function(e) {
+          document.getElementById('savings-status').textContent = 'エラー: ' + e;
+        });
     }
 
     function filterSavingsByMonth() {
@@ -1084,21 +1072,17 @@
       const parts = dateInput.split('-');
       const dateStr = `${parts[0]}/${parts[1]}/${parts[2]}`;
 
-      google.script.run
-        .withSuccessHandler(function(msg) {
+      GAS.addSavingsRow({ date: dateStr, partner: partner, content: content, withdrawal: withdrawal }).then(function(msg) {
           showNotify(msg, 'success');
           closeSavingsAddModal();
           loadSavingsData();
-        })
-        .withFailureHandler(function(e) {
-          showNotify('エラー: ' + e.message, 'error');
-        })
-        .addSavingsRow({ date: dateStr, partner, content, withdrawal });
+        }).catch(function(e) {
+          showNotify('エラー: ' + e, 'error');
+        });
     }
     // ── 設定タブ ──────────────────────────────────
     function loadConfigData() {
-      google.script.run
-        .withSuccessHandler(function(data) {
+      GAS.getSettings().then(function(data) {
           if (!data) data = {};
           if (data.regiDefaults) {
             var d = data.regiDefaults;
@@ -1107,9 +1091,7 @@
             });
           }
           calcCfgFixed();
-        })
-        .withFailureHandler(function() {})
-        .getSettings();
+        }).catch(function() {});
     }
 
     function calcCfgFixed() {
@@ -1128,16 +1110,12 @@
       [10000,5000,1000,500,100,50,10,5,1].forEach(v => {
         defaults['d'+v] = parseInt(document.getElementById('cfg-d-'+v).value) || 0;
       });
-      google.script.run
-        .withSuccessHandler(function() { showNotify('レジ締め初期値を保存しました', 'success'); })
-        .withFailureHandler(function(e) { showNotify('エラー: ' + e.message, 'error'); })
-        .saveRegiDefaults(JSON.stringify(defaults));
+      GAS.saveRegiDefaults(JSON.stringify(defaults)).then(function() { showNotify('レジ締め初期値を保存しました', 'success'); }).catch(function(e) { showNotify('エラー: ' + e, 'error'); });
     }
 
     // レジ締め初期値を適用（ボタン押下時）
     function applyRegiDefaults(showMsg) {
-      google.script.run
-        .withSuccessHandler(function(data) {
+      GAS.getSettings().then(function(data) {
           if (data && data.regiDefaults) {
             const d = data.regiDefaults;
             if (d.fixedCash !== undefined) {
@@ -1153,11 +1131,9 @@
           } else {
             if (showMsg) showNotify('初期値が未設定です。設定タブで保存してください', 'error');
           }
-        })
-        .withFailureHandler(function() {
+        }).catch(function() {
           if (showMsg) showNotify('読み込みエラー', 'error');
-        })
-        .getSettings();
+        });
     }
 
     function showNotify(msg, type) {
