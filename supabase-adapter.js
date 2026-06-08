@@ -454,8 +454,11 @@ GAS.saveRegiDefaults = function(jsonStr) {
 // ─ getTodaySalesData ─
 GAS.getTodaySalesData = function() {
   var today = todayJST();
+  // +をURLエンコード（%2B）してSupabase REST APIに渡す
+  var gte = today + 'T00%3A00%3A00%2B09%3A00';
+  var lte = today + 'T23%3A59%3A59%2B09%3A00';
   return sbGet('order_items',
-    'select=order_code,label,qty,subtotal,status&ts=gte.' + today + 'T00:00:00+09:00&ts=lte.' + today + 'T23:59:59+09:00'
+    'select=order_code,label,qty,subtotal,status&ts=gte.' + gte + '&ts=lte.' + lte
   ).then(function(rows) {
     var orderIds = {};
     var itemMap  = {};
@@ -557,8 +560,10 @@ GAS.saveClosingData = function(payload) {
 // ─ getDetailByDate ─
 GAS.getDetailByDate = function(searchDate) {
   var d = searchDate.replace(/\//g, '-');
+  var gte = d + 'T00%3A00%3A00%2B09%3A00';
+  var lte = d + 'T23%3A59%3A59%2B09%3A00';
   return sbGet('order_items',
-    'select=*&ts=gte.' + d + 'T00:00:00+09:00&ts=lte.' + d + 'T23:59:59+09:00&order=id.asc'
+    'select=*&ts=gte.' + gte + '&ts=lte.' + lte + '&order=id.asc'
   ).then(function(rows) {
     return (rows || []).map(function(r, idx) {
       // GASの行配列形式に合わせる [orderId, ts, label, price, qty, subtotal, deposit, change, status, rowNumber]
