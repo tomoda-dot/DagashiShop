@@ -568,7 +568,7 @@
       for (let i = -6; i <= 1; i++) {
         const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
         const y = d.getFullYear(), m = d.getMonth() + 1;
-        const val = `${y}/${m.toString().padStart(2,'0')}`;
+        const val = `${y}-${m.toString().padStart(2,'0')}`;  // ハイフン形式（daily_summaryのdate列に合わせる）
         const opt = document.createElement('option');
         opt.value = val; opt.innerText = `${y}年 ${m}月`;
         if (i === 0) opt.selected = true;
@@ -901,7 +901,7 @@
       for (let i = -6; i <= 1; i++) {
         const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
         const y = d.getFullYear(), m = d.getMonth() + 1;
-        const val = `${y}/${m.toString().padStart(2,'0')}`;
+        const val = `${y}-${m.toString().padStart(2,'0')}`;  // ハイフン形式（daily_summaryのdate列に合わせる）
         const opt = document.createElement('option');
         opt.value = val; opt.innerText = `${y}年 ${m}月`;
         if (i === 0) opt.selected = true;
