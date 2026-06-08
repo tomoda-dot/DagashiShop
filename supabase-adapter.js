@@ -634,12 +634,19 @@ GAS.getSavingsData = function() {
     var diffs    = results[1] || [];
     var savings  = results[2] || [];
 
-    // 日付別売上集計
+    // 日付別売上集計（JST基準で日付を取得）
     var salesByDate = {};
     items.forEach(function(r) {
       if (r.status === '無効') return;
       if ((r.label||'').indexOf('無料') >= 0) return;
-      var d = (r.ts || '').split('T')[0];
+      var ts = r.ts || '';
+      if (!ts) return;
+      // SupabaseはUTCで返すのでJST(+9h)に変換して日付を取る
+      var jstMs = new Date(ts).getTime() + 9 * 60 * 60 * 1000;
+      var jstDate = new Date(jstMs);
+      var d = jstDate.getUTCFullYear() + '-'
+        + String(jstDate.getUTCMonth() + 1).padStart(2, '0') + '-'
+        + String(jstDate.getUTCDate()).padStart(2, '0');
       if (!d) return;
       salesByDate[d] = (salesByDate[d] || 0) + (r.subtotal || 0);
     });
