@@ -941,7 +941,7 @@
       let carryover = 0;
       g_allSavingsData.forEach(r => {
         if (r.type === 'carryover') return;
-        if (r.date < selectedMonth + '/01') {
+        if (r.date < selectedMonth + '-01') {
           carryover = r.balance;
         }
       });
@@ -965,7 +965,7 @@
       // 前月繰越行を先頭に表示
       if (carryover !== 0) {
         html += `<tr class="carryover-row">
-          <td class="font-mono text-sm">${month}/01</td>
+          <td class="font-mono text-sm">${month}-01</td>
           <td></td>
           <td>📋 前月繰越</td>
           <td></td>
