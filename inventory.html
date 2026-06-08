@@ -185,8 +185,6 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
   #fax-area{position:fixed;top:0;left:0;width:100%;background:#fff;padding:20px;}
 }
 </style>
-<script src="supabase-config.js"></script>
-<script src="supabase-adapter.js"></script>
 </head>
 <body>
 
@@ -1851,7 +1849,7 @@ function renderOrders(){
     if(!grouped[oid]){grouped[oid]=[];orderIds.push(oid);}
     grouped[oid].push(orders[i]);
   }
-  orderIds.reverse(); // 新しい順
+  // order_idはアダプターがdesc順で返すため並び替え不要
 
   var html='';
   for(var j=0;j<orderIds.length;j++){
@@ -2082,7 +2080,9 @@ function buildFaxHtml(){
     +'<div style="clear:both;margin-top:40px;padding-top:12px;border-top:1px solid #ccc;font-size:12px;color:#666;">'
     +'上記の通り発注いたします。ご確認の程よろしくお願いいたします。'
     +'</div>'
-    +'</body></html>';
+    +'<script src="supabase-config.js"></script>
+<script src="supabase-adapter.js"></script>
+</body></html>';
   return { html: faxHtml, sup: sup, supName: supName, supFax: supFax, today: today, dateStr: dateStr };
 }
 
