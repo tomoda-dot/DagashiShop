@@ -2268,9 +2268,12 @@ function _doOpenFax(){
 
 // ── 起動 ──
 function showApp(){document.getElementById('loading').style.display='none';document.getElementById('app').style.display='block';}
+
+</script>
+<script src="supabase-config.js"></script>
+<script src="supabase-adapter.js"></script>
+<script>
 loadData().then(function(){showApp();loadOrdersData();setInterval(loadData,30000);}).catch(function(e){showApp();setSS('er');toast('接続エラー: '+(e.message||e));});
-
-
 </script>
 </body>
 </html>
