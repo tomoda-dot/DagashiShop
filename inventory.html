@@ -1881,7 +1881,8 @@ function renderOrders(){
 
     var borderC=allDone?'var(--bd)':totalReceived>0?'#E5C88A':'#E8B8A8';
     var bgC=allDone?'var(--sf)':totalReceived>0?'var(--abg)':'var(--rbg)';
-    var isCollapsed = !!collapsedOrders[oid];
+    // undefinedの場合はデフォルト閉じた状態
+    var isCollapsed = collapsedOrders[oid] === undefined ? true : !!collapsedOrders[oid];
 
     // 日付フォーマット（yyyy-MM-dd → yyyy年M月d日）
     var dispDate = date;
