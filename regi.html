@@ -649,8 +649,6 @@
         .emoji-cell:hover { background: var(--light); }
         .emoji-cell.picked { background: #fef2f2; outline: 2px solid var(--coral); }
     </style>
-<script src="supabase-config.js"></script>
-<script src="supabase-adapter.js"></script>
 </head>
 <body>
 
@@ -840,7 +838,6 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
 // ═══ メニューに戻る ══════════════════════════════
 function goMenu() {
     var baseUrl = location.href.split('?')[0];
@@ -1686,24 +1683,18 @@ function memClear(idx) {
     renderMemorySlots();
 }
 
-// ═══ 初期化 ═══════════════════════════════════════
+// ═══ 初期化はsupabase-adapter.js読み込み後に実行 ═══
+</script>
+<script src="supabase-config.js"></script>
+<script src="supabase-adapter.js"></script>
+<script>
+// Supabase読み込み後に初期化
 renderGrid();
 renderDiscountGrid();
 initSettings();
 updateSalesBadge();
-
 document.getElementById('sales-badge').addEventListener('click', openSalesModal);
-
-// 起動時に未送信データがあれば再送
-window.addEventListener('load', function() {
-    setTimeout(function() {
-        if (typeof google !== 'undefined' && google.script) {
-            sendQueueAsync();
-        }
-    }, 1000);
-});
-
-}); // DOMContentLoaded
+setTimeout(function() { sendQueueAsync(); }, 1000);
 </script>
 </body>
 </html>
