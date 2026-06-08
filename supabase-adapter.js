@@ -535,17 +535,24 @@ GAS.saveOrderFromRegi = function(jsonStr) {
 GAS.getSummaryData = function() {
   return sbGet('daily_summary', 'select=*&order=date.desc').then(function(rows) {
     return (rows || []).map(function(r) {
+      var fixed   = Number(r.fixed_cash)  || 0;
+      var sales   = Number(r.sales_total) || 0;
+      var actual  = Number(r.actual_cash) || 0;
+      var diff    = Number(r.diff)        || 0;
+      // レジにあるべき現金 = 固定準備金 + 売上合計
+      var should  = fixed + sales;
       return {
-        '日付':       r.date        || '',
-        '場所':       r.location    || '',
-        '明細売上':   r.sales_total || 0,
-        '件数':       r.item_count  || 0,
-        '実際現金':   r.actual_cash || 0,
-        '過不足':     r.diff        || 0,
-        '固定準備金': r.fixed_cash  || 0,
-        'メモ':       r.memo        || '',
-        '締め日時':   r.closed_at   || '',
-        rowNumber:    r.id
+        '日付':             r.date        || '',
+        '販売場所':         r.location    || '',
+        '今日の売上合計':   sales,
+        '固定準備金':       fixed,
+        'レジ内現金残高':   actual,
+        'レジにあるべき現金': should,
+        '銀行入金額':       0,
+        '過不足':           diff,
+        '備考':             r.memo        || '',
+        '最終更新時刻':     r.closed_at   || '',
+        rowNumber:          r.id
       };
     });
   });
