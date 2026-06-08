@@ -419,17 +419,21 @@ GAS.receiveOrderItem = function(arg) {
         })
         .then(function() {
           if (!productId) return;
-          // 仕入れ履歴に追加（pending状態）
-          return sbPost('restock', {
-            product_id: productId,
-            nm:         r.product_name,
-            iri:        iri,
-            buy_price:  buyPrice * orderQty,
-            tanka:      tanka,
-            sell:       r.sell || 0,
-            d:          todayJST(),
-            status:     'pending'
-          });
+          // 1ロットずつ仕入れ履歴に追加（pending状態）
+          var rows = [];
+          for (var i = 0; i < orderQty; i++) {
+            rows.push({
+              product_id: productId,
+              nm:         r.product_name,
+              iri:        buyQty,
+              buy_price:  buyPrice,
+              tanka:      tanka,
+              sell:       r.sell || 0,
+              d:          todayJST(),
+              status:     'pending'
+            });
+          }
+          return sbPost('restock', rows);
         })
         .then(function() { return { ok:true, nm:r.product_name, iri:iri }; });
     });
