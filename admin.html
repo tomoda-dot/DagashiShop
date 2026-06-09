@@ -181,9 +181,6 @@
 
   <header class="bg-slate-800 text-white p-4 shadow-md flex justify-between items-center shrink-0">
     <div class="flex items-center gap-3">
-      <button onclick="goMenu()" class="bg-slate-700 hover:bg-slate-600 p-2 rounded-full transition" title="メニューに戻る">
-        <span class="material-icons text-sm">home</span>
-      </button>
       <span class="material-icons text-blue-400">analytics</span>
       <h1 class="text-xl font-bold tracking-tight">売上管理システム</h1>
     </div>
@@ -947,7 +944,7 @@
       // 前月繰越行を末尾に表示
       if (carryover !== 0) {
         html += `<tr class="carryover-row">
-          <td class="font-mono text-sm">${month}-31</td>
+          <td class="font-mono text-sm">${month}-01</td>
           <td></td>
           <td>📋 前月繰越</td>
           <td></td>
@@ -976,7 +973,16 @@
     function printSavings() {
       const sel = document.getElementById('savings-month-selector');
       const monthLabel = sel.options[sel.selectedIndex].innerText;
-      const balance = document.getElementById('savings-balance-total').textContent;
+      // その月の最終行（最新日付）の残高を取得
+      const rows = document.querySelectorAll('#savings-tbody tr:not(.carryover-row)');
+      let lastBalance = '¥0';
+      if (rows.length > 0) {
+        // 降順表示なので最初の行が最新日付
+        const firstRow = rows[0];
+        const balanceCell = firstRow.cells[5];
+        lastBalance = balanceCell ? balanceCell.textContent.trim() : '¥0';
+      }
+      const balance = lastBalance;
 
       // テーブルのHTMLを取得
       var tableEl = document.querySelector('#content-savings .detail-table');
