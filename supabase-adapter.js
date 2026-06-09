@@ -632,7 +632,7 @@ GAS.updateDetailRow = function(rowNumber, values) {
 // ─ getSavingsData ─
 GAS.getSavingsData = function() {
   return Promise.all([
-    sbGet('daily_summary', 'select=date,sales_total&order=date.asc'),
+    sbGet('daily_summary', 'select=date,sales_total,diff&order=date.asc'),
     sbGet('savings',       'select=date,partner,content,withdrawal&order=date.asc')
   ]).then(function(results) {
     var daily   = results[0] || [];
@@ -644,8 +644,13 @@ GAS.getSavingsData = function() {
     // 入金行（日計表の売上）
     daily.forEach(function(r) {
       var sales = Number(r.sales_total) || 0;
+      var diff  = Number(r.diff)        || 0;
       if (!r.date || sales === 0) return;
-      allRows.push({ type:'deposit', date:r.date, partner:'', content:'売上', deposit:sales, withdrawal:0 });
+      var deposit = sales + diff;
+      var content = diff !== 0
+        ? '売上 ¥' + sales.toLocaleString() + '（過不足 ' + (diff > 0 ? '+' : '') + diff + '）'
+        : '売上';
+      allRows.push({ type:'deposit', date:r.date, partner:'', content:content, deposit:deposit, withdrawal:0 });
     });
 
     // 出金行（仕入れ等）
