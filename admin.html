@@ -927,8 +927,8 @@
 
       let html = '';
 
-      // 古い順（昇順）で表示
-      const sorted = [...rows].filter(r => r.type !== 'carryover');
+      // 降順で表示（前月繰越を除く）
+      const sorted = [...rows].filter(r => r.type !== 'carryover').reverse();
 
       html += sorted.map(r => {
         const isDeposit = r.type === 'deposit';
