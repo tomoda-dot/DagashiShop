@@ -858,41 +858,6 @@
     }
 
     // ── 積立金管理 ───────────────────────────────
-    function loadSavingsData() {
-      document.getElementById('savings-status').textContent = '読み込み中...';
-      GAS.getSavingsData().then(function(rows) {
-          renderSavingsTable(rows);
-        }).catch(function(e) {
-          document.getElementById('savings-status').textContent = 'エラー: ' + e;
-        });
-    }
-
-    function renderSavingsTable(rows) {
-      const tbody = document.getElementById('savings-tbody');
-      if (!rows || rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-slate-400 py-12">データがありません。「新規追加」で追加してください</td></tr>`;
-        document.getElementById('savings-status').textContent = '0件';
-        document.getElementById('savings-balance-total').textContent = '¥0';
-        return;
-      }
-
-      document.getElementById('savings-status').textContent = rows.length + '件';
-      const lastBalance = rows[rows.length - 1].balance;
-      document.getElementById('savings-balance-total').textContent = '¥' + lastBalance.toLocaleString();
-
-      tbody.innerHTML = rows.map(r => {
-        const hasWithdrawal = r.withdrawal > 0;
-        return `<tr>
-          <td class="font-mono text-sm">${r.date}</td>
-          <td class="text-slate-600">${r.partner || ''}</td>
-          <td class="text-slate-600">${r.content || ''}</td>
-          <td class="text-right font-mono font-bold text-blue-600">${r.deposit > 0 ? '¥' + r.deposit.toLocaleString() : '-'}</td>
-          <td class="text-right font-mono font-bold ${hasWithdrawal ? 'text-red-500' : 'text-slate-300'}">${hasWithdrawal ? '¥' + r.withdrawal.toLocaleString() : '-'}</td>
-          <td class="text-right font-mono font-black text-emerald-600 text-base">¥${r.balance.toLocaleString()}</td>
-        </tr>`;
-      }).join('');
-    }
-
     // ── 積立金管理 ───────────────────────────────
     function initSavingsMonthSelector() {
       const sel = document.getElementById('savings-month-selector');
@@ -962,22 +927,10 @@
 
       let html = '';
 
-      // 前月繰越行を先頭に表示
-      if (carryover !== 0) {
-        html += `<tr class="carryover-row">
-          <td class="font-mono text-sm">${month}-01</td>
-          <td></td>
-          <td>📋 前月繰越</td>
-          <td></td>
-          <td></td>
-          <td class="text-right font-mono font-black text-sky-700 text-base">¥${carryover.toLocaleString()}</td>
-        </tr>`;
-      }
+      // 古い順（昇順）で表示
+      const sorted = [...rows].filter(r => r.type !== 'carryover');
 
-      // 降順に並べて表示
-      const reversed = [...rows].filter(r => r.type !== 'carryover').reverse();
-
-      html += reversed.map(r => {
+      html += sorted.map(r => {
         const isDeposit = r.type === 'deposit';
         const rowClass  = isDeposit ? 'deposit-row' : 'withdrawal-row';
 
@@ -990,6 +943,18 @@
           <td class="text-right font-mono font-black text-emerald-600 text-base">¥${r.balance.toLocaleString()}</td>
         </tr>`;
       }).join('');
+
+      // 前月繰越行を末尾に表示
+      if (carryover !== 0) {
+        html += `<tr class="carryover-row">
+          <td class="font-mono text-sm">${month}-31</td>
+          <td></td>
+          <td>📋 前月繰越</td>
+          <td></td>
+          <td></td>
+          <td class="text-right font-mono font-black text-sky-700 text-base">¥${carryover.toLocaleString()}</td>
+        </tr>`;
+      }
 
       tbody.innerHTML = html;
     }

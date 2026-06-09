@@ -667,17 +667,18 @@ GAS.getSavingsData = function() {
       return a.type === 'deposit' ? -1 : 1;
     });
 
-    // 残高累積 & 月変わりに前月繰越を挿入
+    // 残高累積 & 月末に前月繰越を追加
     var balance   = 0;
     var lastMonth = '';
     var result    = [];
+    var monthStart = 0; // 各月の開始インデックス
 
     allRows.forEach(function(row) {
-      var month = row.date.substring(0, 7); // "2026-06"
+      var month = row.date.substring(0, 7);
       if (lastMonth && month !== lastMonth) {
-        // 月が変わったら前月繰越行を先頭に挿入
+        // 月が変わったら、前の月の末尾に前月繰越を追加
         result.push({
-          type: 'carryover', date: month + '-01',
+          type: 'carryover', date: lastMonth + '-31',
           partner: '', content: '前月繰越',
           deposit: 0, withdrawal: 0, balance: balance
         });
@@ -687,6 +688,7 @@ GAS.getSavingsData = function() {
       row.balance = balance;
       result.push(row);
     });
+    // 最終月の末尾にも前月繰越は不要（最終月は表示のみ）
 
     return result;
   });
