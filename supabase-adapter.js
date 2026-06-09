@@ -122,13 +122,14 @@ GAS.testConnection = function() {
 // ─ getAllData ─
 GAS.getAllData = function() {
   return Promise.all([
-    sbGet('products', 'select=id,name,cat,stock,min,price,unit,exp,buy_price,buy_qty,memo,status,sort_order&order=sort_order.asc,id.asc'),
+    sbGet('products', 'select=id,name,cat,stock,min,price,unit,exp,buy_price,buy_qty,memo,status,sort_order,maker&order=sort_order.asc,id.asc'),
     sbGet('restock',  'select=*&order=id.desc')
   ]).then(function(results) {
     var products = (results[0] || []).map(function(p) {
       return {
         id:        p.id,
         name:      p.name      || '',
+        maker:     p.maker     || '',
         cat:       p.cat       || 'その他',
         stock:     p.stock     || 0,
         min:       p.min       || 5,
@@ -164,6 +165,7 @@ GAS.getAllData = function() {
 GAS.updateProduct = function(p) {
   var body = {};
   if (p.name      !== undefined) body.name      = p.name;
+  if (p.maker     !== undefined) body.maker      = p.maker;
   if (p.cat       !== undefined) body.cat        = p.cat;
   if (p.min       !== undefined) body.min        = Number(p.min);
   if (p.price     !== undefined) body.price      = Number(p.price);
@@ -181,6 +183,7 @@ GAS.updateProduct = function(p) {
 GAS.addProduct = function(p) {
   var body = {
     name:      p.name      || '',
+    maker:     p.maker     || '',
     cat:       p.cat       || 'その他',
     stock:     Number(p.stock)     || 0,
     min:       Number(p.min)       || 5,

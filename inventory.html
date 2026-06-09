@@ -219,6 +219,10 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
         <label class="fl">商品名 *</label>
         <input class="fi" type="text" id="det-name" placeholder="例：うまい棒チーズ" />
       </div>
+      <div class="ff">
+        <label class="fl">メーカー名</label>
+        <input class="fi" type="text" id="det-maker" placeholder="例：ロッテ、明治、パイン" />
+      </div>
       <div>
         <label class="fl">カテゴリ</label>
         <select class="fi" id="det-cat">
@@ -636,6 +640,7 @@ function openEdit(id){
   document.getElementById('det-name-row').style.display='';
   document.getElementById('det-name').value=p.name;
   document.getElementById('det-name').readOnly=false;
+  document.getElementById('det-maker').value=p.maker||'';
   document.getElementById('det-cat').value=p.cat;
   document.getElementById('det-unit').value=p.unit;
   document.getElementById('det-min').value=p.min;
@@ -704,6 +709,7 @@ function detProdChange(){
   if(isNew){
     document.getElementById('det-name').value='';
     document.getElementById('det-name').readOnly=false;
+    document.getElementById('det-maker').value='';
     document.getElementById('det-cat').value='スナック';
     document.getElementById('det-unit').value='個';
     document.getElementById('det-min').value='5';
@@ -783,8 +789,9 @@ function closeDet(){
 
 function detFormData(){
   return {
-    name: document.getElementById('det-name').value.trim(),
-    cat:  document.getElementById('det-cat').value,
+    name:  document.getElementById('det-name').value.trim(),
+    maker: document.getElementById('det-maker').value.trim(),
+    cat:   document.getElementById('det-cat').value,
     unit: document.getElementById('det-unit').value||'個',
     min:  parseInt(document.getElementById('det-min').value)||5,
     exp:  document.getElementById('det-exp').value||'',
@@ -2041,7 +2048,7 @@ function buildFaxHtml(){
     var cost=calcItemCost(item);
     var qtyLabel=item.orderQty+'ロット'+(item.buy_qty?' ('+item.orderQty*item.buy_qty+item.unit+')':'');
     rows+='<tr>'
-      +'<td style="padding:8px 12px;border:1px solid #999;font-size:14px;">'+item.name+'</td>'
+      +'<td style="padding:8px 12px;border:1px solid #999;font-size:14px;">'+item.name+(item.maker?'<br><span style="font-size:11px;color:#666;">'+item.maker+'</span>':'')+'</td>'
       +'<td style="padding:8px 12px;border:1px solid #999;font-size:14px;text-align:center;">'+qtyLabel+'</td>'
       +'<td style="padding:8px 12px;border:1px solid #999;font-size:14px;text-align:right;">'+(cost>0?'&yen;'+cost.toLocaleString():'&mdash;')+'</td>'
       +'<td style="padding:8px 12px;border:1px solid #999;font-size:14px;">'+(item.memo||'')+'</td>'
@@ -2076,7 +2083,7 @@ function buildFaxHtml(){
     +'</div></div>'
     +'</div>'
     +'<table><thead><tr>'
-    +'<th style="width:38%;">商品名</th>'
+    +'<th style="width:38%;">商品名 / メーカー</th>'
     +'<th style="width:20%;">発注数</th>'
     +'<th style="width:18%;">金額（税抜）</th>'
     +'<th style="width:24%;">備考</th>'
@@ -2211,7 +2218,7 @@ function _doOpenFax(){
       +'</div></div>'
       +'</div>'
       +'<table><thead><tr>'
-      +'<th style="width:38%;">商品名</th>'
+      +'<th style="width:38%;">商品名 / メーカー</th>'
       +'<th style="width:20%;">発注数</th>'
       +'<th style="width:18%;">金額（税抜）</th>'
       +'<th style="width:24%;">備考</th>'
