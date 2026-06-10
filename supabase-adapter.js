@@ -485,18 +485,8 @@ GAS.saveRegiDefaults = function(jsonStr) {
 // ─ getTodaySalesData ─
 GAS.getTodaySalesData = function() {
   var today = todayJST();
-  var jstStart = new Date(today + 'T00:00:00+09:00');
-  var jstEnd   = new Date(today + 'T23:59:59+09:00');
-  function toUTCStr(dt) {
-    return dt.getUTCFullYear() + '-'
-      + String(dt.getUTCMonth()+1).padStart(2,'0') + '-'
-      + String(dt.getUTCDate()).padStart(2,'0') + 'T'
-      + String(dt.getUTCHours()).padStart(2,'0') + '%3A'
-      + String(dt.getUTCMinutes()).padStart(2,'0') + '%3A'
-      + String(dt.getUTCSeconds()).padStart(2,'0') + '%2B00%3A00';
-  }
-  var gte = toUTCStr(jstStart);
-  var lte = toUTCStr(jstEnd);
+  var gte = encodeURIComponent(today + 'T00:00:00+09:00');
+  var lte = encodeURIComponent(today + 'T23:59:59+09:00');
   return sbGet('order_items',
     'select=order_code,label,qty,subtotal,status&ts=gte.' + gte + '&ts=lte.' + lte + '&limit=10000'
   ).then(function(rows) {
@@ -607,20 +597,9 @@ GAS.saveClosingData = function(payload) {
 // ─ getDetailByDate ─
 GAS.getDetailByDate = function(searchDate) {
   var d = searchDate.replace(/\//g, '-');
-  // JST 00:00〜23:59 = UTC 前日15:00〜当日14:59:59
-  // 例: JST 2026-06-09 = UTC 2026-06-08T15:00:00Z 〜 2026-06-09T14:59:59Z
-  var jstStart = new Date(d + 'T00:00:00+09:00');
-  var jstEnd   = new Date(d + 'T23:59:59+09:00');
-  function toUTCStr(dt) {
-    return dt.getUTCFullYear() + '-'
-      + String(dt.getUTCMonth()+1).padStart(2,'0') + '-'
-      + String(dt.getUTCDate()).padStart(2,'0') + 'T'
-      + String(dt.getUTCHours()).padStart(2,'0') + '%3A'
-      + String(dt.getUTCMinutes()).padStart(2,'0') + '%3A'
-      + String(dt.getUTCSeconds()).padStart(2,'0') + '%2B00%3A00';
-  }
-  var gte = toUTCStr(jstStart);
-  var lte = toUTCStr(jstEnd);
+  // JST 2026-06-09 00:00 〜 23:59 で直接フィルタ
+  var gte = encodeURIComponent(d + 'T00:00:00+09:00');
+  var lte = encodeURIComponent(d + 'T23:59:59+09:00');
   return sbGet('order_items',
     'select=*&ts=gte.' + gte + '&ts=lte.' + lte + '&order=id.asc&limit=10000'
   ).then(function(rows) {
