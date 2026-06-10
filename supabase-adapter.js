@@ -485,9 +485,18 @@ GAS.saveRegiDefaults = function(jsonStr) {
 // ─ getTodaySalesData ─
 GAS.getTodaySalesData = function() {
   var today = todayJST();
-  // +をURLエンコード（%2B）してSupabase REST APIに渡す
-  var gte = today + 'T00%3A00%3A00%2B09%3A00';
-  var lte = today + 'T23%3A59%3A59%2B09%3A00';
+  var jstStart = new Date(today + 'T00:00:00+09:00');
+  var jstEnd   = new Date(today + 'T23:59:59+09:00');
+  function toUTCStr(dt) {
+    return dt.getUTCFullYear() + '-'
+      + String(dt.getUTCMonth()+1).padStart(2,'0') + '-'
+      + String(dt.getUTCDate()).padStart(2,'0') + 'T'
+      + String(dt.getUTCHours()).padStart(2,'0') + '%3A'
+      + String(dt.getUTCMinutes()).padStart(2,'0') + '%3A'
+      + String(dt.getUTCSeconds()).padStart(2,'0') + '%2B00%3A00';
+  }
+  var gte = toUTCStr(jstStart);
+  var lte = toUTCStr(jstEnd);
   return sbGet('order_items',
     'select=order_code,label,qty,subtotal,status&ts=gte.' + gte + '&ts=lte.' + lte + '&limit=10000'
   ).then(function(rows) {
@@ -598,13 +607,24 @@ GAS.saveClosingData = function(payload) {
 // ─ getDetailByDate ─
 GAS.getDetailByDate = function(searchDate) {
   var d = searchDate.replace(/\//g, '-');
-  var gte = d + 'T00%3A00%3A00%2B09%3A00';
-  var lte = d + 'T23%3A59%3A59%2B09%3A00';
+  // JST 00:00〜23:59 = UTC 前日15:00〜当日14:59:59
+  // 例: JST 2026-06-09 = UTC 2026-06-08T15:00:00Z 〜 2026-06-09T14:59:59Z
+  var jstStart = new Date(d + 'T00:00:00+09:00');
+  var jstEnd   = new Date(d + 'T23:59:59+09:00');
+  function toUTCStr(dt) {
+    return dt.getUTCFullYear() + '-'
+      + String(dt.getUTCMonth()+1).padStart(2,'0') + '-'
+      + String(dt.getUTCDate()).padStart(2,'0') + 'T'
+      + String(dt.getUTCHours()).padStart(2,'0') + '%3A'
+      + String(dt.getUTCMinutes()).padStart(2,'0') + '%3A'
+      + String(dt.getUTCSeconds()).padStart(2,'0') + '%2B00%3A00';
+  }
+  var gte = toUTCStr(jstStart);
+  var lte = toUTCStr(jstEnd);
   return sbGet('order_items',
     'select=*&ts=gte.' + gte + '&ts=lte.' + lte + '&order=id.asc&limit=10000'
   ).then(function(rows) {
-    return (rows || []).map(function(r, idx) {
-      // GASの行配列形式に合わせる [orderId, ts, label, price, qty, subtotal, deposit, change, status, rowNumber]
+    return (rows || []).map(function(r) {
       return [r.order_code, r.ts, r.label, r.price, r.qty, r.subtotal, r.deposit, r.change, r.status, r.id];
     });
   });
