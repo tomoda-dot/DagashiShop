@@ -623,18 +623,20 @@
           document.getElementById('in-fixed').value = g_fixed;
         }
 
-        // 未締め日（actual_cash=0かつsales_totalあり）の最新日を探す
-        // レジ締め済み = レジ内現金残高に値あり
-        // 未締め = sales_totalはあるがレジ内現金残高が0
-        let targetDate = todayJST();
-        for (let i = 0; i < data.length; i++) {
-          const row = data[i];
-          const sales = Number(row['今日の売上合計']) || 0;
-          const actual = Number(row['レジ内現金残高']) || 0;
-          if (sales > 0 && actual === 0) {
-            targetDate = row['日付'];
-            break;
-          }
+        // daily_summaryの最新日付を取得
+        const latestDate = data.length > 0 ? data[0]['日付'] : todayJST();
+
+        // 今日のorder_itemsにデータがあるか確認して日付を決める
+        // → 別途order_itemsを確認するのではなく、
+        //   今日の日付とdaily_summaryの最新日付を比較して決める
+        const today = todayJST();
+        let targetDate;
+        if (latestDate < today) {
+          // daily_summaryより新しい日付がある → 今日を選択
+          targetDate = today;
+        } else {
+          // daily_summaryの最新日付を選択
+          targetDate = latestDate;
         }
 
         // 日付入力欄を設定（手動変更がなければ未締め日に）
@@ -767,8 +769,10 @@
     function initDetailDate() {
       const el = document.getElementById('detail-date-input');
       if (!el.value) {
-        const now = new Date();
-        el.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        const today = todayJST();
+        // daily_summaryの最新日付と今日を比較して初期日付を決める
+        const latestDate = g_allData && g_allData.length > 0 ? g_allData[0]['日付'] : today;
+        el.value = latestDate < today ? today : latestDate;
         loadDetailData();
       }
     }
