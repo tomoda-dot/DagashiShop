@@ -508,7 +508,6 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
         </div>
         <div id="ord-total" style="margin-top:10px;flex-shrink:0;"></div>
         <button class="btn" onclick="openFax()" style="width:100%;margin-top:8px;font-size:14px;padding:10px;flex-shrink:0;">📠 FAX用紙を作成</button>
-        <button class="btng" onclick="sendFaxDirect()" style="width:100%;margin-top:6px;font-size:14px;padding:10px;flex-shrink:0;">📠 秒速FAX送信</button>
         <div style="margin-top:4px;font-size:11px;color:var(--t3);flex-shrink:0;">
           発注数の標準は1ロット。直接編集できます
         </div>
@@ -1727,7 +1726,7 @@ function addToOrdList(id){
   ordList.push({
     id:p.id, name:p.name, unit:p.unit, stock:p.stock,
     min:p.min, buy_price:p.buy_price, buy_qty:p.buy_qty,
-    memo:p.memo||'',
+    memo:p.memo||'', maker:p.maker||'',
     orderQty:1  // 標準は1個
   });
   renderOrdRight();
@@ -2045,6 +2044,7 @@ function revertOrder(orderId){
         buy_price:it.buy_price||(p?p.buy_price:0),
         buy_qty:  it.buy_qty  ||(p?p.buy_qty:0),
         memo:     it.memo     ||'',
+        maker:    p?p.maker||'':'',
         orderQty: it.order_qty||1
       });
     });
@@ -2210,7 +2210,7 @@ function _doOpenFax(){
       var cost=calcItemCost(item);
       var qtyLabel=item.orderQty+'ロット'+(item.buy_qty?' ('+item.orderQty*item.buy_qty+item.unit+')':'');
       rows+='<tr>'
-        +'<td style="padding:8px 12px;border:1px solid #999;font-size:14px;">'+item.name+'</td>'
+        +'<td style="padding:8px 12px;border:1px solid #999;font-size:14px;">'+item.name+(item.maker?'<br><span style="font-size:11px;color:#666;">'+item.maker+'</span>':'')+'</td>'
         +'<td style="padding:8px 12px;border:1px solid #999;font-size:14px;text-align:center;">'+qtyLabel+'</td>'
         +'<td style="padding:8px 12px;border:1px solid #999;font-size:14px;text-align:right;">'+(cost>0?'&yen;'+cost.toLocaleString():'&mdash;')+'</td>'
         +'<td style="padding:8px 12px;border:1px solid #999;font-size:14px;">'+(item.memo||'')+'</td>'
