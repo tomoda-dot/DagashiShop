@@ -623,21 +623,9 @@
           document.getElementById('in-fixed').value = g_fixed;
         }
 
-        // daily_summaryの最新日付を取得
+        // daily_summaryの最新日付を表示
         const latestDate = data.length > 0 ? data[0]['日付'] : todayJST();
-
-        // 今日のorder_itemsにデータがあるか確認して日付を決める
-        // → 別途order_itemsを確認するのではなく、
-        //   今日の日付とdaily_summaryの最新日付を比較して決める
-        const today = todayJST();
-        let targetDate;
-        if (latestDate < today) {
-          // daily_summaryより新しい日付がある → 今日を選択
-          targetDate = today;
-        } else {
-          // daily_summaryの最新日付を選択
-          targetDate = latestDate;
-        }
+        let targetDate = latestDate;
 
         // 日付入力欄を設定（手動変更がなければ未締め日に）
         const dateInput = document.getElementById('target-date-input');
@@ -769,10 +757,9 @@
     function initDetailDate() {
       const el = document.getElementById('detail-date-input');
       if (!el.value) {
-        const today = todayJST();
-        // daily_summaryの最新日付と今日を比較して初期日付を決める
-        const latestDate = g_allData && g_allData.length > 0 ? g_allData[0]['日付'] : today;
-        el.value = latestDate < today ? today : latestDate;
+        // daily_summaryの最新日付を表示
+        const latestDate = g_allData && g_allData.length > 0 ? g_allData[0]['日付'] : todayJST();
+        el.value = latestDate;
         loadDetailData();
       }
     }
