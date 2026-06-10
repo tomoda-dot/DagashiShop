@@ -610,34 +610,48 @@
 
     function loadData() {
       document.getElementById('loading').style.display = 'flex';
-      const today = todayJST();
 
-      // 日付入力欄を今日に設定
-      const dateInput = document.getElementById('target-date-input');
-      if (!dateInput.value) dateInput.value = today;
-      g_currentDate = dateInput.value;
-
-      Promise.all([
-        GAS.getSummaryData(),
-        GAS.getDetailByDate(g_currentDate)
-      ]).then(function([data, rows]) {
+      GAS.getSummaryData().then(function(data) {
         g_allData = data;
         filterDataByMonth();
+
         // 前回の締めデータから固定準備金・場所を引き継ぎ
         if (data && data.length > 0) {
           const t = data[0];
           g_fixed = Number(t['固定準備金']) || parseInt(document.getElementById('in-fixed').value) || 33300;
           if (t['販売場所']) document.getElementById('in-location').value = t['販売場所'];
+          document.getElementById('in-fixed').value = g_fixed;
         }
-        // 指定日の売上をorder_itemsから計算
+
+        // 未締め日（actual_cash=0かつsales_totalあり）の最新日を探す
+        // レジ締め済み = レジ内現金残高に値あり
+        // 未締め = sales_totalはあるがレジ内現金残高が0
+        let targetDate = todayJST();
+        for (let i = 0; i < data.length; i++) {
+          const row = data[i];
+          const sales = Number(row['今日の売上合計']) || 0;
+          const actual = Number(row['レジ内現金残高']) || 0;
+          if (sales > 0 && actual === 0) {
+            targetDate = row['日付'];
+            break;
+          }
+        }
+
+        // 日付入力欄を設定（手動変更がなければ未締め日に）
+        const dateInput = document.getElementById('target-date-input');
+        if (!dateInput.value) dateInput.value = targetDate;
+        g_currentDate = dateInput.value;
+
+        // その日の売上をorder_itemsから取得
+        return GAS.getDetailByDate(g_currentDate);
+      }).then(function(rows) {
         var total = 0;
         (rows || []).forEach(function(r) {
-          if (r[8] === '無効') return;  // status
-          if ((r[2] || '').indexOf('無料') >= 0) return;  // label
-          total += Number(r[5]) || 0;  // subtotal
+          if (r[8] === '無効') return;
+          if ((r[2] || '').indexOf('無料') >= 0) return;
+          total += Number(r[5]) || 0;
         });
         g_sales = total;
-        document.getElementById('in-fixed').value = g_fixed;
         document.getElementById('disp-sales').innerText = '¥' + g_sales.toLocaleString();
         calculate();
         document.getElementById('loading').style.display = 'none';
