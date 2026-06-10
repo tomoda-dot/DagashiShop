@@ -2208,9 +2208,10 @@ function _doOpenFax(){
     for(var i=0;i<ordList.length;i++){
       var item=ordList[i];
       var cost=calcItemCost(item);
-      var qtyLabel=item.orderQty+'ロット'+(item.buy_qty?' ('+item.orderQty*item.buy_qty+item.unit+')':'');
+      var qtyLabel=item.orderQty+(item.buy_qty?' ('+item.orderQty*item.buy_qty+item.unit+')':'');
       rows+='<tr>'
-        +'<td>'+item.name+(item.maker?' ('+item.maker+')':'')+'</td>'
+        +'<td>'+item.name+'</td>'
+        +'<td>'+( item.maker||'')+'</td>'
         +'<td style="text-align:center;">'+qtyLabel+'</td>'
         +'<td style="text-align:right;">'+(cost>0?'&yen;'+cost.toLocaleString():'&mdash;')+'</td>'
         +'<td>'+(item.memo||'')+'</td>'
@@ -2247,9 +2248,10 @@ function _doOpenFax(){
       +'</div></div>'
       +'</div>'
       +'<table><thead><tr>'
-      +'<th style="width:40%;">商品名（メーカー）</th>'
-      +'<th style="width:20%;">発注数</th>'
-      +'<th style="width:16%;">金額（税抜）</th>'
+      +'<th style="width:32%;">商品名</th>'
+      +'<th style="width:16%;">メーカー</th>'
+      +'<th style="width:14%;">発注数</th>'
+      +'<th style="width:14%;">金額（税抜）</th>'
       +'<th style="width:24%;">備考</th>'
       +'</tr></thead><tbody>'+rows+'</tbody></table>'
       +'<div class="total-area">'
