@@ -2030,38 +2030,28 @@ function deleteOrder(orderId){
 
 function revertOrder(orderId){
   var items=orders.filter(function(x){return x.order_id===orderId;});
-  if(!items.length)return;
-  showConfirm('この発注（'+items.length+'件）を発注リストに戻しますか？\n発注済み履歴からは削除されます。', function(){
-    setSS('sv');
-    run1('deleteOrder', orderId).then(function(res){
-      if(res&&res.ok){
-        // ordListに復元（商品マスタから情報補完、order_qtyをorderQtyにセット）
-        items.forEach(function(it){
-          // 既にordListにある場合はスキップ
-          if(ordList.filter(function(x){return x.id===it.product_id;}).length>0) return;
-          var p=prods.filter(function(x){return x.id===it.product_id;})[0];
-          ordList.push({
-            id:       it.product_id,
-            name:     it.product_name,
-            unit:     it.unit     || (p?p.unit:'個'),
-            stock:    p?p.stock:0,
-            min:      p?p.min:0,
-            buy_price:it.buy_price||(p?p.buy_price:0),
-            buy_qty:  it.buy_qty  ||(p?p.buy_qty:0),
-            memo:     it.memo     ||'',
-            orderQty: it.order_qty||1
-          });
-        });
-        renderOrdRight();
-        renderOrdLeft();
-        // 発注タブに切り替え
-        goTab('d');
-        toast(items.length+'件を発注リストに戻しました');
-        loadOrdersData();
-      } else {
-        toast('エラー: '+(res&&res.error||'不明'));
-      }
-    }).catch(function(e){setSS('er');toast('エラー: '+(e.message||e));});
+  var pendingItems=items.filter(function(x){return x.status==='pending';});
+  if(!pendingItems.length){toast('未入荷のアイテムがありません');return;}
+  showConfirm('未入荷（'+pendingItems.length+'件）を発注リストに戻しますか？', function(){
+    pendingItems.forEach(function(it){
+      if(ordList.filter(function(x){return x.id===it.product_id;}).length>0) return;
+      var p=prods.filter(function(x){return x.id===it.product_id;})[0];
+      ordList.push({
+        id:       it.product_id,
+        name:     it.product_name,
+        unit:     it.unit     ||(p?p.unit:'個'),
+        stock:    p?p.stock:0,
+        min:      p?p.min:0,
+        buy_price:it.buy_price||(p?p.buy_price:0),
+        buy_qty:  it.buy_qty  ||(p?p.buy_qty:0),
+        memo:     it.memo     ||'',
+        orderQty: it.order_qty||1
+      });
+    });
+    renderOrdRight();
+    renderOrdLeft();
+    goTab('d');
+    toast(pendingItems.length+'件を発注リストに戻しました');
   });
 }
 
