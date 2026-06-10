@@ -86,7 +86,7 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'addRestock','applyRestock','saveImageData','updateImg',
     'saveSortOrder','getSuppliers','addSupplier','updateSupplier',
     'deleteSupplier','getOrders','saveOrder','deleteOrder',
-    'receiveOrderItem','sendFaxEmail','getSettings','saveSettings',
+    'receiveOrderItem','revertOrderItem','sendFaxEmail','getSettings','saveSettings',
     'saveRegiDefaults','getTodaySalesData','saveOrderFromRegi',
     'getSummaryData','saveClosingData','getDetailByDate',
     'invalidateDetailRow','updateDetailRow','getSavingsData',
@@ -389,6 +389,12 @@ GAS.saveOrder = function(data) {
 GAS.deleteOrder = function(orderId) {
   return sbDelete('purchase_orders', 'order_id=eq.' + orderId)
     .then(function() { return { ok:true }; });
+};
+
+// ─ revertOrderItem ─
+GAS.revertOrderItem = function(itemId) {
+  return sbPatch('purchase_orders', 'id=eq.' + itemId, { status: 'pending' })
+    .then(function() { return { ok: true }; });
 };
 
 // ─ receiveOrderItem ─

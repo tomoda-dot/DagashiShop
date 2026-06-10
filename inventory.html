@@ -1928,7 +1928,10 @@ function renderOrders(){
       if(isPending){
         html+='<button class="btng" onclick="receiveItem('+it.id+')" style="font-size:11px;padding:5px 12px;white-space:nowrap;">入荷確認</button>';
       } else {
+        html+='<div style="display:flex;align-items:center;gap:6px;">';
         html+='<span style="font-size:11px;color:var(--grn);font-weight:700;white-space:nowrap;">✓ 入荷済み</span>';
+        html+='<button class="btns" onclick="event.stopPropagation();revertItem('+it.id+')" style="font-size:10px;padding:3px 8px;color:var(--amb);white-space:nowrap;">発注に戻す</button>';
+        html+='</div>';
       }
       html+='</div>';
     }
@@ -2019,6 +2022,22 @@ function deleteOrder(orderId){
     run1('deleteOrder',orderId).then(function(res){
       if(res&&res.ok){
         toast('発注を消去しました');
+        loadOrdersData();
+      } else {
+        toast('エラー: '+(res&&res.error||'不明'));
+      }
+    }).catch(function(e){setSS('er');toast('エラー: '+(e.message||e));});
+  });
+}
+
+function revertItem(itemId){
+  var it=orders.filter(function(x){return x.id===itemId;})[0];
+  if(!it)return;
+  showConfirm('「'+it.product_name+'」を発注リストに戻しますか？\n（仕入れ履歴への追加はキャンセルされません）', function(){
+    setSS('sv');
+    run1('revertOrderItem', itemId).then(function(res){
+      if(res&&res.ok){
+        toast('「'+it.product_name+'」を未入荷に戻しました');
         loadOrdersData();
       } else {
         toast('エラー: '+(res&&res.error||'不明'));
