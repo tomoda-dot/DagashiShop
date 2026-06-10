@@ -853,7 +853,7 @@
 
         return `<tr class="${rowClass}">
           <td class="font-mono text-xs text-slate-400">${String(r[0]).replace('ID:','')}</td>
-          <td>${r[1] || ''}</td>
+          <td>${r[1] ? r[1].replace('T',' ').substring(0,16) : ''}</td>
           <td>${badge}</td>
           <td class="font-semibold">${label}</td>
           <td class="text-right font-mono">${price.toLocaleString()}円</td>
