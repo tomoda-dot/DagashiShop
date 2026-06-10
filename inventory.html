@@ -1908,9 +1908,7 @@ function renderOrders(){
     html+='</div>';
     html+='<div style="display:flex;align-items:center;gap:8px;">';
     html+='<span style="font-size:14px;font-weight:700;color:var(--red);">¥'+orderTotal.toLocaleString()+'</span>';
-    if(totalReceived>0){
-      html+='<button class="btns" onclick="event.stopPropagation();revertOrder('+oid+')" style="font-size:11px;padding:4px 10px;color:var(--amb);">発注に戻す</button>';
-    }
+    html+='<button class="btns" onclick="event.stopPropagation();revertOrder('+oid+')" style="font-size:11px;padding:4px 10px;color:var(--amb);">発注に戻す</button>';
     html+='<button class="btns" onclick="event.stopPropagation();deleteOrder('+oid+')" style="font-size:11px;padding:4px 10px;color:var(--red);">消去する</button>';
     html+='</div></div>';
 
@@ -2031,14 +2029,38 @@ function deleteOrder(orderId){
 }
 
 function revertOrder(orderId){
-  var items=orders.filter(function(x){return x.order_id===orderId && x.status==='received';});
+  var items=orders.filter(function(x){return x.order_id===orderId;});
   if(!items.length)return;
-  showConfirm('この発注の入荷済み（'+items.length+'件）を未入荷に戻しますか？', function(){
+  showConfirm('この発注（'+items.length+'件）を発注リストに戻しますか？\n発注済み履歴からは削除されます。', function(){
     setSS('sv');
-    var promises=items.map(function(it){ return run1('revertOrderItem', it.id); });
-    Promise.all(promises).then(function(){
-      toast(items.length+'件を未入荷に戻しました');
-      loadOrdersData();
+    run1('deleteOrder', orderId).then(function(res){
+      if(res&&res.ok){
+        // ordListに復元（商品マスタから情報補完、order_qtyをorderQtyにセット）
+        items.forEach(function(it){
+          // 既にordListにある場合はスキップ
+          if(ordList.filter(function(x){return x.id===it.product_id;}).length>0) return;
+          var p=prods.filter(function(x){return x.id===it.product_id;})[0];
+          ordList.push({
+            id:       it.product_id,
+            name:     it.product_name,
+            unit:     it.unit     || (p?p.unit:'個'),
+            stock:    p?p.stock:0,
+            min:      p?p.min:0,
+            buy_price:it.buy_price||(p?p.buy_price:0),
+            buy_qty:  it.buy_qty  ||(p?p.buy_qty:0),
+            memo:     it.memo     ||'',
+            orderQty: it.order_qty||1
+          });
+        });
+        renderOrdRight();
+        renderOrdLeft();
+        // 発注タブに切り替え
+        goTab('d');
+        toast(items.length+'件を発注リストに戻しました');
+        loadOrdersData();
+      } else {
+        toast('エラー: '+(res&&res.error||'不明'));
+      }
     }).catch(function(e){setSS('er');toast('エラー: '+(e.message||e));});
   });
 }
