@@ -528,7 +528,10 @@ GAS.saveOrderFromRegi = function(jsonStr) {
     ...(payload.free      || []),
     ...(payload.discounts || [])
   ];
-  if (!items.length) return Promise.resolve('保存完了');
+  if (!items.length) {
+    // 当たり券・割引券のみで商品なし（0円決済）の場合も1レコード保存
+    items = [{ label: '（0円決済）', price: 0, qty: 1, subtotal: 0 }];
+  }
   var bodies = items.map(function(item) {
     return {
       order_code: 'ID:' + orderCode,

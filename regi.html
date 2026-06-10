@@ -1313,22 +1313,20 @@ async function confirmCheckout() {
     setTimeout(() => overlay.classList.remove('show'), 2200);
 
     // キューに追加してバックグラウンド送信
-    if (typeof google !== 'undefined' && google.script) {
-        const summarize = items => items.reduce((acc, item) => {
-            const f = acc.find(a => a.label === item.label);
-            if (f) { f.qty++; f.subtotal += item.price; }
-            else acc.push({ label:item.label, price:item.price, qty:1, subtotal:item.price });
-            return acc;
-        }, []);
-        const payload = {
-            timestamp: new Date().toLocaleString('ja-JP'),
-            orders:    summarize(cart.filter(i => !i.isFree && !i.isDiscount)),
-            free:      summarize(cart.filter(i => i.isFree)),
-            discounts: summarize(cart.filter(i => i.isDiscount)),
-            total, received, change
-        };
-        enqueue(payload);
-    }
+    const summarize = items => items.reduce((acc, item) => {
+        const f = acc.find(a => a.label === item.label);
+        if (f) { f.qty++; f.subtotal += item.price; }
+        else acc.push({ label:item.label, price:item.price, qty:1, subtotal:item.price });
+        return acc;
+    }, []);
+    const payload = {
+        timestamp: new Date().toLocaleString('ja-JP'),
+        orders:    summarize(cart.filter(i => !i.isFree && !i.isDiscount)),
+        free:      summarize(cart.filter(i => i.isFree)),
+        discounts: summarize(cart.filter(i => i.isDiscount)),
+        total, received, change
+    };
+    enqueue(payload);
     clearCart();
 }
 
