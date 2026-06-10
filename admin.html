@@ -576,21 +576,32 @@
     // ── 日計表 ───────────────────────────────────
     function loadData() {
       document.getElementById('loading').style.display = 'flex';
-      GAS.getSummaryData().then((data) => {
+      // 日付は常に今日
+      const todayStr = (function(){
+        const d = new Date();
+        const jst = new Date(d.getTime() + 9*60*60*1000);
+        return jst.toISOString().split('T')[0];
+      })();
+      g_currentDate = todayStr;
+      document.getElementById('target-date-display').innerText = todayStr + " のレジ締め";
+
+      Promise.all([
+        GAS.getSummaryData(),
+        GAS.getTodaySalesData()
+      ]).then(([data, todaySales]) => {
         g_allData = data;
         filterDataByMonth();
+        // 前回の締めデータがあれば固定準備金等を引き継ぎ
         if (data && data.length > 0) {
           const t = data[0];
-          g_currentDate = t["日付"];
-          document.getElementById('target-date-display').innerText = g_currentDate + " のレジ締め";
           g_fixed = Number(t["固定準備金"]) || parseInt(document.getElementById('in-fixed').value) || 33300;
-          g_sales = Number(t["今日の売上合計"] || 0);
-          document.getElementById('in-fixed').value = g_fixed;
-          document.getElementById('disp-sales').innerText = '¥' + g_sales.toLocaleString();
           if (t["販売場所"]) document.getElementById('in-location').value = t["販売場所"];
-          document.getElementById('in-memo').value = t["備考"] || "";
-          calculate();
         }
+        // 本日売上はorder_itemsから取得
+        g_sales = todaySales ? todaySales.total : 0;
+        document.getElementById('in-fixed').value = g_fixed;
+        document.getElementById('disp-sales').innerText = '¥' + g_sales.toLocaleString();
+        calculate();
         document.getElementById('loading').style.display = 'none';
       }).catch(() => { document.getElementById('loading').style.display = 'none'; });
     }
