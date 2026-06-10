@@ -485,8 +485,10 @@ GAS.saveRegiDefaults = function(jsonStr) {
 // ─ getTodaySalesData ─
 GAS.getTodaySalesData = function() {
   var today = todayJST();
-  var gte = encodeURIComponent(today + 'T00:00:00+09:00');
-  var lte = encodeURIComponent(today + 'T23:59:59+09:00');
+  var jstStart = new Date(today + 'T00:00:00+09:00');
+  var jstEnd   = new Date(today + 'T23:59:59+09:00');
+  var gte = jstStart.toISOString().replace(/\.\d{3}Z$/, 'Z');
+  var lte = jstEnd.toISOString().replace(/\.\d{3}Z$/, 'Z');
   return sbGet('order_items',
     'select=order_code,label,qty,subtotal,status&ts=gte.' + gte + '&ts=lte.' + lte + '&limit=10000'
   ).then(function(rows) {
@@ -597,11 +599,14 @@ GAS.saveClosingData = function(payload) {
 // ─ getDetailByDate ─
 GAS.getDetailByDate = function(searchDate) {
   var d = searchDate.replace(/\//g, '-');
-  // JST 2026-06-09 00:00 〜 23:59 で直接フィルタ
-  var gte = encodeURIComponent(d + 'T00:00:00+09:00');
-  var lte = encodeURIComponent(d + 'T23:59:59+09:00');
+  // データはUTCで保存されている
+  // JST 2026-06-10 00:00〜23:59 = UTC 2026-06-09T15:00:00Z〜2026-06-10T14:59:59Z
+  var jstStart = new Date(d + 'T00:00:00+09:00');
+  var jstEnd   = new Date(d + 'T23:59:59+09:00');
+  var gte = jstStart.toISOString().replace(/\.\d{3}Z$/, 'Z');
+  var lte = jstEnd.toISOString().replace(/\.\d{3}Z$/, 'Z');
   return sbGet('order_items',
-    'select=*&ts=gte.' + gte + '&ts=lte.' + lte + '&order=id.asc&limit=10000'
+    'select=*&ts=gte.' + encodeURIComponent(gte) + '&ts=lte.' + encodeURIComponent(lte) + '&order=id.asc&limit=10000'
   ).then(function(rows) {
     return (rows || []).map(function(r) {
       return [r.order_code, r.ts, r.label, r.price, r.qty, r.subtotal, r.deposit, r.change, r.status, r.id];
