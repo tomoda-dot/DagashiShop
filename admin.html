@@ -623,22 +623,13 @@
           document.getElementById('in-fixed').value = g_fixed;
         }
 
-        // daily_summaryの最新日付
-        const latestDate = data.length > 0 ? data[0]['日付'] : todayJST();
-        const today = todayJST();
-
-        // 日付入力欄を設定（手動変更がなければ上書き）
+        // order_itemsの最新レコードの日付を取得して設定
         const dateInput = document.getElementById('target-date-input');
-        if (!dateInput.value) dateInput.value = latestDate;
-        g_currentDate = dateInput.value;
-
-        // 今日のorder_itemsにデータがあるか確認してから日付を決める
-        return GAS.getDetailByDate(today).then(function(todayRows) {
-          const hasTodayData = todayRows && todayRows.length > 0;
-          if (!dateInput.value || dateInput.value === latestDate) {
-            dateInput.value = hasTodayData ? today : latestDate;
-            g_currentDate = dateInput.value;
-          }
+        return GAS.getLatestOrderDate().then(function(latestOrderDate) {
+          const latestDate = data.length > 0 ? data[0]['日付'] : todayJST();
+          const targetDate = latestOrderDate || latestDate;
+          if (!dateInput.value) dateInput.value = targetDate;
+          g_currentDate = dateInput.value;
           return GAS.getDetailByDate(g_currentDate);
         });
       }).then(function(rows) {
@@ -765,10 +756,8 @@
       const el = document.getElementById('detail-date-input');
       if (!el.value) {
         const latestDate = g_allData && g_allData.length > 0 ? g_allData[0]['日付'] : todayJST();
-        const today = todayJST();
-        // 今日のorder_itemsにデータがあるか確認
-        GAS.getDetailByDate(today).then(function(todayRows) {
-          el.value = (todayRows && todayRows.length > 0) ? today : latestDate;
+        GAS.getLatestOrderDate().then(function(latestOrderDate) {
+          el.value = latestOrderDate || latestDate;
           loadDetailData();
         }).catch(function() {
           el.value = latestDate;
