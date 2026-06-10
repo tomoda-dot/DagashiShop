@@ -485,10 +485,8 @@ GAS.saveRegiDefaults = function(jsonStr) {
 // ─ getTodaySalesData ─
 GAS.getTodaySalesData = function() {
   var today = todayJST();
-  var jstStart = new Date(today + 'T00:00:00+09:00');
-  var jstEnd   = new Date(today + 'T23:59:59+09:00');
-  var gte = jstStart.toISOString().replace(/\.\d{3}Z$/, 'Z');
-  var lte = jstEnd.toISOString().replace(/\.\d{3}Z$/, 'Z');
+  var gte = today + 'T00:00:00+00:00';
+  var lte = today + 'T23:59:59+00:00';
   return sbGet('order_items',
     'select=order_code,label,qty,subtotal,status&ts=gte.' + gte + '&ts=lte.' + lte + '&limit=10000'
   ).then(function(rows) {
@@ -599,12 +597,9 @@ GAS.saveClosingData = function(payload) {
 // ─ getDetailByDate ─
 GAS.getDetailByDate = function(searchDate) {
   var d = searchDate.replace(/\//g, '-');
-  // データはUTCで保存されている
-  // JST 2026-06-10 00:00〜23:59 = UTC 2026-06-09T15:00:00Z〜2026-06-10T14:59:59Z
-  var jstStart = new Date(d + 'T00:00:00+09:00');
-  var jstEnd   = new Date(d + 'T23:59:59+09:00');
-  var gte = jstStart.toISOString().replace(/\.\d{3}Z$/, 'Z');
-  var lte = jstEnd.toISOString().replace(/\.\d{3}Z$/, 'Z');
+  // tsはJST時刻が+00:00タグで保存されているため、日付部分の前方一致でフィルタ
+  var gte = d + 'T00:00:00+00:00';
+  var lte = d + 'T23:59:59+00:00';
   return sbGet('order_items',
     'select=*&ts=gte.' + encodeURIComponent(gte) + '&ts=lte.' + encodeURIComponent(lte) + '&order=id.asc&limit=10000'
   ).then(function(rows) {
