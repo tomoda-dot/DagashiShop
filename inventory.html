@@ -303,9 +303,14 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
         <div class="calc" id="det-tanka" style="color:var(--t3);">— 円 / 個</div>
       </div>
       <div>
-        <label class="fl">販売価格 (円)</label>
-        <input class="fi" type="number" id="det-price" min="0" placeholder="自動入力" oninput="detSellEdited=true;detMargin()" />
+        <label class="fl">参考価格 (円)</label>
+        <input class="fi" type="number" id="det-price" min="0" placeholder="自動入力" oninput="detSellEdited=true;detMargin();syncSellPrice()" />
         <div style="font-size:10px;color:var(--t3);margin-top:3px;" id="det-margin"></div>
+      </div>
+      <div>
+        <label class="fl">販売価格 (円)</label>
+        <input class="fi" type="number" id="det-sell-price" min="0" placeholder="参考価格から自動コピー" oninput="this.dataset.edited='1'" />
+        <div style="font-size:10px;color:var(--t3);margin-top:3px;">※ 実際の販売価格。上書き可</div>
       </div>
     </div>
 
@@ -692,6 +697,9 @@ function openEdit(id){
   document.getElementById('det-bprice').value=p.buy_price||'';
   document.getElementById('det-bqty').value=p.buy_qty||'';
   document.getElementById('det-price').value=p.price||'';
+  var spEl=document.getElementById('det-sell-price');
+  spEl.value=p.sell_price||p.price||'';
+  spEl.dataset.edited=p.sell_price?'1':'';
   document.getElementById('det-stock-row').style.display=isCand?'none':'block';
   document.getElementById('det-stock-label').textContent='在庫数';
   document.getElementById('det-stock').value=p.stock||0;
@@ -759,7 +767,8 @@ function detProdChange(){
     document.getElementById('det-bprice').value='';
     document.getElementById('det-bqty').value='';
     document.getElementById('det-price').value='';
-    document.getElementById('det-exp').value='';
+    var spEl=document.getElementById('det-sell-price');
+    spEl.value=''; spEl.dataset.edited='';
     document.getElementById('det-tanka').textContent='— 円 / 個';
     document.getElementById('det-tanka').style.color='var(--t3)';
     document.getElementById('det-margin').textContent='';
@@ -774,6 +783,9 @@ function detProdChange(){
       document.getElementById('det-bprice').value=p.buy_price||'';
       document.getElementById('det-bqty').value=p.buy_qty||'';
       document.getElementById('det-price').value=p.price||'';
+      var spEl2=document.getElementById('det-sell-price');
+      spEl2.value=p.sell_price||p.price||'';
+      spEl2.dataset.edited=p.sell_price?'1':'';
       document.getElementById('det-exp').value='';
       detCalc();
     }
@@ -796,6 +808,8 @@ function openCandidate(){
   document.getElementById('det-bprice').value='';
   document.getElementById('det-bqty').value='';
   document.getElementById('det-price').value='';
+  var spElC=document.getElementById('det-sell-price');
+  spElC.value=''; spElC.dataset.edited='';
   document.getElementById('det-tanka').textContent='— 円 / 個';
   document.getElementById('det-tanka').style.color='var(--t3)';
   document.getElementById('det-margin').textContent='';
@@ -841,12 +855,20 @@ function detFormData(){
     buy_price: parseFloat(document.getElementById('det-bprice').value)||0,
     buy_qty:   parseInt(document.getElementById('det-bqty').value)||0,
     price: parseFloat(document.getElementById('det-price').value)||0,
+    sell_price: parseFloat(document.getElementById('det-sell-price').value)||0,
     stock: parseInt(document.getElementById('det-stock').value)||0,
     memo:  document.getElementById('det-memo').value||'',
     status: (document.getElementById('st-active')&&document.getElementById('st-active').checked)?'active'
            :(document.getElementById('st-hidden')&&document.getElementById('st-hidden').checked)?'hidden'
            :(document.getElementById('st-disc')&&document.getElementById('st-disc').checked)?'discontinued':'active'
   };
+}
+
+// 参考価格が変わったとき、販売価格が未入力なら自動コピー
+function syncSellPrice(){
+  var ref=document.getElementById('det-price').value;
+  var sell=document.getElementById('det-sell-price');
+  if(!sell.dataset.edited) sell.value=ref;
 }
 
 function detCalc(){
@@ -1093,7 +1115,7 @@ function renderP(){
       +' onclick="openEdit('+p.id+')">'
       +'<div class="ptop">'+imgElSmall(p)
       +'<div class="pinfo"><div class="pname" title="'+p.name+'">'+p.name+'</div>'
-      +'<div class="pprc">'+p.price+'円</div>'
+      +'<div class="pprc">'+(p.sell_price||p.price)+'円</div>'
       +'<div class="ptgs"><span class="tag '+cls+'">'+p.cat+'</span>'+eb
       +(p.status==='hidden'?'<span class="tag" style="background:#FFF3CD;color:#856404;">一時非表示</span>':'')
       +(p.status==='discontinued'?'<span class="tag tx">完全終売</span>':'')
@@ -1156,7 +1178,7 @@ function renderPList(list, grid){
       +'<span class="lv-cat tag '+cls+'">'+p.cat+'</span>'
       +eb+stBadge
       +(lvPending?'<span style="font-size:10px;color:#9A6A1A;background:#FDF5E6;border:1px solid #E5C88A;border-radius:999px;padding:1px 7px;font-weight:700;">入荷済</span>':'')
-      +'<div class="lv-price">'+p.price+'円</div>'
+      +'<div class="lv-price">'+(p.sell_price||p.price)+'円</div>'
       +'<div class="lv-exp">'+(p.exp||'')+'</div>'
       +'<div class="lv-stk" style="color:'+stkColor+';">'+p.stock+'<span class="lv-unit">'+p.unit+'</span></div>'
       +'<div class="lv-btns">'

@@ -122,7 +122,7 @@ GAS.testConnection = function() {
 // ─ getAllData ─
 GAS.getAllData = function() {
   return Promise.all([
-    sbGet('products', 'select=id,name,cat,stock,min,price,unit,exp,buy_price,buy_qty,memo,status,sort_order,maker&order=sort_order.asc,id.asc'),
+    sbGet('products', 'select=id,name,cat,stock,min,price,sell_price,unit,exp,buy_price,buy_qty,memo,status,sort_order,maker&order=sort_order.asc,id.asc'),
     sbGet('restock',  'select=*&order=id.desc')
   ]).then(function(results) {
     var products = (results[0] || []).map(function(p) {
@@ -133,7 +133,8 @@ GAS.getAllData = function() {
         cat:       p.cat       || 'その他',
         stock:     p.stock     || 0,
         min:       p.min       || 5,
-        price:     p.price     || 0,
+        price:      p.price      || 0,
+        sell_price: p.sell_price || 0,
         unit:      p.unit      || '個',
         exp:       p.exp       || '',
         img:       p.img       || null,
@@ -168,7 +169,8 @@ GAS.updateProduct = function(p) {
   if (p.maker     !== undefined) body.maker      = p.maker;
   if (p.cat       !== undefined) body.cat        = p.cat;
   if (p.min       !== undefined) body.min        = Number(p.min);
-  if (p.price     !== undefined) body.price      = Number(p.price);
+  if (p.price      !== undefined) body.price      = Number(p.price);
+  if (p.sell_price !== undefined) body.sell_price = Number(p.sell_price);
   if (p.unit      !== undefined) body.unit       = p.unit;
   if (p.exp       !== undefined) body.exp        = p.exp || null;
   if (p.buy_price !== undefined) body.buy_price  = Number(p.buy_price);
@@ -187,7 +189,8 @@ GAS.addProduct = function(p) {
     cat:       p.cat       || 'その他',
     stock:     Number(p.stock)     || 0,
     min:       Number(p.min)       || 5,
-    price:     Number(p.price)     || 0,
+    price:     Number(p.price)      || 0,
+    sell_price:Number(p.sell_price) || Number(p.price) || 0,
     unit:      p.unit      || '個',
     exp:       p.exp       || null,
     buy_price: Number(p.buy_price) || 0,
