@@ -577,14 +577,19 @@ GAS.getSummaryData = function() {
 
 // ─ saveClosingData ─
 GAS.saveClosingData = function(payload) {
+  var fixed  = Number(payload.fixedCash)   || 0;
+  var sales  = Number(payload.salesTotal)  || 0;
+  var actual = Number(payload.actualCash)  || 0;
+  var diff   = actual - (fixed + sales);
   var body = {
     location:    payload.location   || '',
-    sales_total: Number(payload.salesTotal) || 0,
-    actual_cash: Number(payload.actualCash) || 0,
+    sales_total: sales,
+    actual_cash: actual,
+    diff:        diff,
     memo:        payload.memo       || '',
     closed_at:   nowJST()
   };
-  if (payload.fixedCash !== undefined) body.fixed_cash = Number(payload.fixedCash);
+  if (payload.fixedCash !== undefined) body.fixed_cash = fixed;
 
   if (payload.rowNumber) {
     return sbPatch('daily_summary', 'id=eq.' + payload.rowNumber, body)
