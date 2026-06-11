@@ -623,15 +623,17 @@
           document.getElementById('in-fixed').value = g_fixed;
         }
 
-        // order_itemsの最新レコードの日付を取得して設定
+        // daily_summaryの最新日付を表示
+        const latestDate = data.length > 0 ? data[0]['日付'] : todayJST();
+        let targetDate = latestDate;
+
+        // 日付入力欄を設定（手動変更がなければ未締め日に）
         const dateInput = document.getElementById('target-date-input');
-        return GAS.getLatestOrderDate().then(function(latestOrderDate) {
-          const latestDate = data.length > 0 ? data[0]['日付'] : todayJST();
-          const targetDate = latestOrderDate || latestDate;
-          if (!dateInput.value) dateInput.value = targetDate;
-          g_currentDate = dateInput.value;
-          return GAS.getDetailByDate(g_currentDate);
-        });
+        if (!dateInput.value) dateInput.value = targetDate;
+        g_currentDate = dateInput.value;
+
+        // その日の売上をorder_itemsから取得
+        return GAS.getDetailByDate(g_currentDate);
       }).then(function(rows) {
         var total = 0;
         (rows || []).forEach(function(r) {
@@ -737,6 +739,7 @@
       const actual = parseInt(document.getElementById('total-actual').innerText.replace(/[¥,]/g,''));
       GAS.saveClosingData({
         date: g_currentDate,
+        salesTotal: g_sales,
         actualCash: actual,
         fixedCash: parseInt(document.getElementById('in-fixed').value) || 33300,
         location: document.getElementById('in-location').value,
@@ -755,14 +758,10 @@
     function initDetailDate() {
       const el = document.getElementById('detail-date-input');
       if (!el.value) {
+        // daily_summaryの最新日付を表示
         const latestDate = g_allData && g_allData.length > 0 ? g_allData[0]['日付'] : todayJST();
-        GAS.getLatestOrderDate().then(function(latestOrderDate) {
-          el.value = latestOrderDate || latestDate;
-          loadDetailData();
-        }).catch(function() {
-          el.value = latestDate;
-          loadDetailData();
-        });
+        el.value = latestDate;
+        loadDetailData();
       }
     }
 

@@ -579,6 +579,7 @@ GAS.getSummaryData = function() {
 GAS.saveClosingData = function(payload) {
   var body = {
     location:    payload.location   || '',
+    sales_total: Number(payload.salesTotal) || 0,
     actual_cash: Number(payload.actualCash) || 0,
     memo:        payload.memo       || '',
     closed_at:   nowJST()
