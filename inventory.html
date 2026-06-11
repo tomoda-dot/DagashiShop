@@ -309,8 +309,9 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
       </div>
       <div>
         <label class="fl">販売価格 (円)</label>
-        <input class="fi" type="number" id="det-sell-price" min="0" placeholder="参考価格から自動コピー" oninput="this.dataset.edited='1'" />
+        <input class="fi" type="number" id="det-sell-price" min="0" placeholder="参考価格から自動コピー" oninput="this.dataset.edited='1';detSellMargin()" />
         <div style="font-size:10px;color:var(--t3);margin-top:3px;">※ 実際の販売価格。上書き可</div>
+        <div style="font-size:10px;margin-top:3px;" id="det-sell-margin"></div>
       </div>
     </div>
 
@@ -714,7 +715,7 @@ function openEdit(id){
   if(rh)rh.checked=(st==='hidden');
   if(rd)rd.checked=(st==='discontinued');
   detCalc();
-  // 画像（遅延取得）
+  detSellMargin();
   var iw=document.getElementById('det-img-wrap');
   var cls=CC[p.cat]||'co',ch=CH[p.cat]||'他';
   iw.innerHTML='<div class="'+cls+'" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;">'+ch+'</div>';
@@ -868,7 +869,20 @@ function detFormData(){
 function syncSellPrice(){
   var ref=document.getElementById('det-price').value;
   var sell=document.getElementById('det-sell-price');
-  if(!sell.dataset.edited) sell.value=ref;
+  if(!sell.dataset.edited) { sell.value=ref; detSellMargin(); }
+}
+
+function detSellMargin(){
+  var bp=parseFloat(document.getElementById('det-bprice').value)||0;
+  var bq=parseInt(document.getElementById('det-bqty').value)||0;
+  var sell=parseFloat(document.getElementById('det-sell-price').value)||0;
+  var el=document.getElementById('det-sell-margin');
+  if(!el) return;
+  if(bp>0&&bq>0&&sell>0){
+    var t=bp/bq*1.08,m=sell-t,pct=Math.round(m/sell*100);
+    el.textContent='粗利: '+(m>=0?'+':'')+(m%1===0?m:m.toFixed(1))+'円/個（'+pct+'%）';
+    el.style.color=m>=0?'var(--grn)':'var(--red)';
+  } else { el.textContent=''; }
 }
 
 function detCalc(){
