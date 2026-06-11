@@ -471,6 +471,9 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
         <option value="">全カテゴリ</option>
         <option>スナック</option><option>チョコ</option><option>ガム</option><option>グミ</option><option>ラムネ</option><option>ゼリー</option><option>アメ</option><option>ソフトキャンディ</option><option>砂糖菓子</option><option>味付け珍味</option><option>その他</option><option>玩具</option>
       </select>
+      <select class="inp" id="makerf" onchange="renderP()" style="min-width:120px;">
+        <option value="">全メーカー</option>
+      </select>
       <button class="btns" id="show-hidden-btn" onclick="toggleShowHidden()" title="終売・非表示商品を表示">非表示も表示</button>
       <div style="display:flex;gap:0;border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;">
         <button id="view-grid-btn" onclick="setView('grid')" title="カード表示" style="background:var(--red);color:#fff;border:none;padding:7px 12px;cursor:pointer;font-size:16px;line-height:1;">⊞</button>
@@ -1029,7 +1032,22 @@ function goTab(n){
 }
 
 // ── レンダリング ──
-function renderAll(){renderStats();renderP();}
+function updateMakerFilter(){
+  var sel=document.getElementById('makerf');
+  if(!sel) return;
+  var current=sel.value;
+  var makers=[];
+  prods.forEach(function(p){
+    if(p.maker && makers.indexOf(p.maker)<0) makers.push(p.maker);
+  });
+  makers.sort();
+  sel.innerHTML='<option value="">全メーカー</option>'
+    +makers.map(function(m){
+      return '<option value="'+m+'"'+(m===current?' selected':'')+'>'+m+'</option>';
+    }).join('');
+}
+
+function renderAll(){renderStats();updateMakerFilter();renderP();}
 
 function renderStats(){
   var active=prods.filter(function(p){return p.status==='active';});
@@ -1087,11 +1105,13 @@ function imgElSmall(p){
 function renderP(){
   var q=(document.getElementById('srch')?document.getElementById('srch').value:'').toLowerCase();
   var cat=document.getElementById('catf')?document.getElementById('catf').value:'';
+  var maker=document.getElementById('makerf')?document.getElementById('makerf').value:'';
   var list=prods.filter(function(p){
-    if(p.status==='candidate') return false; // 発注候補は在庫一覧に表示しない
+    if(p.status==='candidate') return false;
     if(!showHidden && (p.status==='hidden'||p.status==='discontinued')) return false;
     if(p.name.toLowerCase().indexOf(q) < 0) return false;
     if(cat && p.cat!==cat) return false;
+    if(maker && p.maker!==maker) return false;
     if(statsFilter==='low') return p.stock<=p.min && p.status==='active';
     if(statsFilter==='exp'){ var es=expSt(p.exp); return es&&es.t!=='ok'&&p.status==='active'&&p.stock>0; }
     return true;
