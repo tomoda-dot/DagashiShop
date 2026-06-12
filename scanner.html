@@ -125,7 +125,7 @@ window.addEventListener('error', function(e) {
 dlog('読み込み開始...');
 dlog('supabase-config.js: ' + (typeof SUPABASE_URL !== 'undefined' ? 'OK' : 'NG'));
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.39.7/umd/supabase.min.js" onload="dlog('supabase-js: OK')" onerror="dlog('❌ supabase-js: 読み込み失敗')"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" onload="dlog('supabase-js: OK')" onerror="dlog('❌ supabase-js: 読み込み失敗')"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" onload="dlog('html5-qrcode: OK')" onerror="dlog('❌ html5-qrcode: 読み込み失敗')"></script>
 <script>
 dlog('メインスクリプト開始');
