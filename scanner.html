@@ -63,7 +63,7 @@
   .sent-ctrl{display:flex;align-items:center;gap:6px;}
   .sent-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--bd);background:var(--bg);
     font-size:16px;font-weight:800;color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;
-    -webkit-user-select:none;user-select:none;}
+    -webkit-user-select:none;user-select:none;flex-shrink:0;}
   .sent-btn:active{background:var(--bd);}
   .sent-btn.del{color:var(--red);border-color:var(--red);}
   .sent-qty{font-size:14px;font-weight:800;min-width:20px;text-align:center;}
@@ -295,7 +295,8 @@ function registerBarcode(productId, productName) {
 
 // ── タブレット表示の更新（display_state） ──
 function pushDisplayState(thanks) {
-  var cart = sentCart.map(function(it){ return { name: it.name, price: it.price, qty: it.qty }; });
+  var cart = sentCart.filter(function(it){ return it.qty > 0; })
+    .map(function(it){ return { name: it.name, price: it.price, qty: it.qty }; });
   var total = sentCart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
   var received = parseInt(document.getElementById('received-input').value) || 0;
   var change = received - total;
@@ -314,8 +315,7 @@ function pushDisplayState(thanks) {
 function addToSentCart(barcode, name, price, qty) {
   var existing = sentCart.find(function(it){ return it.barcode === barcode; });
   if (existing) {
-    existing.qty += qty;
-    if (existing.qty <= 0) sentCart.splice(sentCart.indexOf(existing), 1);
+    existing.qty = Math.max(0, existing.qty + qty);
   } else if (qty > 0) {
     sentCart.unshift({ barcode: barcode, name: name, price: price, qty: qty });
   }
@@ -339,13 +339,14 @@ function renderSentList() {
       + '<button class="sent-btn" data-idx="' + idx + '" data-act="dec">−</button>'
       + '<span class="sent-qty">' + it.qty + '</span>'
       + '<button class="sent-btn" data-idx="' + idx + '" data-act="inc">＋</button>'
-      + '<button class="sent-btn del" data-idx="' + idx + '" data-act="del">×</button>'
       + '</div>'
       + '<div class="sprice">¥' + (it.price * it.qty).toLocaleString() + '</div>'
+      + '<button class="sent-btn del" data-idx="' + idx + '" data-act="del">×</button>'
       + '</div>';
   }).join('');
   var total = sentCart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
-  totalEl.textContent = '合計 ¥' + total.toLocaleString();
+  var totalQty = sentCart.reduce(function(s, it){ return s + it.qty; }, 0);
+  totalEl.textContent = '計 ' + totalQty + '点　合計 ¥' + total.toLocaleString();
 
   Array.prototype.forEach.call(list.querySelectorAll('.sent-btn'), function(btn) {
     btn.addEventListener('click', function() {
@@ -355,8 +356,7 @@ function renderSentList() {
       if (act === 'inc') {
         it.qty += 1;
       } else if (act === 'dec') {
-        it.qty -= 1;
-        if (it.qty <= 0) sentCart.splice(idx, 1);
+        if (it.qty > 0) it.qty -= 1;
       } else if (act === 'del') {
         sentCart.splice(idx, 1);
       }
@@ -403,20 +403,22 @@ Array.prototype.forEach.call(document.querySelectorAll('.quick-amt-btn'), functi
 
 // ── 会計確定（order_itemsに保存し、タブレットに「ありがとう」表示） ──
 function completeCheckout() {
-  if (!sentCart.length) { showToast('リストは空です', 'warn'); return; }
+  if (!sentCart.length || !sentCart.some(function(it){ return it.qty > 0; })) {
+    showToast('リストは空です', 'warn'); return;
+  }
   var total = getCartTotal();
   var received = parseInt(document.getElementById('received-input').value) || 0;
   if (received < total) { showToast('お預かり金額が不足しています', 'warn'); return; }
   var change = received - total;
 
-  var orders = sentCart.map(function(it) {
+  var orders = sentCart.filter(function(it){ return it.qty > 0; }).map(function(it) {
     return { label: it.name, price: it.price, qty: it.qty, subtotal: it.price * it.qty };
   });
 
   GAS.saveOrderFromRegi({ orders: orders, received: received, change: change }).then(function() {
     // タブレットに「ありがとう」を表示
     sb.from('display_state').update({
-      cart: sentCart.map(function(it){ return { name: it.name, price: it.price, qty: it.qty }; }),
+      cart: sentCart.filter(function(it){ return it.qty > 0; }).map(function(it){ return { name: it.name, price: it.price, qty: it.qty }; }),
       received: received,
       change: change,
       thanks: true,
@@ -452,8 +454,9 @@ function onScanSuccess(decodedText) {
   lastScan = decodedText;
   lastScanTime = now;
 
-  // バイブレーション
+  // バイブレーション + 読み取り音
   if (navigator.vibrate) navigator.vibrate(80);
+  playBeep();
 
   if (mode === 'regi') {
     var p = barcodeMap[decodedText];
@@ -479,12 +482,35 @@ function onScanSuccess(decodedText) {
 
 function onScanFailure() { /* 無視（連続スキャンのため） */ }
 
+// ── 読み取り音（ビープ） ──
+var audioCtx = null;
+function initAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+}
+function playBeep() {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  var osc = audioCtx.createOscillator();
+  var gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = 1800;
+  gain.gain.value = 0.25;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.12);
+  osc.stop(audioCtx.currentTime + 0.12);
+}
+
 var html5QrCode = (typeof Html5Qrcode !== 'undefined') ? new Html5Qrcode('reader') : null;
 var config = { fps: 10, qrbox: { width: 250, height: 150 } };
 var cameraStarted = false;
 
 function startCamera() {
   dlog('カメラ起動ボタン押下');
+  initAudio();
   if (cameraStarted) { dlog('既に起動済み'); return; }
   if (typeof Html5Qrcode === 'undefined') { dlog('❌ Html5Qrcodeが未定義です（ライブラリ読込失敗）'); return; }
   dlog('html5QrCode.start() 呼び出し...');
