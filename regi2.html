@@ -98,9 +98,9 @@
 <script>
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// デバッグログ（画面下部に表示）
+// デバッグログ（無効化。問題発生時にコメントアウトを外して調査）
 var dbgEl = document.createElement('div');
-dbgEl.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.8);color:#0f0;font-size:11px;font-family:monospace;padding:6px;max-height:120px;overflow-y:auto;z-index:99999;white-space:pre-wrap;';
+dbgEl.style.cssText = 'display:none;';
 document.body.appendChild(dbgEl);
 function dlog(msg) {
   dbgEl.textContent += new Date().toLocaleTimeString('ja-JP') + ' ' + msg + '\n';
