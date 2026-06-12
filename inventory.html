@@ -2335,13 +2335,11 @@ function _doOpenFax(){
     var rows = '';
     for(var i=0;i<ordList.length;i++){
       var item=ordList[i];
-      var cost=calcItemCost(item);
       var qtyLabel=item.orderQty+(item.buy_qty?' ('+item.orderQty*item.buy_qty+item.unit+')':'');
       rows+='<tr>'
         +'<td>'+item.name+'</td>'
         +'<td class="td-maker">'+( item.maker||'')+'</td>'
         +'<td style="text-align:center;">'+qtyLabel+'</td>'
-        +'<td style="text-align:right;">'+(cost>0?'&yen;'+cost.toLocaleString():'&mdash;')+'</td>'
         +'<td>'+(item.memo||'')+'</td>'
         +'</tr>';
     }
@@ -2377,17 +2375,11 @@ function _doOpenFax(){
       +'</div></div>'
       +'</div>'
       +'<table><thead><tr>'
-      +'<th style="width:34%;">商品名</th>'
-      +'<th style="width:22%;">メーカー</th>'
-      +'<th style="width:13%;">発注数</th>'
-      +'<th style="width:13%;">金額（税抜）</th>'
-      +'<th style="width:18%;">備考</th>'
+      +'<th style="width:40%;">商品名</th>'
+      +'<th style="width:25%;">メーカー</th>'
+      +'<th style="width:15%;">発注数</th>'
+      +'<th style="width:20%;">備考</th>'
       +'</tr></thead><tbody>'+rows+'</tbody></table>'
-      +'<div class="total-area">'
-      +'<div class="total-row"><span>小計（税抜）</span><span>&yen;'+total.toLocaleString()+'</span></div>'
-      +'<div class="total-row"><span>消費税（8% 軽減税率）</span><span>&yen;'+tax.toLocaleString()+'</span></div>'
-      +'<div class="total-row grand"><span>合 計</span><span>&yen;'+grandTotal.toLocaleString()+'</span></div>'
-      +'</div>'
       +'<div style="clear:both;margin-top:40px;padding-top:12px;border-top:1px solid #ccc;font-size:12px;color:#666;">'
       +'上記の通り発注いたします。ご確認の程よろしくお願いいたします。'
       +'</div>'
