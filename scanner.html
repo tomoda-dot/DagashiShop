@@ -92,6 +92,12 @@
     </div>
   </div>
 
+  <button id="scan-trigger-btn" style="width:100%;padding:18px;margin-bottom:14px;border:none;border-radius:var(--r);
+    background:var(--grn);color:#fff;font-size:17px;font-weight:800;letter-spacing:2px;cursor:pointer;
+    box-shadow:0 4px 14px rgba(123,191,140,0.35);-webkit-user-select:none;user-select:none;touch-action:none;">
+    👇 押している間だけ読み取り
+  </button>
+
   <!-- レジ送信モードの結果 -->
   <div id="regi-result"></div>
 
@@ -232,9 +238,14 @@ function renderLog() {
 renderLog();
 
 // ── スキャン処理 ──
+var scanTriggerHeld = false;
+var scanConsumed = false; // ボタンを押している間に1回だけ処理
+
 function onScanSuccess(decodedText) {
+  if (!scanTriggerHeld || scanConsumed) return; // ボタンを押していない、または既に読み取り済み
+  scanConsumed = true;
+
   var now = Date.now();
-  if (decodedText === lastScan && (now - lastScanTime) < 2000) return; // 連続読み取り防止
   lastScan = decodedText;
   lastScanTime = now;
 
@@ -291,6 +302,27 @@ function startCamera() {
 }
 
 document.getElementById('camera-start-btn').addEventListener('click', startCamera);
+
+// ── 読み取りボタン（押している間だけスキャン有効） ──
+var triggerBtn = document.getElementById('scan-trigger-btn');
+function triggerPressStart(e) {
+  e.preventDefault();
+  scanTriggerHeld = true;
+  scanConsumed = false;
+  triggerBtn.style.background = 'var(--red)';
+  triggerBtn.textContent = '📷 読み取り中...';
+}
+function triggerPressEnd(e) {
+  e.preventDefault();
+  scanTriggerHeld = false;
+  scanConsumed = false;
+  triggerBtn.style.background = 'var(--grn)';
+  triggerBtn.textContent = '👇 押している間だけ読み取り';
+}
+triggerBtn.addEventListener('pointerdown', triggerPressStart);
+triggerBtn.addEventListener('pointerup', triggerPressEnd);
+triggerBtn.addEventListener('pointercancel', triggerPressEnd);
+triggerBtn.addEventListener('pointerleave', triggerPressEnd);
 dlog('初期化完了。カメラ起動ボタンを押してください');
 </script>
 </body>
