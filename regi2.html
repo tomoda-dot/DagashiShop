@@ -109,19 +109,26 @@ function dlog(msg) {
 dlog('起動 v=' + Date.now());
 
 function renderState(state) {
-  if (!state) { dlog('renderState: state is null'); return; }
-  dlog('renderState: cart=' + JSON.stringify(state.cart) + ' thanks=' + state.thanks);
-
-  if (state.thanks) {
-    document.getElementById('thanks-screen').classList.add('show');
-    return;
-  } else {
-    document.getElementById('thanks-screen').classList.remove('show');
-  }
-
-  var cart = state.cart || [];
-  var wrap = document.getElementById('list-wrap');
   try {
+    dlog('[1] renderState開始');
+    if (!state) { dlog('[1a] state is null'); return; }
+    dlog('[2] cart=' + JSON.stringify(state.cart) + ' typeof=' + typeof state.cart + ' thanks=' + state.thanks);
+
+    if (state.thanks) {
+      document.getElementById('thanks-screen').classList.add('show');
+      dlog('[3] thanks表示してreturn');
+      return;
+    } else {
+      document.getElementById('thanks-screen').classList.remove('show');
+    }
+    dlog('[4] thanks処理完了');
+
+    var cart = state.cart;
+    if (typeof cart === 'string') { cart = JSON.parse(cart); dlog('[4a] cartを文字列からパース'); }
+    if (!Array.isArray(cart)) cart = [];
+    dlog('[5] cart正規化後 length=' + cart.length);
+
+    var wrap = document.getElementById('list-wrap');
     if (!cart.length) {
       wrap.innerHTML = '<div class="empty-msg" id="empty-msg">スマホでバーコードを<br>読み取ってください</div>';
     } else {
@@ -133,17 +140,17 @@ function renderState(state) {
       }).join('');
       wrap.scrollTop = wrap.scrollHeight;
     }
-  } catch (e) {
-    dlog('リスト更新エラー: ' + e.message);
-  }
+    dlog('[6] リスト更新完了');
 
-  var total = cart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
-  var totalEl = document.getElementById('total-val');
-  dlog('total計算=' + total + ' totalEl存在=' + !!totalEl + ' 現在値=' + (totalEl ? totalEl.textContent : 'なし'));
-  totalEl.textContent = total.toLocaleString();
-  dlog('更新後の値=' + totalEl.textContent);
-  document.getElementById('received-val').textContent = (state.received || 0).toLocaleString();
-  document.getElementById('change-val').textContent = Math.max(0, (state.change || 0)).toLocaleString();
+    var total = cart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
+    dlog('[7] total計算=' + total);
+    document.getElementById('total-val').textContent = total.toLocaleString();
+    document.getElementById('received-val').textContent = (state.received || 0).toLocaleString();
+    document.getElementById('change-val').textContent = Math.max(0, (state.change || 0)).toLocaleString();
+    dlog('[8] 金額表示更新完了 total-val=' + document.getElementById('total-val').textContent);
+  } catch (e) {
+    dlog('[ERROR] ' + e.message + ' / ' + e.stack);
+  }
 }
 
 function fetchState() {
