@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>ご購入リスト | 駄菓子屋 ひとつぎ</title>
+<title>駄菓子屋 ひとつぎ</title>
 <style>
   :root{
-    --bg:#fbf3e8; --tx:#3d4036; --t2:#696b60; --t3:#9a9c8f;
-    --card:#ffffff; --bd:#ece4d6; --red:#f49576; --grn:#7bbf8c; --amb:#e8a854;
+    --bg:#eaf2f8; --tx:#3d4036; --t2:#696b60; --t3:#9a9c8f;
+    --card:#ffffff; --bd:#dbe7f0; --red:#f49576; --grn:#7bbf8c; --amb:#e8a854;
     --r:18px;
   }
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Hiragino Maru Gothic ProN','Rounded Mplus 1c','Meiryo',sans-serif;}
@@ -18,8 +18,10 @@
   header h1{font-size:22px;font-weight:800;letter-spacing:1px;}
   header p{font-size:12px;color:var(--t3);margin-top:2px;}
 
-  main{flex:1;display:flex;flex-direction:column;padding:20px;max-width:680px;width:100%;margin:0 auto;min-height:0;}
+  main{flex:1;display:flex;gap:20px;padding:20px;max-width:1100px;width:100%;margin:0 auto;min-height:0;}
 
+  /* 左カラム：商品リスト */
+  #left-col{flex:1.4;display:flex;flex-direction:column;min-height:0;}
   #list-wrap{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-bottom:16px;}
   .empty-msg{flex:1;display:flex;align-items:center;justify-content:center;
     color:var(--t3);font-size:16px;font-weight:700;text-align:center;line-height:1.8;}
@@ -31,14 +33,16 @@
   .item-row .iname{font-size:18px;font-weight:700;}
   .item-row .iprice{font-size:20px;font-weight:800;color:var(--red);white-space:nowrap;min-width:80px;text-align:right;}
 
-  /* 金額エリア */
-  #amount-area{background:#fff;border-top:2px solid var(--bd);flex-shrink:0;}
-  .amt-row{padding:14px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);}
+  /* 右カラム：金額エリア */
+  #right-col{flex:1;display:flex;flex-direction:column;justify-content:center;}
+  #amount-area{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);
+    box-shadow:0 2px 8px rgba(0,0,0,0.04);overflow:hidden;}
+  .amt-row{padding:20px 28px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);}
   .amt-row:last-child{border-bottom:none;}
-  .amt-row .al{font-size:15px;font-weight:700;color:var(--t2);}
-  .amt-row .av{font-size:26px;font-weight:900;color:var(--tx);}
-  .amt-row .av .yen{font-size:18px;margin-right:2px;}
-  .amt-row.total .av{font-size:36px;color:var(--tx);}
+  .amt-row .al{font-size:17px;font-weight:700;color:var(--t2);}
+  .amt-row .av{font-size:30px;font-weight:900;color:var(--tx);}
+  .amt-row .av .yen{font-size:20px;margin-right:2px;}
+  .amt-row.total .av{font-size:42px;color:var(--tx);}
   .amt-row.received .av{color:var(--t2);}
   .amt-row.change .av{color:var(--grn);}
 
@@ -55,27 +59,30 @@
 <body>
 
 <header>
-  <h1>🍬 ひとつぎ 駄菓子屋</h1>
-  <p>スキャンした商品がここに表示されます</p>
+  <h1>🍬 駄菓子屋 ひとつぎ</h1>
 </header>
 
 <main>
-  <div id="list-wrap">
-    <div class="empty-msg" id="empty-msg">スマホでバーコードを<br>読み取ってください</div>
+  <div id="left-col">
+    <div id="list-wrap">
+      <div class="empty-msg" id="empty-msg">スマホでバーコードを<br>読み取ってください</div>
+    </div>
   </div>
 
-  <div id="amount-area">
-    <div class="amt-row total">
-      <span class="al">合計</span>
-      <span class="av"><span class="yen">¥</span><span id="total-val">0</span></span>
-    </div>
-    <div class="amt-row received">
-      <span class="al">お預かり</span>
-      <span class="av"><span class="yen">¥</span><span id="received-val">0</span></span>
-    </div>
-    <div class="amt-row change">
-      <span class="al">おつり</span>
-      <span class="av"><span class="yen">¥</span><span id="change-val">0</span></span>
+  <div id="right-col">
+    <div id="amount-area">
+      <div class="amt-row total">
+        <span class="al">合計</span>
+        <span class="av"><span class="yen">¥</span><span id="total-val">0</span></span>
+      </div>
+      <div class="amt-row received">
+        <span class="al">お預かり</span>
+        <span class="av"><span class="yen">¥</span><span id="received-val">0</span></span>
+      </div>
+      <div class="amt-row change">
+        <span class="al">おつり</span>
+        <span class="av"><span class="yen">¥</span><span id="change-val">0</span></span>
+      </div>
     </div>
   </div>
 </main>
