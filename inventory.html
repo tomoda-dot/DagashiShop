@@ -220,6 +220,10 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
         <input class="fi" type="text" id="det-name" placeholder="例：うまい棒チーズ" />
       </div>
       <div class="ff">
+        <label class="fl">読み仮名（カタカナ）</label>
+        <input class="fi" type="text" id="det-kana" placeholder="例：ウマイボウチーズ" />
+      </div>
+      <div class="ff">
         <label class="fl">メーカー名</label>
         <input class="fi" type="text" id="det-maker" placeholder="例：株式会社やおきん" list="maker-list" autocomplete="off" />
         <datalist id="maker-list">
@@ -696,6 +700,7 @@ function openEdit(id){
   document.getElementById('det-name-row').style.display='';
   document.getElementById('det-name').value=p.name;
   document.getElementById('det-name').readOnly=false;
+  document.getElementById('det-kana').value=p.name_kana||'';
   document.getElementById('det-maker').value=p.maker||'';
   document.getElementById('det-barcode').value=p.barcode||'';
   document.getElementById('det-cat').value=p.cat;
@@ -769,6 +774,7 @@ function detProdChange(){
   if(isNew){
     document.getElementById('det-name').value='';
     document.getElementById('det-name').readOnly=false;
+    document.getElementById('det-kana').value='';
     document.getElementById('det-maker').value='';
     document.getElementById('det-barcode').value='';
     document.getElementById('det-cat').value='スナック';
@@ -813,6 +819,7 @@ function openCandidate(){
   document.getElementById('det-name-row').style.display='';
   document.getElementById('det-name').value='';
   document.getElementById('det-name').readOnly=false;
+  document.getElementById('det-kana').value='';
   document.getElementById('det-cat').value='スナック';
   document.getElementById('det-unit').value='個';
   document.getElementById('det-min').value='5';
@@ -859,6 +866,7 @@ function closeDet(){
 function detFormData(){
   return {
     name:  document.getElementById('det-name').value.trim(),
+    name_kana: document.getElementById('det-kana').value.trim(),
     maker: document.getElementById('det-maker').value.trim(),
     cat:   document.getElementById('det-cat').value,
     unit: document.getElementById('det-unit').value||'個',
@@ -1110,14 +1118,26 @@ function imgElSmall(p){
   return'<div class="pph '+cls+'" style="flex-shrink:0;">'+ch+'</div>';
 }
 
+// ひらがな⇔カタカナを統一（カタカナに正規化）して比較用文字列を返す
+function toKatakana(str){
+  return (str||'').replace(/[\u3041-\u3096]/g, function(ch){
+    return String.fromCharCode(ch.charCodeAt(0) + 0x60);
+  });
+}
+
 function renderP(){
-  var q=(document.getElementById('srch')?document.getElementById('srch').value:'').toLowerCase();
+  var qRaw=(document.getElementById('srch')?document.getElementById('srch').value:'').toLowerCase();
+  var q=toKatakana(qRaw);
   var cat=document.getElementById('catf')?document.getElementById('catf').value:'';
   var maker=document.getElementById('makerf')?document.getElementById('makerf').value:'';
   var list=prods.filter(function(p){
     if(p.status==='candidate') return false;
     if(!showHidden && (p.status==='hidden'||p.status==='discontinued')) return false;
-    if(p.name.toLowerCase().indexOf(q) < 0) return false;
+    if(q){
+      var nameMatch=p.name.toLowerCase().indexOf(qRaw) >= 0;
+      var kanaMatch=toKatakana(p.name_kana||'').indexOf(q) >= 0;
+      if(!nameMatch && !kanaMatch) return false;
+    }
     if(cat && p.cat!==cat) return false;
     if(maker && p.maker!==maker) return false;
     if(statsFilter==='low') return p.stock<=p.min && p.status==='active';

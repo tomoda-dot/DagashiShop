@@ -162,7 +162,7 @@ function switchMode(m) {
 
 // ── 商品一覧（登録モード用） ──
 function loadProducts() {
-  sb.from('products').select('id,name,barcode,price,sell_price').eq('status', 'active')
+  sb.from('products').select('id,name,name_kana,barcode,price,sell_price').eq('status', 'active')
     .order('name', { ascending: true })
     .then(function(res) {
       allProducts = res.data || [];
@@ -170,11 +170,22 @@ function loadProducts() {
     });
 }
 
+// ひらがな⇔カタカナを統一（カタカナに正規化）
+function toKatakana(str){
+  return (str||'').replace(/[\u3041-\u3096]/g, function(ch){
+    return String.fromCharCode(ch.charCodeAt(0) + 0x60);
+  });
+}
+
 function renderProductList() {
-  var q = (document.getElementById('product-search').value || '').toLowerCase();
+  var qRaw = (document.getElementById('product-search').value || '').toLowerCase();
+  var q = toKatakana(qRaw);
   var list = document.getElementById('product-list');
   var filtered = allProducts.filter(function(p) {
-    return p.name.toLowerCase().indexOf(q) >= 0;
+    if (!qRaw) return true;
+    var nameMatch = p.name.toLowerCase().indexOf(qRaw) >= 0;
+    var kanaMatch = toKatakana(p.name_kana || '').indexOf(q) >= 0;
+    return nameMatch || kanaMatch;
   });
   if (!filtered.length) { list.innerHTML = '<div class="plist-item">商品が見つかりません</div>'; return; }
   list.innerHTML = filtered.map(function(p) {

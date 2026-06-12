@@ -122,13 +122,14 @@ GAS.testConnection = function() {
 // ─ getAllData ─
 GAS.getAllData = function() {
   return Promise.all([
-    sbGet('products', 'select=id,name,cat,stock,min,price,sell_price,unit,exp,buy_price,buy_qty,memo,status,sort_order,maker,barcode&order=sort_order.asc,id.asc'),
+    sbGet('products', 'select=id,name,name_kana,cat,stock,min,price,sell_price,unit,exp,buy_price,buy_qty,memo,status,sort_order,maker,barcode&order=sort_order.asc,id.asc'),
     sbGet('restock',  'select=*&order=id.desc')
   ]).then(function(results) {
     var products = (results[0] || []).map(function(p) {
       return {
         id:        p.id,
         name:      p.name      || '',
+        name_kana: p.name_kana || '',
         maker:     p.maker     || '',
         barcode:   p.barcode   || '',
         cat:       p.cat       || 'その他',
@@ -167,6 +168,7 @@ GAS.getAllData = function() {
 GAS.updateProduct = function(p) {
   var body = {};
   if (p.name      !== undefined) body.name      = p.name;
+  if (p.name_kana !== undefined) body.name_kana = p.name_kana;
   if (p.maker     !== undefined) body.maker      = p.maker;
   if (p.cat       !== undefined) body.cat        = p.cat;
   if (p.min       !== undefined) body.min        = Number(p.min);
@@ -186,6 +188,7 @@ GAS.updateProduct = function(p) {
 GAS.addProduct = function(p) {
   var body = {
     name:      p.name      || '',
+    name_kana: p.name_kana || '',
     maker:     p.maker     || '',
     cat:       p.cat       || 'その他',
     stock:     Number(p.stock)     || 0,
