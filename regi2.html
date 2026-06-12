@@ -143,6 +143,8 @@ function initListener() {
       renderState(payload.new);
     })
     .subscribe();
+  // Realtimeの取りこぼし対策：定期的に最新状態を取得
+  setInterval(fetchState, 3000);
 }
 
 initListener();
