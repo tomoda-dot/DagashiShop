@@ -136,7 +136,10 @@ function renderState(state) {
   }
 
   var total = cart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
-  document.getElementById('total-val').textContent = total.toLocaleString();
+  var totalEl = document.getElementById('total-val');
+  dlog('total計算=' + total + ' totalEl存在=' + !!totalEl + ' 現在値=' + (totalEl ? totalEl.textContent : 'なし'));
+  totalEl.textContent = total.toLocaleString();
+  dlog('更新後の値=' + totalEl.textContent);
   document.getElementById('received-val').textContent = (state.received || 0).toLocaleString();
   document.getElementById('change-val').textContent = Math.max(0, (state.change || 0)).toLocaleString();
 }
