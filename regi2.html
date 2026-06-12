@@ -29,7 +29,13 @@
     box-shadow:0 2px 8px rgba(0,0,0,0.04);animation:slideIn .25s ease-out;}
   @keyframes slideIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
   .item-row .iname{font-size:18px;font-weight:700;}
-  .item-row .iprice{font-size:20px;font-weight:800;color:var(--red);white-space:nowrap;}
+  .item-row .iprice{font-size:20px;font-weight:800;color:var(--red);white-space:nowrap;min-width:80px;text-align:right;}
+  .qty-ctrl{display:flex;align-items:center;gap:8px;}
+  .qty-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--bd);background:var(--bg);
+    font-size:18px;font-weight:800;color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;
+    -webkit-user-select:none;user-select:none;}
+  .qty-btn:active{background:var(--bd);}
+  .qty-val{font-size:16px;font-weight:800;min-width:24px;text-align:center;}
 
   /* 合計エリア */
   #total-area{background:#fff;border-top:2px solid var(--bd);padding:18px 24px;
@@ -113,21 +119,48 @@ function renderList() {
     wrap.appendChild(empty);
     document.getElementById('done-btn').disabled = true;
   } else {
-    wrap.innerHTML = cart.map(function(it) {
-      return '<div class="item-row"><div class="iname">' + it.name + '</div>'
-        + '<div class="iprice">¥' + it.price.toLocaleString() + '</div></div>';
+    wrap.innerHTML = cart.map(function(it, idx) {
+      return '<div class="item-row">'
+        + '<div class="iname">' + it.name + '</div>'
+        + '<div style="display:flex;align-items:center;gap:10px;">'
+        + '<div class="qty-ctrl">'
+        + '<button class="qty-btn" data-idx="' + idx + '" data-act="dec">−</button>'
+        + '<span class="qty-val">' + it.qty + '</span>'
+        + '<button class="qty-btn" data-idx="' + idx + '" data-act="inc">＋</button>'
+        + '</div>'
+        + '<div class="iprice">¥' + (it.price * it.qty).toLocaleString() + '</div>'
+        + '</div></div>';
     }).join('');
     document.getElementById('done-btn').disabled = false;
     wrap.scrollTop = wrap.scrollHeight;
+    Array.prototype.forEach.call(wrap.querySelectorAll('.qty-btn'), function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.getAttribute('data-idx'));
+        var act = btn.getAttribute('data-act');
+        if (act === 'inc') cart[idx].qty++;
+        else {
+          cart[idx].qty--;
+          if (cart[idx].qty <= 0) cart.splice(idx, 1);
+        }
+        renderList();
+      });
+    });
   }
-  total = cart.reduce(function(s, it){ return s + it.price; }, 0);
+  total = cart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
   document.getElementById('total-val').textContent = total.toLocaleString();
 }
 
-function handleScan(barcode) {
+function handleScan(barcode, qty) {
+  qty = qty || 1;
   var p = barcodeMap[barcode];
   if (p) {
-    cart.push({ name: p.name, price: p.price });
+    var existing = cart.find(function(it){ return it.name === p.name && it.price === p.price; });
+    if (existing) {
+      existing.qty += qty;
+      if (existing.qty <= 0) cart.splice(cart.indexOf(existing), 1);
+    } else if (qty > 0) {
+      cart.push({ name: p.name, price: p.price, qty: qty });
+    }
     renderList();
   } else {
     toast('⚠ 未登録のバーコードです: ' + barcode, 'warn');
@@ -149,7 +182,7 @@ function initScanListener() {
   sb.from('scan_queue').select('*').eq('status', 'pending').order('id', { ascending: true })
     .then(function(res) {
       (res.data || []).forEach(function(row) {
-        handleScan(row.barcode);
+        handleScan(row.barcode, (row.qty !== null && row.qty !== undefined) ? row.qty : 1);
         markScanDone(row.id);
       });
     });
@@ -158,7 +191,7 @@ function initScanListener() {
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'scan_queue' }, function(payload) {
       var row = payload.new;
       if (row.status !== 'pending') return;
-      handleScan(row.barcode);
+      handleScan(row.barcode, (row.qty !== null && row.qty !== undefined) ? row.qty : 1);
       markScanDone(row.id);
     })
     .subscribe();
