@@ -623,17 +623,15 @@
           document.getElementById('in-fixed').value = g_fixed;
         }
 
-        // daily_summaryの最新日付を表示
-        const latestDate = data.length > 0 ? data[0]['日付'] : todayJST();
-        let targetDate = latestDate;
-
-        // 日付入力欄を設定（手動変更がなければ未締め日に）
+        // order_itemsの最新レコードの日付を取得して設定
         const dateInput = document.getElementById('target-date-input');
-        if (!dateInput.value) dateInput.value = targetDate;
-        g_currentDate = dateInput.value;
-
-        // その日の売上をorder_itemsから取得
-        return GAS.getDetailByDate(g_currentDate);
+        return GAS.getLatestOrderDate().then(function(latestOrderDate) {
+          const latestDate = data.length > 0 ? data[0]['日付'] : todayJST();
+          const targetDate = latestOrderDate || latestDate;
+          if (!dateInput.value) dateInput.value = targetDate;
+          g_currentDate = dateInput.value;
+          return GAS.getDetailByDate(g_currentDate);
+        });
       }).then(function(rows) {
         var total = 0;
         (rows || []).forEach(function(r) {
@@ -758,10 +756,14 @@
     function initDetailDate() {
       const el = document.getElementById('detail-date-input');
       if (!el.value) {
-        // daily_summaryの最新日付を表示
         const latestDate = g_allData && g_allData.length > 0 ? g_allData[0]['日付'] : todayJST();
-        el.value = latestDate;
-        loadDetailData();
+        GAS.getLatestOrderDate().then(function(latestOrderDate) {
+          el.value = latestOrderDate || latestDate;
+          loadDetailData();
+        }).catch(function() {
+          el.value = latestDate;
+          loadDetailData();
+        });
       }
     }
 
