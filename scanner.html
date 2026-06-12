@@ -25,7 +25,7 @@
 
   /* カメラ */
   #reader-wrap{position:relative;border-radius:var(--r);overflow:hidden;background:#000;
-    box-shadow:0 4px 16px rgba(0,0,0,0.12);margin-bottom:14px;}
+    box-shadow:0 4px 16px rgba(0,0,0,0.12);margin-bottom:14px;min-height:240px;}
   #reader{width:100%;}
   #reader video{width:100%!important;border-radius:var(--r);}
 
@@ -84,6 +84,9 @@
 
   <div id="reader-wrap">
     <div id="reader"></div>
+    <div id="camera-start-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(61,64,54,0.85);">
+      <button id="camera-start-btn" style="background:var(--red);color:#fff;border:none;border-radius:999px;padding:16px 32px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.25);">📷 カメラを起動</button>
+    </div>
   </div>
 
   <!-- レジ送信モードの結果 -->
@@ -236,21 +239,25 @@ function onScanFailure() { /* 無視（連続スキャンのため） */ }
 
 var html5QrCode = new Html5Qrcode('reader');
 var config = { fps: 10, qrbox: { width: 250, height: 150 } };
+var cameraStarted = false;
 
-Html5Qrcode.getCameras().then(function(devices) {
-  var cameraId = devices && devices.length ? devices[devices.length - 1].id : null; // 背面カメラ優先（末尾が背面のことが多い）
-  if (!cameraId) { showToast('カメラが見つかりません', 'warn'); return; }
+function startCamera() {
+  if (cameraStarted) return;
   html5QrCode.start(
     { facingMode: 'environment' },
     config,
     onScanSuccess,
     onScanFailure
-  ).catch(function(err) {
+  ).then(function() {
+    cameraStarted = true;
+    var overlay = document.getElementById('camera-start-overlay');
+    if (overlay) overlay.style.display = 'none';
+  }).catch(function(err) {
     showToast('カメラ起動エラー: ' + err, 'warn');
   });
-}).catch(function(err) {
-  showToast('カメラ取得エラー: ' + err, 'warn');
-});
+}
+
+document.getElementById('camera-start-btn').addEventListener('click', startCamera);
 </script>
 </body>
 </html>
