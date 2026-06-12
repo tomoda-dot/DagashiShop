@@ -614,7 +614,7 @@ GAS.saveClosingData = function(payload) {
 
 // ─ getLatestOrderDate ─
 GAS.getLatestOrderDate = function() {
-  return sbGet('order_items', 'select=ts&order=ts.desc&limit=1').then(function(rows) {
+  return sbGet('order_items', 'select=ts&order=id.desc&limit=1').then(function(rows) {
     if (!rows || !rows.length) return null;
     // tsはJST時刻が+00:00タグで保存 → 先頭10文字がYYYY-MM-DD
     return rows[0].ts.substring(0, 10);
