@@ -90,7 +90,7 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'saveRegiDefaults','getTodaySalesData','saveOrderFromRegi',
     'getSummaryData','saveClosingData','getDetailByDate','getLatestOrderDate',
     'invalidateDetailRow','updateDetailRow','getSavingsData',
-    'addSavingsRow','testConnection'
+    'addSavingsRow','testConnection','getProductsForBarcode','updateProductBarcode'
   ];
   fns.forEach(function(name) {
     GasProxy.prototype[name] = function(arg1, arg2) {
@@ -122,7 +122,7 @@ GAS.testConnection = function() {
 // ─ getAllData ─
 GAS.getAllData = function() {
   return Promise.all([
-    sbGet('products', 'select=id,name,cat,stock,min,price,sell_price,unit,exp,buy_price,buy_qty,memo,status,sort_order,maker&order=sort_order.asc,id.asc'),
+    sbGet('products', 'select=id,name,cat,stock,min,price,sell_price,unit,exp,buy_price,buy_qty,memo,status,sort_order,maker,barcode&order=sort_order.asc,id.asc'),
     sbGet('restock',  'select=*&order=id.desc')
   ]).then(function(results) {
     var products = (results[0] || []).map(function(p) {
@@ -130,6 +130,7 @@ GAS.getAllData = function() {
         id:        p.id,
         name:      p.name      || '',
         maker:     p.maker     || '',
+        barcode:   p.barcode   || '',
         cat:       p.cat       || 'その他',
         stock:     p.stock     || 0,
         min:       p.min       || 5,
@@ -489,6 +490,18 @@ GAS.saveSettings = function(customButtonsJson, customDiscountsJson) {
 GAS.saveRegiDefaults = function(jsonStr) {
   return sbFetch('settings', { method:'POST', body:JSON.stringify({ key:'regiDefaults', value:jsonStr }), prefer:'resolution=merge-duplicates,return=representation' })
     .then(function() { return 'OK'; });
+};
+
+// ─ getProductsForBarcode ─
+GAS.getProductsForBarcode = function() {
+  return sbGet('products', 'select=id,name,barcode,price,sell_price&status=eq.active')
+    .then(function(rows) { return rows || []; });
+};
+
+// ─ updateProductBarcode ─
+GAS.updateProductBarcode = function(productId, barcode) {
+  return sbPatch('products', 'id=eq.' + productId, { barcode: barcode })
+    .then(function() { return { ok: true }; });
 };
 
 // ─ getTodaySalesData ─

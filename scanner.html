@@ -1,101 +1,256 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>レジ用スマホスキャナー</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <style>
-        body { font-family: sans-serif; text-align: center; margin: 0; padding: 20px; background: #f5f5f5; }
-        #reader { width: 100%; max-width: 500px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }
-        #status { margin-top: 20px; font-weight: bold; font-size: 1.2rem; color: #333; }
-        .log { margin-top: 10px; color: #666; font-size: 0.9rem; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>バーコードスキャナー | 駄菓子屋</title>
+<style>
+  :root{
+    --bg:#fbf3e8; --tx:#3d4036; --t2:#696b60; --t3:#9a9c8f;
+    --card:#ffffff; --bd:#ece4d6; --red:#f49576; --grn:#7bbf8c; --amb:#e8a854;
+    --r:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Hiragino Maru Gothic ProN','Rounded Mplus 1c','Meiryo',sans-serif;}
+  body{background:var(--bg);color:var(--tx);min-height:100vh;padding-bottom:90px;}
+  header{background:#fff;border-bottom:1px solid var(--bd);padding:14px 16px;position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;}
+  header h1{font-size:17px;font-weight:800;}
+  .container{padding:14px 16px;max-width:520px;margin:0 auto;}
+
+  /* モード切替 */
+  .mode-tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .mode-tab{flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--bd);background:#fff;
+    font-size:14px;font-weight:700;color:var(--t2);cursor:pointer;text-align:center;transition:.15s;}
+  .mode-tab.active{border-color:var(--red);color:var(--red);background:#fff7f3;}
+
+  /* カメラ */
+  #reader-wrap{position:relative;border-radius:var(--r);overflow:hidden;background:#000;
+    box-shadow:0 4px 16px rgba(0,0,0,0.12);margin-bottom:14px;}
+  #reader{width:100%;}
+  #reader video{width:100%!important;border-radius:var(--r);}
+
+  /* 結果表示 */
+  .result-card{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:16px;
+    margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+  .result-card .barcode{font-size:13px;color:var(--t3);font-family:monospace;margin-bottom:6px;}
+  .result-card .pname{font-size:18px;font-weight:800;margin-bottom:4px;}
+  .result-card .pprice{font-size:15px;color:var(--red);font-weight:700;}
+  .result-card.notfound .pname{color:var(--amb);}
+
+  /* 商品登録モード：商品選択 */
+  .search-box{margin-bottom:10px;}
+  .search-box input{width:100%;padding:12px 14px;border:1px solid var(--bd);border-radius:var(--r);
+    font-size:15px;background:#fff;}
+  .plist{max-height:40vh;overflow-y:auto;background:#fff;border:1px solid var(--bd);border-radius:var(--r);}
+  .plist-item{padding:12px 14px;border-bottom:1px solid var(--bd);cursor:pointer;display:flex;
+    justify-content:space-between;align-items:center;font-size:14px;}
+  .plist-item:last-child{border-bottom:none;}
+  .plist-item:active{background:#f5f0e6;}
+  .plist-item .pn{font-weight:700;}
+  .plist-item .pb{font-size:11px;color:var(--t3);font-family:monospace;}
+
+  /* ログ */
+  .log-title{font-size:12px;color:var(--t3);font-weight:700;margin:18px 0 8px;}
+  .log-item{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:10px 14px;
+    margin-bottom:6px;font-size:13px;display:flex;justify-content:space-between;}
+  .log-item .lc{color:var(--t3);font-size:11px;}
+
+  /* トースト */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:rgba(30,30,30,0.92);color:#fff;padding:12px 24px;border-radius:999px;
+    font-size:15px;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.25);
+    max-width:90vw;text-align:center;opacity:1;transition:opacity .4s;}
+  .toast.out{opacity:0;}
+  .toast.ok{background:rgba(123,191,140,0.95);}
+  .toast.warn{background:rgba(232,168,84,0.95);}
+
+  /* デバイスID表示 */
+  .device-id{font-size:11px;color:var(--t3);text-align:center;margin-top:14px;}
+</style>
 </head>
 <body>
 
-    <h1>レジ・スキャナー</h1>
+<header>
+  <h1>📷 バーコードスキャナー</h1>
+  <span class="device-id" id="device-badge"></span>
+</header>
+
+<div class="container">
+
+  <div class="mode-tabs">
+    <div class="mode-tab active" id="tab-regi" onclick="switchMode('regi')">🛒 レジ送信</div>
+    <div class="mode-tab" id="tab-register" onclick="switchMode('register')">🏷️ 商品登録</div>
+  </div>
+
+  <div id="reader-wrap">
     <div id="reader"></div>
-    <div id="status">カメラ準備中...</div>
-    <div id="log" class="log"></div>
+  </div>
 
-    <script>
-        // 2. Supabaseの接続設定（ご自身のプロジェクトのものに書き換えてください）// 2. Supabaseの接続設定
-const SUPABASE_URL = "https://kjmtrlgxvfaklctfvmos.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_M0xqBe2ClIG7Tl5qR9k7ag_8hq8rTqW";
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  <!-- レジ送信モードの結果 -->
+  <div id="regi-result"></div>
 
-        const statusDiv = document.getElementById('status');
-        const logDiv = document.getElementById('log');
+  <!-- 商品登録モード -->
+  <div id="register-panel" style="display:none;">
+    <div class="result-card" id="register-barcode-card" style="display:none;">
+      <div class="barcode" id="register-barcode-val"></div>
+      <div class="pname">この内容で商品にバーコードを登録します</div>
+    </div>
+    <div class="search-box">
+      <input type="text" id="product-search" placeholder="商品名で検索..." oninput="renderProductList()">
+    </div>
+    <div class="plist" id="product-list"></div>
+  </div>
 
-        // 3. バーコードが正常に読み取れた時の処理
-        async function onScanSuccess(decodedText, decodedResult) {
-            // 連続で何度も同じバーコードを読み込まないように一時停止
-            html5QrcodeScanner.clear();
-            statusDiv.innerText = `読み込み中: ${decodedText}`;
-            statusDiv.style.color = "#007bff";
+  <div class="log-title">送信履歴</div>
+  <div id="log-list"></div>
+</div>
 
-            try {
-                // 商品マスタ(products)からJANコードで検索
-                let { data: product, error } = await supabase
-                    .from('products')
-                    .select('*')
-                    .eq('jan_code', decodedText)
-                    .single();
+<script src="supabase-config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.39.7/umd/supabase.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+var mode = 'regi'; // 'regi' | 'register'
+var deviceId = localStorage.getItem('scanner_device_id');
+if (!deviceId) {
+  deviceId = 'dev-' + Math.random().toString(36).slice(2, 8);
+  localStorage.setItem('scanner_device_id', deviceId);
+}
+document.getElementById('device-badge').textContent = deviceId;
 
-                if (error || !product) {
-                    statusDiv.innerText = "商品が見つかりません";
-                    statusDiv.style.color = "red";
-                    setTimeout(startScanner, 2000); // 2秒後に再開
-                    return;
-                }
+var allProducts = []; // {id, name, barcode, price}
+var pendingBarcode = null; // 商品登録モードで読み取った直近のバーコード
+var lastScan = '';
+var lastScanTime = 0;
 
-                // カートテーブル(cart_items)に商品をインサート
-                // ※本来は「すでにカートにあれば数量+1」の処理が必要ですが、まずは単純挿入
-                const { error: insertError } = await supabase
-                    .from('cart_items')
-                    .insert([
-                        { 
-                            jan_code: product.jan_code, 
-                            name: product.name, 
-                            price: product.price, 
-                            quantity: 1 
-                        }
-                    ]);
+function showToast(msg, type) {
+  var t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.classList.add('out'); setTimeout(function(){t.remove();}, 400); }, 2000);
+}
 
-                if (insertError) throw insertError;
+function switchMode(m) {
+  mode = m;
+  document.getElementById('tab-regi').classList.toggle('active', m === 'regi');
+  document.getElementById('tab-register').classList.toggle('active', m === 'register');
+  document.getElementById('regi-result').style.display = (m === 'regi') ? '' : 'none';
+  document.getElementById('register-panel').style.display = (m === 'register') ? '' : 'none';
+  if (m === 'register' && !allProducts.length) loadProducts();
+}
 
-                // 成功したら音を鳴らすか画面に表示
-                statusDiv.innerText = `追加完了: ${product.name}`;
-                statusDiv.style.color = "green";
-                logDiv.innerText = `${product.name}（￥${product.price}）をカートに入れました`;
+// ── 商品一覧（登録モード用） ──
+function loadProducts() {
+  sb.from('products').select('id,name,barcode,price,sell_price').eq('status', 'active')
+    .order('name', { ascending: true })
+    .then(function(res) {
+      allProducts = res.data || [];
+      renderProductList();
+    });
+}
 
-            } catch (err) {
-                console.error(err);
-                statusDiv.innerText = "エラーが発生しました";
-                statusDiv.style.color = "red";
-            }
+function renderProductList() {
+  var q = (document.getElementById('product-search').value || '').toLowerCase();
+  var list = document.getElementById('product-list');
+  var filtered = allProducts.filter(function(p) {
+    return p.name.toLowerCase().indexOf(q) >= 0;
+  });
+  if (!filtered.length) { list.innerHTML = '<div class="plist-item">商品が見つかりません</div>'; return; }
+  list.innerHTML = filtered.map(function(p) {
+    return '<div class="plist-item" data-pid="' + p.id + '">'
+      + '<div><div class="pn">' + p.name + '</div>'
+      + (p.barcode ? '<div class="pb">登録済み: ' + p.barcode + '</div>' : '<div class="pb">未登録</div>')
+      + '</div><div>›</div></div>';
+  }).join('');
+  Array.prototype.forEach.call(list.querySelectorAll('.plist-item'), function(el, idx) {
+    el.addEventListener('click', function() {
+      var pid = parseInt(el.getAttribute('data-pid'));
+      var p = filtered.find(function(x){ return x.id === pid; });
+      if (p) registerBarcode(p.id, p.name);
+    });
+  });
+}
 
-            // 1.5秒後にスキャナーを再起動して次の商品の読み込みに備える
-            setTimeout(startScanner, 1500);
-        }
+function registerBarcode(productId, productName) {
+  if (!pendingBarcode) { showToast('先にバーコードを読み取ってください', 'warn'); return; }
+  sb.from('products').update({ barcode: pendingBarcode }).eq('id', productId).then(function(res) {
+    if (res.error) { showToast('登録エラー: ' + res.error.message, 'warn'); return; }
+    showToast('✅ ' + productName + ' にバーコードを登録しました', 'ok');
+    addLog(pendingBarcode, productName + ' に登録');
+    pendingBarcode = null;
+    document.getElementById('register-barcode-card').style.display = 'none';
+    loadProducts();
+  });
+}
 
-        // 4. スキャナーを起動する関数
-        let html5QrcodeScanner;
-        function startScanner() {
-            statusDiv.innerText = "バーコードをかざしてください";
-            statusDiv.style.color = "#333";
-            
-            html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
-                fps: 10,       // 1秒間に何回スキャンを試みるか
-                qrbox: { width: 250, height: 150 } // スマホ画面上の読み取り枠のサイズ
-            });
-            html5QrcodeScanner.render(onScanSuccess);
-        }
+// ── ログ表示 ──
+var logs = [];
+function addLog(barcode, status) {
+  logs.unshift({ barcode: barcode, status: status, time: new Date().toLocaleTimeString('ja-JP') });
+  logs = logs.slice(0, 10);
+  renderLog();
+}
+function renderLog() {
+  var el = document.getElementById('log-list');
+  if (!logs.length) { el.innerHTML = '<div class="log-item" style="color:var(--t3);">まだ読み取りがありません</div>'; return; }
+  el.innerHTML = logs.map(function(l) {
+    return '<div class="log-item"><span>' + l.barcode + ' — ' + l.status + '</span><span class="lc">' + l.time + '</span></div>';
+  }).join('');
+}
+renderLog();
 
-        // 画面を開いたら自動でスキャナーを起動
-        startScanner();
-    </script>
+// ── スキャン処理 ──
+function onScanSuccess(decodedText) {
+  var now = Date.now();
+  if (decodedText === lastScan && (now - lastScanTime) < 2000) return; // 連続読み取り防止
+  lastScan = decodedText;
+  lastScanTime = now;
+
+  // バイブレーション
+  if (navigator.vibrate) navigator.vibrate(80);
+
+  if (mode === 'regi') {
+    sb.from('scan_queue').insert({ barcode: decodedText, device_id: deviceId, status: 'pending' }).then(function(res) {
+      if (res.error) {
+        showToast('送信エラー: ' + res.error.message, 'warn');
+        addLog(decodedText, '送信失敗');
+      } else {
+        showToast('📤 ' + decodedText + ' を送信しました', 'ok');
+        addLog(decodedText, 'レジへ送信');
+      }
+    });
+    document.getElementById('regi-result').innerHTML =
+      '<div class="result-card"><div class="barcode">' + decodedText + '</div><div class="pname">レジに送信しました</div></div>';
+  } else {
+    // 商品登録モード
+    pendingBarcode = decodedText;
+    var card = document.getElementById('register-barcode-card');
+    document.getElementById('register-barcode-val').textContent = decodedText;
+    card.style.display = '';
+    addLog(decodedText, '読み取り（登録待ち）');
+  }
+}
+
+function onScanFailure() { /* 無視（連続スキャンのため） */ }
+
+var html5QrCode = new Html5Qrcode('reader');
+var config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+Html5Qrcode.getCameras().then(function(devices) {
+  var cameraId = devices && devices.length ? devices[devices.length - 1].id : null; // 背面カメラ優先（末尾が背面のことが多い）
+  if (!cameraId) { showToast('カメラが見つかりません', 'warn'); return; }
+  html5QrCode.start(
+    { facingMode: 'environment' },
+    config,
+    onScanSuccess,
+    onScanFailure
+  ).catch(function(err) {
+    showToast('カメラ起動エラー: ' + err, 'warn');
+  });
+}).catch(function(err) {
+  showToast('カメラ取得エラー: ' + err, 'warn');
+});
+</script>
 </body>
 </html>

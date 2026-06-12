@@ -268,6 +268,10 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
         </datalist>
       </div>
       <div>
+        <label class="fl">バーコード（JAN）</label>
+        <input class="fi" type="text" id="det-barcode" placeholder="未登録（スキャナーで登録）" readonly style="background:var(--bg);color:var(--t2);" />
+      </div>
+      <div>
         <label class="fl">カテゴリ</label>
         <select class="fi" id="det-cat">
           <option>スナック</option><option>チョコ</option><option>ガム</option><option>グミ</option><option>ラムネ</option><option>ゼリー</option><option>アメ</option><option>ソフトキャンディ</option><option>砂糖菓子</option><option>味付け珍味</option><option>その他</option><option>玩具</option>
@@ -693,6 +697,7 @@ function openEdit(id){
   document.getElementById('det-name').value=p.name;
   document.getElementById('det-name').readOnly=false;
   document.getElementById('det-maker').value=p.maker||'';
+  document.getElementById('det-barcode').value=p.barcode||'';
   document.getElementById('det-cat').value=p.cat;
   document.getElementById('det-unit').value=p.unit;
   document.getElementById('det-min').value=p.min;
@@ -765,6 +770,7 @@ function detProdChange(){
     document.getElementById('det-name').value='';
     document.getElementById('det-name').readOnly=false;
     document.getElementById('det-maker').value='';
+    document.getElementById('det-barcode').value='';
     document.getElementById('det-cat').value='スナック';
     document.getElementById('det-unit').value='個';
     document.getElementById('det-min').value='5';
@@ -781,6 +787,8 @@ function detProdChange(){
     var p=prods.filter(function(x){return x.id===pid;})[0];
     if(p){
       detPid=pid;
+      document.getElementById('det-maker').value=p.maker||'';
+      document.getElementById('det-barcode').value=p.barcode||'';
       document.getElementById('det-cat').value=p.cat||'スナック';
       document.getElementById('det-unit').value=p.unit||'個';
       document.getElementById('det-min').value=p.min||5;
