@@ -14,7 +14,7 @@
   html,body{height:100%;}
   body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;}
 
-  header{padding:18px 24px;text-align:center;border-bottom:1px solid var(--bd);background:#fff;}
+  header{padding:18px 24px;text-align:center;border-bottom:1px solid var(--bd);background:#fff;flex-shrink:0;}
   header h1{font-size:22px;font-weight:800;letter-spacing:1px;}
   header p{font-size:12px;color:var(--t3);margin-top:2px;}
 
@@ -30,34 +30,26 @@
   @keyframes slideIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
   .item-row .iname{font-size:18px;font-weight:700;}
   .item-row .iprice{font-size:20px;font-weight:800;color:var(--red);white-space:nowrap;min-width:80px;text-align:right;}
-  .qty-ctrl{display:flex;align-items:center;gap:8px;}
-  .qty-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--bd);background:var(--bg);
-    font-size:18px;font-weight:800;color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;
-    -webkit-user-select:none;user-select:none;}
-  .qty-btn:active{background:var(--bd);}
-  .qty-val{font-size:16px;font-weight:800;min-width:24px;text-align:center;}
 
-  /* 合計エリア */
-  #total-area{background:#fff;border-top:2px solid var(--bd);padding:18px 24px;
-    display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
-  #total-area .tl{font-size:16px;font-weight:700;color:var(--t2);}
-  #total-area .tv{font-size:34px;font-weight:900;color:var(--tx);}
-  #total-area .tv .yen{font-size:22px;margin-right:2px;}
+  /* 金額エリア */
+  #amount-area{background:#fff;border-top:2px solid var(--bd);flex-shrink:0;}
+  .amt-row{padding:14px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);}
+  .amt-row:last-child{border-bottom:none;}
+  .amt-row .al{font-size:15px;font-weight:700;color:var(--t2);}
+  .amt-row .av{font-size:26px;font-weight:900;color:var(--tx);}
+  .amt-row .av .yen{font-size:18px;margin-right:2px;}
+  .amt-row.total .av{font-size:36px;color:var(--tx);}
+  .amt-row.received .av{color:var(--t2);}
+  .amt-row.change .av{color:var(--grn);}
 
-  /* 会計完了ボタン */
-  #done-btn{margin:14px 0 0;width:100%;padding:18px;border:none;border-radius:var(--r);
-    background:var(--grn);color:#fff;font-size:18px;font-weight:800;letter-spacing:2px;
-    cursor:pointer;box-shadow:0 4px 14px rgba(123,191,140,0.35);transition:.15s;}
-  #done-btn:active{transform:scale(0.97);}
-  #done-btn:disabled{background:var(--bd);color:var(--t3);box-shadow:none;cursor:default;}
-
-  /* トースト */
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-    background:rgba(30,30,30,0.92);color:#fff;padding:12px 24px;border-radius:999px;
-    font-size:14px;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.25);
-    max-width:90vw;text-align:center;opacity:1;transition:opacity .4s;}
-  .toast.out{opacity:0;}
-  .toast.warn{background:rgba(232,168,84,0.95);}
+  /* ありがとう画面 */
+  #thanks-screen{position:fixed;inset:0;background:var(--bg);display:none;
+    flex-direction:column;align-items:center;justify-content:center;z-index:5000;text-align:center;}
+  #thanks-screen.show{display:flex;}
+  #thanks-screen .emoji{font-size:80px;margin-bottom:20px;animation:pop .4s ease-out;}
+  @keyframes pop{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+  #thanks-screen h2{font-size:32px;font-weight:900;color:var(--tx);letter-spacing:2px;}
+  #thanks-screen p{font-size:15px;color:var(--t3);margin-top:10px;}
 </style>
 </head>
 <body>
@@ -72,133 +64,81 @@
     <div class="empty-msg" id="empty-msg">スマホでバーコードを<br>読み取ってください</div>
   </div>
 
-  <div id="total-area">
-    <span class="tl">合計</span>
-    <span class="tv"><span class="yen">¥</span><span id="total-val">0</span></span>
+  <div id="amount-area">
+    <div class="amt-row total">
+      <span class="al">合計</span>
+      <span class="av"><span class="yen">¥</span><span id="total-val">0</span></span>
+    </div>
+    <div class="amt-row received">
+      <span class="al">お預かり</span>
+      <span class="av"><span class="yen">¥</span><span id="received-val">0</span></span>
+    </div>
+    <div class="amt-row change">
+      <span class="al">おつり</span>
+      <span class="av"><span class="yen">¥</span><span id="change-val">0</span></span>
+    </div>
   </div>
-  <button id="done-btn" onclick="completeCheckout()" disabled>会計完了</button>
 </main>
+
+<div id="thanks-screen">
+  <div class="emoji">🙏</div>
+  <h2>ありがとうございました</h2>
+  <p>またお越しください</p>
+</div>
 
 <script src="supabase-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="supabase-adapter.js"></script>
 <script>
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-var barcodeMap = {}; // barcode -> {id, name, price}
-var cart = []; // {name, price}
-var total = 0;
 
-function toast(msg, type) {
-  var t = document.createElement('div');
-  t.className = 'toast' + (type ? ' ' + type : '');
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(function(){ t.classList.add('out'); setTimeout(function(){t.remove();}, 400); }, 2200);
-}
+function renderState(state) {
+  if (!state) return;
 
-function loadBarcodeMap() {
-  GAS.getProductsForBarcode().then(function(rows) {
-    barcodeMap = {};
-    rows.forEach(function(p) {
-      if (p.barcode) {
-        barcodeMap[p.barcode] = {
-          id: p.id,
-          name: p.name,
-          price: p.sell_price || p.price || 0
-        };
-      }
-    });
-  }).catch(function(){});
-}
+  if (state.thanks) {
+    document.getElementById('thanks-screen').classList.add('show');
+    return;
+  } else {
+    document.getElementById('thanks-screen').classList.remove('show');
+  }
 
-function renderList() {
+  var cart = state.cart || [];
   var wrap = document.getElementById('list-wrap');
   var empty = document.getElementById('empty-msg');
   if (!cart.length) {
     wrap.innerHTML = '';
     wrap.appendChild(empty);
-    document.getElementById('done-btn').disabled = true;
   } else {
-    wrap.innerHTML = cart.map(function(it, idx) {
+    wrap.innerHTML = cart.map(function(it) {
       return '<div class="item-row">'
-        + '<div class="iname">' + it.name + '</div>'
-        + '<div style="display:flex;align-items:center;gap:10px;">'
-        + '<div class="qty-ctrl">'
-        + '<button class="qty-btn" data-idx="' + idx + '" data-act="dec">−</button>'
-        + '<span class="qty-val">' + it.qty + '</span>'
-        + '<button class="qty-btn" data-idx="' + idx + '" data-act="inc">＋</button>'
-        + '</div>'
+        + '<div class="iname">' + it.name + (it.qty > 1 ? ' ×' + it.qty : '') + '</div>'
         + '<div class="iprice">¥' + (it.price * it.qty).toLocaleString() + '</div>'
-        + '</div></div>';
+        + '</div>';
     }).join('');
-    document.getElementById('done-btn').disabled = false;
     wrap.scrollTop = wrap.scrollHeight;
-    Array.prototype.forEach.call(wrap.querySelectorAll('.qty-btn'), function(btn) {
-      btn.addEventListener('click', function() {
-        var idx = parseInt(btn.getAttribute('data-idx'));
-        var act = btn.getAttribute('data-act');
-        if (act === 'inc') cart[idx].qty++;
-        else {
-          cart[idx].qty--;
-          if (cart[idx].qty <= 0) cart.splice(idx, 1);
-        }
-        renderList();
-      });
-    });
   }
-  total = cart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
+
+  var total = cart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
   document.getElementById('total-val').textContent = total.toLocaleString();
+  document.getElementById('received-val').textContent = (state.received || 0).toLocaleString();
+  document.getElementById('change-val').textContent = Math.max(0, (state.change || 0)).toLocaleString();
 }
 
-function handleScan(barcode, qty) {
-  qty = qty || 1;
-  var p = barcodeMap[barcode];
-  if (p) {
-    var existing = cart.find(function(it){ return it.name === p.name && it.price === p.price; });
-    if (existing) {
-      existing.qty += qty;
-      if (existing.qty <= 0) cart.splice(cart.indexOf(existing), 1);
-    } else if (qty > 0) {
-      cart.push({ name: p.name, price: p.price, qty: qty });
-    }
-    renderList();
-  } else {
-    toast('⚠ 未登録のバーコードです: ' + barcode, 'warn');
-  }
+function fetchState() {
+  sb.from('display_state').select('*').eq('id', 1).single().then(function(res) {
+    if (res.data) renderState(res.data);
+  });
 }
 
-function completeCheckout() {
-  cart = [];
-  renderList();
-}
-
-function markScanDone(id) {
-  sb.from('scan_queue').update({ status: 'done' }).eq('id', id).then(function(){});
-}
-
-function initScanListener() {
-  loadBarcodeMap();
-  // 起動済み未処理分も処理
-  sb.from('scan_queue').select('*').eq('status', 'pending').order('id', { ascending: true })
-    .then(function(res) {
-      (res.data || []).forEach(function(row) {
-        handleScan(row.barcode, (row.qty !== null && row.qty !== undefined) ? row.qty : 1);
-        markScanDone(row.id);
-      });
-    });
-  // リアルタイム監視
-  sb.channel('scan_queue_channel')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'scan_queue' }, function(payload) {
-      var row = payload.new;
-      if (row.status !== 'pending') return;
-      handleScan(row.barcode, (row.qty !== null && row.qty !== undefined) ? row.qty : 1);
-      markScanDone(row.id);
+function initListener() {
+  fetchState();
+  sb.channel('display_state_channel')
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'display_state', filter: 'id=eq.1' }, function(payload) {
+      renderState(payload.new);
     })
     .subscribe();
 }
 
-renderList();
-initScanListener();
+initListener();
 </script>
 </body>
 </html>
