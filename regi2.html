@@ -121,18 +121,20 @@ function renderState(state) {
 
   var cart = state.cart || [];
   var wrap = document.getElementById('list-wrap');
-  var empty = document.getElementById('empty-msg');
-  if (!cart.length) {
-    wrap.innerHTML = '';
-    wrap.appendChild(empty);
-  } else {
-    wrap.innerHTML = cart.map(function(it) {
-      return '<div class="item-row">'
-        + '<div class="iname">' + it.name + (it.qty > 1 ? ' ×' + it.qty : '') + '</div>'
-        + '<div class="iprice">¥' + (it.price * it.qty).toLocaleString() + '</div>'
-        + '</div>';
-    }).join('');
-    wrap.scrollTop = wrap.scrollHeight;
+  try {
+    if (!cart.length) {
+      wrap.innerHTML = '<div class="empty-msg" id="empty-msg">スマホでバーコードを<br>読み取ってください</div>';
+    } else {
+      wrap.innerHTML = cart.map(function(it) {
+        return '<div class="item-row">'
+          + '<div class="iname">' + it.name + (it.qty > 1 ? ' ×' + it.qty : '') + '</div>'
+          + '<div class="iprice">¥' + (it.price * it.qty).toLocaleString() + '</div>'
+          + '</div>';
+      }).join('');
+      wrap.scrollTop = wrap.scrollHeight;
+    }
+  } catch (e) {
+    dlog('リスト更新エラー: ' + e.message);
   }
 
   var total = cart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
