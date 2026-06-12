@@ -101,20 +101,6 @@
             0%,100% { transform: scale(1); opacity: 0.8; }
             50%     { transform: scale(1.15); opacity: 1; }
         }
-
-        /* --- モーダル --- */
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px); z-index: 4000;
-            justify-content: center; align-items: center;
-        }
-        .modal-content { background: #fff; padding: 40px; border-radius: 40px; width: 90%; max-width: 400px; text-align: center; position: relative; }
-        .pin-display { font-size: 32px; letter-spacing: 15px; margin: 20px 0; height: 40px; color: var(--accent-color); }
-        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .numpad button { background: #fcf8f2; border: none; height: 60px; font-size: 20px; border-radius: 50%; cursor: pointer; }
-        .settings-list { text-align: left; margin-top: 20px; }
-        .link-btn { display: block; background: #f9f9f9; padding: 15px; margin-bottom: 10px; border-radius: 15px; text-decoration: none; color: #333; font-weight: bold; border: 1px solid #eee; }
-        .close-x { position: absolute; top: 20px; right: 20px; font-size: 24px; cursor: pointer; border: none; background: none; }
     </style>
 </head>
 <body>
@@ -150,10 +136,10 @@
                 <h2>在庫管理</h2>
                 <p>在庫データ確認</p>
             </div>
-            <div class="card" onclick="openPinModal()">
-                <div class="icon-wrap"><img src="icon-settings.png" alt="設定"></div>
-                <h2>設定</h2>
-                <p>管理リンク</p>
+            <div class="card" onclick="window.open('https://tomoda-dot.github.io/Porte/', '_blank')">
+                <div class="icon-wrap"><img src="kuma.png" alt="Porte"></div>
+                <h2>Porte</h2>
+                <p>ひとつぎ豊中小曽根<br>管理ソフトへのログイン</p>
             </div>
         </div>
     </div>
@@ -161,29 +147,6 @@
     <div id="appViewer">
         <iframe id="targetFrame" src=""></iframe>
         <button class="back-btn" onclick="closeApp()">メニューに戻る</button>
-    </div>
-
-    <div id="modalOverlay" class="modal-overlay">
-        <div id="pinBox" class="modal-content">
-            <h3>PINコードを入力</h3>
-            <div id="pinError" style="color:#f49576;font-size:14px;font-weight:bold;min-height:24px;margin-top:8px;"></div>
-            <div id="pinDots" class="pin-display">____</div>
-            <div class="numpad">
-                <button onclick="pressNum('1')">1</button><button onclick="pressNum('2')">2</button><button onclick="pressNum('3')">3</button>
-                <button onclick="pressNum('4')">4</button><button onclick="pressNum('5')">5</button><button onclick="pressNum('6')">6</button>
-                <button onclick="pressNum('7')">7</button><button onclick="pressNum('8')">8</button><button onclick="pressNum('9')">9</button>
-                <button onclick="clearPin()">C</button><button onclick="pressNum('0')">0</button>
-                <button onclick="closeModal()">×</button>
-            </div>
-        </div>
-        <div id="settingsBox" class="modal-content" style="display:none; max-width: 600px;">
-            <button class="close-x" onclick="closeModal()">×</button>
-            <h3>⚙️ 管理用リンク</h3>
-            <div class="settings-list">
-                <p style="margin-bottom:10px; color:var(--accent-color);">スプレッドシート 閲覧</p>
-                <a href="https://supabase.com/dashboard/project/wkaijkredavfjvfzunte" target="_blank" class="link-btn">🗄️ Supabase ダッシュボード</a>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -218,7 +181,6 @@
             if(event) event.stopPropagation();
             document.getElementById('targetFrame').src = url;
             document.getElementById('appViewer').style.display = 'block';
-            document.getElementById('modalOverlay').style.display = 'none';
         }
 
         function closeApp() {
@@ -227,50 +189,6 @@
             document.getElementById('appViewer').style.display = 'none';
         }
 
-        let currentPin = "";
-        const CORRECT_PIN = "1234";
-
-        function openPinModal() {
-            if(event) event.stopPropagation();
-            document.getElementById('modalOverlay').style.display = 'flex';
-            document.getElementById('pinBox').style.display = 'block';
-            document.getElementById('settingsBox').style.display = 'none';
-            document.getElementById('pinError').textContent = '';
-            clearPin();
-        }
-
-        function closeModal() {
-            if(event) event.stopPropagation();
-            document.getElementById('modalOverlay').style.display = 'none';
-        }
-
-        function pressNum(num) {
-            if(event) event.stopPropagation();
-            document.getElementById('pinError').textContent = '';
-            if (currentPin.length < 4) {
-                currentPin += num;
-                updateDots();
-                if (currentPin.length === 4) {
-                    setTimeout(() => {
-                        if (currentPin === CORRECT_PIN) {
-                            document.getElementById('pinError').textContent = '';
-                            document.getElementById('pinBox').style.display = 'none';
-                            document.getElementById('settingsBox').style.display = 'block';
-                        } else {
-                            document.getElementById('pinError').textContent = '⚠ PINが違います';
-                            clearPin();
-                        }
-                    }, 200);
-                }
-            }
-        }
-
-        function clearPin() { currentPin = ""; updateDots(); }
-        function updateDots() {
-            let dots = "";
-            for(let i=0; i<4; i++) dots += currentPin[i] ? "●" : "_";
-            document.getElementById('pinDots').innerText = dots;
-        }
     </script>
 </body>
 </html>
