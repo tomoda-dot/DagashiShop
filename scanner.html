@@ -77,6 +77,9 @@
 
 <div class="container">
 
+  <div id="debug-log" style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:8px 12px;
+    margin-bottom:10px;font-size:11px;font-family:monospace;color:var(--t2);max-height:120px;overflow-y:auto;white-space:pre-wrap;"></div>
+
   <div class="mode-tabs">
     <div class="mode-tab active" id="tab-regi" onclick="switchMode('regi')">🛒 レジ送信</div>
     <div class="mode-tab" id="tab-register" onclick="switchMode('register')">🏷️ 商品登録</div>
@@ -109,9 +112,23 @@
 </div>
 
 <script src="supabase-config.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.39.7/umd/supabase.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
+function dlog(msg) {
+  var el = document.getElementById('debug-log');
+  if (!el) return;
+  el.textContent += msg + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+window.addEventListener('error', function(e) {
+  dlog('❌ ' + (e.message || e) + (e.filename ? ' @' + e.filename.split('/').pop() + ':' + e.lineno : ''));
+});
+dlog('読み込み開始...');
+dlog('supabase-config.js: ' + (typeof SUPABASE_URL !== 'undefined' ? 'OK' : 'NG'));
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.39.7/umd/supabase.min.js" onload="dlog('supabase-js: OK')" onerror="dlog('❌ supabase-js: 読み込み失敗')"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" onload="dlog('html5-qrcode: OK')" onerror="dlog('❌ html5-qrcode: 読み込み失敗')"></script>
+<script>
+dlog('メインスクリプト開始');
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 var mode = 'regi'; // 'regi' | 'register'
 var deviceId = localStorage.getItem('scanner_device_id');
@@ -237,27 +254,33 @@ function onScanSuccess(decodedText) {
 
 function onScanFailure() { /* 無視（連続スキャンのため） */ }
 
-var html5QrCode = new Html5Qrcode('reader');
+var html5QrCode = (typeof Html5Qrcode !== 'undefined') ? new Html5Qrcode('reader') : null;
 var config = { fps: 10, qrbox: { width: 250, height: 150 } };
 var cameraStarted = false;
 
 function startCamera() {
-  if (cameraStarted) return;
+  dlog('カメラ起動ボタン押下');
+  if (cameraStarted) { dlog('既に起動済み'); return; }
+  if (typeof Html5Qrcode === 'undefined') { dlog('❌ Html5Qrcodeが未定義です（ライブラリ読込失敗）'); return; }
+  dlog('html5QrCode.start() 呼び出し...');
   html5QrCode.start(
     { facingMode: 'environment' },
     config,
     onScanSuccess,
     onScanFailure
   ).then(function() {
+    dlog('✅ カメラ起動成功');
     cameraStarted = true;
     var overlay = document.getElementById('camera-start-overlay');
     if (overlay) overlay.style.display = 'none';
   }).catch(function(err) {
+    dlog('❌ カメラ起動失敗: ' + err);
     showToast('カメラ起動エラー: ' + err, 'warn');
   });
 }
 
 document.getElementById('camera-start-btn').addEventListener('click', startCamera);
+dlog('初期化完了。カメラ起動ボタンを押してください');
 </script>
 </body>
 </html>
