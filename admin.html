@@ -804,7 +804,7 @@
         orderIds.add(r[0]);
         const label    = String(r[2] || '');
         const subtotal = Number(r[5]) || 0;
-        if (label.includes('割引')) totalDisc += Math.abs(subtotal);
+        if (label.includes('割引') || label.includes('ポイント')) totalDisc += Math.abs(subtotal);
         else if (label.includes('無料')) freeCount++;
         else totalSales += subtotal;
       });

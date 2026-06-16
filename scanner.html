@@ -165,7 +165,16 @@
       <span style="font-size:22px;font-weight:900;" id="checkout-total">¥0</span>
     </div>
     <div style="margin-bottom:10px;">
-      <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:6px;">お預かり</label>
+      <label style="font-size:13px;font-weight:700;color:var(--amb);display:block;margin-bottom:6px;">🪙 ポイント使用（P）</label>
+      <input type="number" id="point-input" inputmode="numeric" placeholder="0"
+        style="width:100%;padding:10px 14px;border:1px solid var(--amb);border-radius:var(--r);font-size:18px;font-weight:800;text-align:right;">
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:8px 0;border-top:1px solid var(--bd);">
+      <span style="font-size:13px;font-weight:700;color:var(--t2);">現金支払い額</span>
+      <span style="font-size:18px;font-weight:900;" id="cash-amount">¥0</span>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:6px;">お預かり（現金）</label>
       <input type="number" id="received-input" inputmode="numeric" placeholder="0"
         style="width:100%;padding:14px;border:1px solid var(--bd);border-radius:var(--r);font-size:22px;font-weight:800;text-align:right;">
     </div>
@@ -320,12 +329,16 @@ function pushDisplayState(thanks) {
   var cart = sentCart.filter(function(it){ return it.qty > 0; })
     .map(function(it){ return { name: it.name, price: it.price, qty: it.qty }; });
   var total = sentCart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
+  var points = getUsedPoints();
+  var cash = Math.max(0, total - points);
   var received = parseInt(document.getElementById('received-input').value) || 0;
-  var change = received - total;
+  var change = received - cash;
   sb.from('display_state').update({
     cart: cart,
     received: received,
     change: change,
+    points: points,
+    cash_amount: cash,
     thanks: !!thanks,
     updated_at: new Date().toISOString()
   }).eq('id', 1).then(function(res) {
@@ -439,15 +452,31 @@ function getCartTotal() {
   return sentCart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
 }
 
+function getUsedPoints() {
+  return Math.max(0, parseInt(document.getElementById('point-input').value) || 0);
+}
+
+function getCashAmount() {
+  return Math.max(0, getCartTotal() - getUsedPoints());
+}
+
 function updateCheckoutAmounts() {
   var total = getCartTotal();
+  var points = getUsedPoints();
+  var cash = Math.max(0, total - points);
   var received = parseInt(document.getElementById('received-input').value) || 0;
-  var change = received - total;
+  var change = received - cash;
   document.getElementById('checkout-total').textContent = '¥' + total.toLocaleString();
+  document.getElementById('cash-amount').textContent = '¥' + cash.toLocaleString();
   document.getElementById('checkout-change').textContent = '¥' + Math.max(0, change).toLocaleString();
 }
 
 document.getElementById('received-input').addEventListener('input', function() {
+  updateCheckoutAmounts();
+  pushDisplayState(false);
+});
+
+document.getElementById('point-input').addEventListener('input', function() {
   updateCheckoutAmounts();
   pushDisplayState(false);
 });
@@ -458,7 +487,7 @@ Array.prototype.forEach.call(document.querySelectorAll('.quick-amt-btn'), functi
     var amt = btn.getAttribute('data-amt');
     var input = document.getElementById('received-input');
     if (amt === 'exact') {
-      input.value = getCartTotal();
+      input.value = getCashAmount();
     } else {
       input.value = (parseInt(input.value) || 0) + parseInt(amt);
     }
@@ -473,35 +502,43 @@ function completeCheckout() {
     showToast('リストは空です', 'warn'); return;
   }
   var total = getCartTotal();
+  var points = getUsedPoints();
+  var cash = Math.max(0, total - points);
   var received = parseInt(document.getElementById('received-input').value) || 0;
-  if (received < total) { showToast('お預かり金額が不足しています', 'warn'); return; }
-  var change = received - total;
+  if (received < cash) { showToast('お預かり金額が不足しています', 'warn'); return; }
+  var change = received - cash;
 
+  // order_items用：商品行 + ポイント割引行
   var orders = sentCart.filter(function(it){ return it.qty > 0; }).map(function(it) {
     return { label: it.name, price: it.price, qty: it.qty, subtotal: it.price * it.qty };
   });
+  if (points > 0) {
+    orders.push({ label: '🪙 マチカネポイント', price: -points, qty: 1, subtotal: -points });
+  }
 
+  // receivedは現金のみ、売上合計はポイント含む商品合計
   GAS.saveOrderFromRegi({ orders: orders, received: received, change: change }).then(function() {
-    // タブレットに「ありがとう」を表示
     sb.from('display_state').update({
       cart: sentCart.filter(function(it){ return it.qty > 0; }).map(function(it){ return { name: it.name, price: it.price, qty: it.qty }; }),
       received: received,
       change: change,
+      points: points,
+      cash_amount: cash,
       thanks: true,
       updated_at: new Date().toISOString()
     }).eq('id', 1).then(function() {
       showToast('✅ 会計確定（保存しました）', 'ok');
-      // リセット
       sentCart = [];
       selectedItem = null;
       document.getElementById('received-input').value = '';
+      document.getElementById('point-input').value = '';
       renderSentList();
       renderSelectedPanel();
       updateCheckoutAmounts();
-      // 3秒後にタブレットの「ありがとう」を消す
       setTimeout(function() {
         sb.from('display_state').update({
-          cart: [], received: 0, change: 0, thanks: false, updated_at: new Date().toISOString()
+          cart: [], received: 0, change: 0, points: 0, cash_amount: 0, thanks: false,
+          updated_at: new Date().toISOString()
         }).eq('id', 1).then(function(){});
       }, 3000);
     });
@@ -527,13 +564,48 @@ function onScanSuccess(decodedText) {
   playBeep();
 
   if (mode === 'regi') {
-    var p = barcodeMap[decodedText];
-    if (p) {
-      addToSentCart(decodedText, p.name, p.price, 1);
-      showAddPopup('✅ ' + p.name + ' ¥' + p.price.toLocaleString());
+    var discMatch = decodedText.match(/^DISC(\d{4})$/);
+    if (discMatch) {
+      // 割引券（DISC0010 = 10円引き）
+      var amt = parseInt(discMatch[1], 10);
+      addToSentCart(decodedText, '🎟 ' + amt + '円割引', -amt, 1);
+      showAddPopup('🎟 ' + amt + '円割引を追加しました');
+    } else if (decodedText === 'ATARI') {
+      // 当たり券：直前にスキャンした商品を無料にする
+      if (selectedItem && selectedItem.price > 0 && selectedItem.qty > 0) {
+        // 1個分を「当たり（無料）」として分離
+        selectedItem.qty -= 1;
+        var freeItem = sentCart.find(function(it){
+          return it.name === '🎀 ' + selectedItem.name + '（当たり）';
+        });
+        if (freeItem) {
+          freeItem.qty += 1;
+        } else {
+          freeItem = { barcode: 'ATARI_' + selectedItem.barcode, name: '🎀 ' + selectedItem.name + '（当たり）', price: 0, qty: 1 };
+          sentCart.unshift(freeItem);
+        }
+        if (selectedItem.qty <= 0) {
+          var idx = sentCart.indexOf(selectedItem);
+          if (idx >= 0) sentCart.splice(idx, 1);
+        }
+        selectItem(freeItem);
+        renderSentList();
+        updateCheckoutAmounts();
+        pushDisplayState(false);
+        showAddPopup('🎀 ' + selectedItem.name + ' が当たり！無料になりました');
+      } else {
+        showAddPopup('⚠ 対象の商品がありません');
+        showToast('⚠ 直前に商品をスキャンしてから当たり券を読んでください', 'warn');
+      }
     } else {
-      showAddPopup('⚠ 未登録: ' + decodedText);
-      showToast('⚠ 未登録のバーコードです: ' + decodedText, 'warn');
+      var p = barcodeMap[decodedText];
+      if (p) {
+        addToSentCart(decodedText, p.name, p.price, 1);
+        showAddPopup('✅ ' + p.name + ' ¥' + p.price.toLocaleString());
+      } else {
+        showAddPopup('⚠ 未登録: ' + decodedText);
+        showToast('⚠ 未登録のバーコードです: ' + decodedText, 'warn');
+      }
     }
   } else {
     // 商品登録モード

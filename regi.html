@@ -710,8 +710,15 @@
                     <button onclick="printReceipt()" class="receipt-btn" title="レシート印刷">🖨</button>
                 </div>
             </div>
+            <div style="margin:6px 0;">
+                <div style="font-size:0.72rem;color:#e8a854;font-weight:700;margin-bottom:4px;">🪙 ポイント使用（P）</div>
+                <input type="number" id="point-use-input" inputmode="numeric" placeholder="0"
+                    style="width:100%;padding:8px 10px;border:1.5px solid #e8a854;border-radius:10px;font-size:1.2rem;font-weight:800;text-align:right;background:#fffbf0;"
+                    oninput="updateReceiveDisplay()">
+            </div>
+            <div id="cash-amount-display" style="font-size:0.72rem;color:#8a8070;font-weight:700;margin-bottom:4px;text-align:right;"></div>
             <div>
-                <div class="checkout-receive-label">💴 おあずかり金額</div>
+                <div class="checkout-receive-label">💴 おあずかり金額（現金）</div>
                 <div class="checkout-receive-display">
                     <span id="receive-display-num"></span><span class="cursor"></span>
                 </div>
@@ -1239,6 +1246,7 @@ function openCheckout() {
     if (cart.length === 0) return;
     if (atariMode) cancelAtariMode();
     receiveStr = '';
+    document.getElementById('point-use-input').value = '';
     const total = Math.max(0, cart.reduce((s,i) => s + i.price, 0));
     document.getElementById('modal-total').textContent = `${total}円`;
     updateReceiveDisplay();
@@ -1267,9 +1275,13 @@ function tenkeyDel() {
 
 function updateReceiveDisplay() {
     const total    = Math.max(0, cart.reduce((s,i) => s + i.price, 0));
+    const points   = Math.max(0, parseInt(document.getElementById('point-use-input').value) || 0);
+    const cash     = Math.max(0, total - points);
     const received = parseInt(receiveStr) || 0;
     document.getElementById('receive-display-num').textContent =
         receiveStr ? `${received}円` : '';
+    const cashDisp = document.getElementById('cash-amount-display');
+    cashDisp.textContent = points > 0 ? `現金支払い額: ${cash}円` : '';
 
     const changeNum  = document.getElementById('change-num');
     const changeBox  = document.getElementById('change-box');
@@ -1283,7 +1295,7 @@ function updateReceiveDisplay() {
         confirmBtn.disabled = true;
         return;
     }
-    const change = received - total;
+    const change = received - cash;
     if (change < 0) {
         changeNum.innerHTML = '<span class="change-error">金額が足りません</span>';
         changeBox.style.borderColor = '#ff475744';
@@ -1302,9 +1314,11 @@ function closeModal() { document.getElementById('modal').classList.remove('show'
 
 async function confirmCheckout() {
     const total    = Math.max(0, cart.reduce((s,i) => s + i.price, 0));
+    const points   = Math.max(0, parseInt(document.getElementById('point-use-input').value) || 0);
+    const cash     = Math.max(0, total - points);
     const received = parseInt(receiveStr) || 0;
-    if (received < total) return;
-    const change = received - total;
+    if (received < cash) return;
+    const change = received - cash;
     closeModal();
     recordSale(total);
     document.getElementById('done-sub').textContent = `おつり ${change}円`;
@@ -1319,9 +1333,13 @@ async function confirmCheckout() {
         else acc.push({ label:item.label, price:item.price, qty:1, subtotal:item.price });
         return acc;
     }, []);
+    const orders = summarize(cart.filter(i => !i.isFree && !i.isDiscount));
+    if (points > 0) {
+        orders.push({ label: '🪙 マチカネポイント', price: -points, qty: 1, subtotal: -points });
+    }
     const payload = {
         timestamp: new Date().toLocaleString('ja-JP'),
-        orders:    summarize(cart.filter(i => !i.isFree && !i.isDiscount)),
+        orders,
         free:      summarize(cart.filter(i => i.isFree)),
         discounts: summarize(cart.filter(i => i.isDiscount)),
         total, received, change

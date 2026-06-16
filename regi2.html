@@ -75,6 +75,10 @@
         <span class="al">合計</span>
         <span class="av"><span class="yen">¥</span><span id="total-val">0</span></span>
       </div>
+      <div class="amt-row" id="points-row" style="display:none;">
+        <span class="al">🪙 ポイント</span>
+        <span class="av" style="color:var(--amb);"><span class="yen">-¥</span><span id="points-val">0</span></span>
+      </div>
       <div class="amt-row received">
         <span class="al">お預かり</span>
         <span class="av"><span class="yen">¥</span><span id="received-val">0</span></span>
@@ -145,6 +149,14 @@ function renderState(state) {
     var total = cart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
     dlog('[7] total計算=' + total);
     document.getElementById('total-val').textContent = total.toLocaleString();
+    var points = state.points || 0;
+    var pointsRow = document.getElementById('points-row');
+    if (points > 0) {
+      document.getElementById('points-val').textContent = points.toLocaleString();
+      pointsRow.style.display = '';
+    } else {
+      pointsRow.style.display = 'none';
+    }
     document.getElementById('received-val').textContent = (state.received || 0).toLocaleString();
     document.getElementById('change-val').textContent = Math.max(0, (state.change || 0)).toLocaleString();
     dlog('[8] 金額表示更新完了 total-val=' + document.getElementById('total-val').textContent);
