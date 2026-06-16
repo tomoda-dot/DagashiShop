@@ -734,6 +734,7 @@
         </div>
         <!-- 右：テンキー -->
         <div class="checkout-right">
+            <div id="tenkey-mode-indicator" style="text-align:center;font-size:0.72rem;font-weight:800;padding:4px 8px;border-radius:8px;margin-bottom:4px;background:#e8f5e9;color:#2e7d32;">💴 おあずかり入力中</div>
             <div class="tenkey-presets" id="tenkey-presets"></div>
             <div class="tenkey-grid">
                 <button class="tenkey-btn" onclick="tenkey('7')">7</button>
@@ -1003,8 +1004,11 @@ function closeSalesModal() {
 
 // ═══ ちょうどボタン ══════════════════════════════
 function tenkeyChodo() {
-    const total = Math.max(0, cart.reduce((s,i) => s + i.price, 0));
-    receiveStr = String(total);
+    const total  = Math.max(0, cart.reduce((s,i) => s + i.price, 0));
+    const points = Math.max(0, parseInt(document.getElementById('point-use-input').value) || 0);
+    const cash   = Math.max(0, total - points);
+    setTenkeyMode('receive');
+    receiveStr = String(cash);
     updateReceiveDisplay();
 }
 
@@ -1246,10 +1250,21 @@ function openCheckout() {
     if (cart.length === 0) return;
     if (atariMode) cancelAtariMode();
     receiveStr = '';
+    tenkeyMode = 'receive';
     document.getElementById('point-use-input').value = '';
+    setTenkeyMode('receive');
     const total = Math.max(0, cart.reduce((s,i) => s + i.price, 0));
     document.getElementById('modal-total').textContent = `${total}円`;
     updateReceiveDisplay();
+
+    // ポイント欄タップでモード切替
+    const pointEl = document.getElementById('point-use-input');
+    pointEl.onclick = function(){ setTenkeyMode('point'); };
+    pointEl.readOnly = true;
+
+    // 預り金表示エリアタップで預り金モードに切替
+    const receiveDisp = document.querySelector('.checkout-receive-display');
+    if (receiveDisp) receiveDisp.onclick = function(){ setTenkeyMode('receive'); };
 
     const presetsEl = document.getElementById('tenkey-presets');
     presetsEl.innerHTML = '';
@@ -1263,14 +1278,43 @@ function openCheckout() {
     document.getElementById('modal').classList.add('show');
 }
 
+var tenkeyMode = 'receive'; // 'receive' | 'point'
+
+function setTenkeyMode(mode) {
+    tenkeyMode = mode;
+    var ind = document.getElementById('tenkey-mode-indicator');
+    if (mode === 'point') {
+        ind.textContent = '🪙 ポイント入力中';
+        ind.style.background = '#fff8e1';
+        ind.style.color = '#e65100';
+    } else {
+        ind.textContent = '💴 おあずかり入力中';
+        ind.style.background = '#e8f5e9';
+        ind.style.color = '#2e7d32';
+    }
+}
+
 function tenkey(digit) {
-    if (receiveStr.length >= 6) return;
-    receiveStr += digit;
-    updateReceiveDisplay();
+    if (tenkeyMode === 'point') {
+        var el = document.getElementById('point-use-input');
+        if ((el.value || '').length >= 5) return;
+        el.value = (el.value || '') + digit;
+        updateReceiveDisplay();
+    } else {
+        if (receiveStr.length >= 6) return;
+        receiveStr += digit;
+        updateReceiveDisplay();
+    }
 }
 function tenkeyDel() {
-    receiveStr = receiveStr.slice(0,-1);
-    updateReceiveDisplay();
+    if (tenkeyMode === 'point') {
+        var el = document.getElementById('point-use-input');
+        el.value = (el.value || '').slice(0, -1);
+        updateReceiveDisplay();
+    } else {
+        receiveStr = receiveStr.slice(0, -1);
+        updateReceiveDisplay();
+    }
 }
 
 function updateReceiveDisplay() {
