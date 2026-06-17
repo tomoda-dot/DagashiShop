@@ -444,6 +444,40 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
 </div>
 </div>
 
+<!-- ══ CSV出力モーダル ══ -->
+<div id="csv-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:3000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:24px;width:92%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.15);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:800;">📊 CSV出力</div>
+      <button onclick="closeCsvModal()" style="border:none;background:none;font-size:20px;cursor:pointer;color:var(--t3);">×</button>
+    </div>
+
+    <!-- 列の選択 -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--t2);margin-bottom:8px;">出力する列を選択</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <button onclick="csvCheckAll(true)" class="btns" style="font-size:11px;padding:4px 10px;">全選択</button>
+        <button onclick="csvCheckAll(false)" class="btns" style="font-size:11px;padding:4px 10px;">全解除</button>
+      </div>
+      <div id="csv-col-checks" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>
+    </div>
+
+    <!-- 商品の選択 -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--t2);margin-bottom:8px;">出力する商品を選択</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+        <button onclick="csvProdCheckAll(true)" class="btns" style="font-size:11px;padding:4px 10px;">全選択</button>
+        <button onclick="csvProdCheckAll(false)" class="btns" style="font-size:11px;padding:4px 10px;">全解除</button>
+        <button onclick="csvProdCheckFiltered()" class="btns" style="font-size:11px;padding:4px 10px;">現在の絞り込み結果</button>
+      </div>
+      <div id="csv-prod-checks" style="max-height:220px;overflow-y:auto;border:1px solid var(--bd);border-radius:10px;"></div>
+      <div id="csv-prod-count" style="font-size:11px;color:var(--t3);margin-top:4px;text-align:right;"></div>
+    </div>
+
+    <button onclick="downloadCsv()" class="btn" style="width:100%;padding:14px;font-size:15px;">⬇ CSVダウンロード</button>
+  </div>
+</div>
+
 <!-- ══ MAIN APP ══ -->
 <div id="app">
   <header>
@@ -456,6 +490,7 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <button class="btns" id="rbtn" onclick="reloadData()">↻ 更新</button>
+      <button class="btns" onclick="openCsvModal()" style="color:var(--grn);">📊 CSV出力</button>
       <button class="btn" onclick="openRestock()">＋ 仕入れ・新規追加</button>
     </div>
   </header>
@@ -2213,7 +2248,8 @@ function buildFaxHtml(){
   var supName = sup ? sup.name : '';
   var supFax  = sup ? sup.fax  : '';
   var supTel  = sup ? sup.tel  : '';
-  var faxHtml = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>発注書</title>'
+  var fileDate = today.getFullYear()+('0'+(today.getMonth()+1)).slice(-2)+('0'+today.getDate()).slice(-2);
+  var faxHtml = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>発注書_'+fileDate+'</title>'
     +'<style>'
     +'body{font-family:"Meiryo","Yu Gothic",sans-serif;padding:20px 30px;max-width:800px;margin:0 auto;font-size:14px;}'
     +'h1{font-size:24px;text-align:center;border-bottom:3px double #333;padding-bottom:10px;margin-bottom:20px;letter-spacing:4px;}'
@@ -2346,7 +2382,8 @@ function _doOpenFax(){
     var supName    = sup ? sup.name    : '';
     var supFax     = sup ? sup.fax     : '';
     var supTel     = sup ? sup.tel     : '';
-    var faxHtml = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>発注書</title>'
+    var fileDate2 = today.getFullYear()+('0'+(today.getMonth()+1)).slice(-2)+('0'+today.getDate()).slice(-2);
+    var faxHtml = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>発注書_'+fileDate2+'</title>'
       +'<style>'
       +'body{font-family:"Meiryo","Yu Gothic",sans-serif;padding:12px 20px;max-width:800px;margin:0 auto;font-size:12px;}'
       +'h1{font-size:20px;text-align:center;border-bottom:3px double #333;padding-bottom:6px;margin-bottom:12px;letter-spacing:4px;}'
@@ -2455,6 +2492,147 @@ function loadImgsBatch(){
 }
 // ── 起動 ──
 function showApp(){document.getElementById('loading').style.display='none';document.getElementById('app').style.display='block';}
+
+// ══ CSV出力 ══════════════════════════════════════════
+var CSV_COLS = [
+  { key:'name',       label:'商品名',       fn: function(p){ return p.name||''; } },
+  { key:'maker',      label:'メーカー',     fn: function(p){ return p.maker||''; } },
+  { key:'cat',        label:'カテゴリ',     fn: function(p){ return p.cat||''; } },
+  { key:'name_kana',  label:'読み仮名',     fn: function(p){ return p.name_kana||''; } },
+  { key:'barcode',    label:'バーコード',   fn: function(p){ return p.barcode||''; } },
+  { key:'stock',      label:'在庫数',       fn: function(p){ return p.stock||0; } },
+  { key:'buy_price',  label:'仕入単価(ロット)', fn: function(p){ return p.buy_price||0; } },
+  { key:'tanka',      label:'仕入単価(1個)', fn: function(p){
+    return (p.buy_price && p.buy_qty) ? Math.round(p.buy_price/p.buy_qty*100)/100 : '';
+  }},
+  { key:'sell_price', label:'販売価格',     fn: function(p){ return p.sell_price||0; } },
+  { key:'price',      label:'参考価格',     fn: function(p){ return p.price||0; } },
+  { key:'margin',     label:'粗利(円)',     fn: function(p){
+    if(!p.buy_price||!p.buy_qty||!p.sell_price) return '';
+    return Math.round((p.sell_price - p.buy_price/p.buy_qty*1.08)*100)/100;
+  }},
+  { key:'margin_pct', label:'粗利率(%)',    fn: function(p){
+    if(!p.buy_price||!p.buy_qty||!p.sell_price) return '';
+    var m = p.sell_price - p.buy_price/p.buy_qty*1.08;
+    return Math.round(m/p.sell_price*1000)/10;
+  }},
+  { key:'memo',       label:'備考',         fn: function(p){ return p.memo||''; } }
+];
+
+var csvSelectedProds = []; // 選択商品のidリスト
+var csvFilteredProds = []; // 現在の絞り込み結果
+
+function openCsvModal() {
+  // 列チェックボックス生成
+  var colDiv = document.getElementById('csv-col-checks');
+  colDiv.innerHTML = CSV_COLS.map(function(c) {
+    var checked = (c.key==='name'||c.key==='maker'||c.key==='sell_price'||c.key==='margin'||c.key==='margin_pct') ? 'checked' : '';
+    return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:4px 6px;border:1px solid var(--bd);border-radius:8px;">'
+      + '<input type="checkbox" data-col="'+c.key+'" '+checked+'> '+c.label+'</label>';
+  }).join('');
+
+  // 商品チェックボックス生成（active商品のみ）
+  var activeProds = prods.filter(function(p){ return p.status==='active'; });
+  csvFilteredProds = getFilteredProdIds();
+  renderCsvProdList(activeProds, activeProds.map(function(p){return p.id;}));
+
+  document.getElementById('csv-modal').style.display = 'flex';
+}
+
+function getFilteredProdIds() {
+  // 現在renderPで表示されているprodsのidを取得
+  var q = (document.getElementById('srch')?document.getElementById('srch').value:'').toLowerCase();
+  var q2 = toKatakana(q);
+  var cat = document.getElementById('catf')?document.getElementById('catf').value:'';
+  var maker = document.getElementById('makerf')?document.getElementById('makerf').value:'';
+  return prods.filter(function(p){
+    if(p.status!=='active') return false;
+    if(q){ var nm=p.name.toLowerCase().indexOf(q)>=0; var km=toKatakana(p.name_kana||'').indexOf(q2)>=0; if(!nm&&!km) return false; }
+    if(cat && p.cat!==cat) return false;
+    if(maker && p.maker!==maker) return false;
+    return true;
+  }).map(function(p){return p.id;});
+}
+
+function renderCsvProdList(prodList, selectedIds) {
+  csvSelectedProds = selectedIds.slice();
+  var div = document.getElementById('csv-prod-checks');
+  div.innerHTML = prodList.map(function(p) {
+    var chk = csvSelectedProds.indexOf(p.id)>=0 ? 'checked' : '';
+    return '<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--bd);cursor:pointer;font-size:13px;">'
+      + '<input type="checkbox" data-pid="'+p.id+'" '+chk+' onchange="csvProdToggle('+p.id+',this.checked)">'
+      + '<span style="font-weight:700;">'+p.name+'</span>'
+      + '<span style="color:var(--t3);font-size:11px;margin-left:auto;">'+( p.maker||'')+'</span>'
+      + '</label>';
+  }).join('');
+  updateCsvProdCount();
+}
+
+function csvProdToggle(id, checked) {
+  if(checked) { if(csvSelectedProds.indexOf(id)<0) csvSelectedProds.push(id); }
+  else { csvSelectedProds = csvSelectedProds.filter(function(x){return x!==id;}); }
+  updateCsvProdCount();
+}
+
+function updateCsvProdCount() {
+  document.getElementById('csv-prod-count').textContent = csvSelectedProds.length + '件選択中';
+}
+
+function csvCheckAll(val) {
+  document.querySelectorAll('#csv-col-checks input[type=checkbox]').forEach(function(el){ el.checked=val; });
+}
+
+function csvProdCheckAll(val) {
+  var activeProds = prods.filter(function(p){ return p.status==='active'; });
+  csvSelectedProds = val ? activeProds.map(function(p){return p.id;}) : [];
+  renderCsvProdList(activeProds, csvSelectedProds);
+}
+
+function csvProdCheckFiltered() {
+  var activeProds = prods.filter(function(p){ return p.status==='active'; });
+  csvSelectedProds = getFilteredProdIds();
+  renderCsvProdList(activeProds, csvSelectedProds);
+}
+
+function closeCsvModal() {
+  document.getElementById('csv-modal').style.display = 'none';
+}
+
+function downloadCsv() {
+  // 選択列を取得
+  var selCols = CSV_COLS.filter(function(c){
+    var el = document.querySelector('#csv-col-checks input[data-col="'+c.key+'"]');
+    return el && el.checked;
+  });
+  if(!selCols.length){ toast('列を1つ以上選択してください'); return; }
+  if(!csvSelectedProds.length){ toast('商品を1つ以上選択してください'); return; }
+
+  // 選択商品を順序通りに取得
+  var selProds = prods.filter(function(p){ return csvSelectedProds.indexOf(p.id)>=0; });
+
+  // CSV生成（BOM付きUTF-8でExcelが文字化けしない）
+  var header = selCols.map(function(c){return '"'+c.label+'"';}).join(',');
+  var rows = selProds.map(function(p){
+    return selCols.map(function(c){
+      var v = c.fn(p);
+      if(v===null||v===undefined) v='';
+      v = String(v).replace(/"/g,'""');
+      return '"'+v+'"';
+    }).join(',');
+  });
+  var csv = '\uFEFF' + header + '\n' + rows.join('\n');
+
+  // ダウンロード
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  var now = new Date();
+  var fname = '在庫一覧_'+now.getFullYear()+(now.getMonth()+1<10?'0':'')+(now.getMonth()+1)+(now.getDate()<10?'0':'')+now.getDate()+'.csv';
+  a.href = url; a.download = fname; a.click();
+  URL.revokeObjectURL(url);
+  toast('CSVをダウンロードしました（'+selProds.length+'件）');
+  closeCsvModal();
+}
 
 </script>
 <script src="supabase-config.js"></script>
