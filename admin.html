@@ -271,12 +271,14 @@
     <section id="content-detail" class="hidden h-full flex flex-col p-4 gap-3 overflow-hidden">
 
       <!-- 操作バー -->
-      <div class="flex items-center gap-3 flex-shrink-0">
+      <div class="flex items-center gap-3 flex-shrink-0" style="flex-wrap:wrap;">
         <label class="text-sm font-bold text-slate-600">📅 日付：</label>
         <input type="date" id="detail-date-input" onchange="loadDetailData()">
         <button onclick="loadDetailData()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">search</span> 表示
         </button>
+        <input type="text" id="detail-search" placeholder="商品名・金額で検索..." oninput="filterDetailTable()"
+          style="border:1px solid #cbd5e1;border-radius:8px;padding:7px 12px;font-size:0.85rem;min-width:180px;">
         <span id="detail-status" class="text-sm text-slate-400 font-medium"></span>
       </div>
 
@@ -533,6 +535,7 @@
     const DISPLAY_ORDER = [10000, 50, 5000, 10, 1000, 5, 500, 1, 100];
     const ALL_DENOMS    = [10000, 5000, 1000, 500, 100, 50, 10, 5, 1];
     let g_fixed = 33300, g_sales = 0, g_currentDate = "";
+    let g_allDetailRows = []; // 明細の全行データ（検索フィルタ用）
     let g_allData = [];
 
     // ── メニューに戻る ─────────────────────────────
@@ -786,10 +789,34 @@
     }
 
     function renderDetailTable(rows, date) {
+      g_allDetailRows = rows || []; // 全行を保存
+      document.getElementById('detail-search').value = ''; // 検索欄クリア
+      renderDetailRows(g_allDetailRows, date);
+    }
+
+    function filterDetailTable() {
+      const q = document.getElementById('detail-search').value.toLowerCase();
+      if (!q) {
+        renderDetailRows(g_allDetailRows);
+        return;
+      }
+      const filtered = g_allDetailRows.filter(function(r) {
+        const label    = String(r[2] || '').toLowerCase();
+        const price    = String(r[3] || '');
+        const subtotal = String(r[5] || '');
+        const orderId  = String(r[0] || '').toLowerCase();
+        return label.includes(q) || price.includes(q) || subtotal.includes(q) || orderId.includes(q);
+      });
+      renderDetailRows(filtered);
+    }
+
+    function renderDetailRows(rows, date) {
       const tbody = document.getElementById('detail-tbody');
 
       if (!rows || rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="text-center text-slate-400 py-12">${date} のデータはありません</td></tr>`;
+        const q = document.getElementById('detail-search').value;
+        const msg = q ? '「' + q + '」に一致するデータはありません' : (date ? date + ' のデータはありません' : 'データはありません');
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center text-slate-400 py-12">${msg}</td></tr>`;
         document.getElementById('detail-status').textContent = '0件';
         document.getElementById('detail-summary-bar').style.display = 'none';
         return;
