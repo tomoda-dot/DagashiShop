@@ -501,6 +501,7 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
     <button class="tab" id="tb-o" onclick="goTab('o')">発注</button>
     <button class="tab" id="tb-d" onclick="goTab('d')">発注済み<span class="bdg" id="dbadge" style="display:none;"></span></button>
     <button class="tab" id="tb-r" onclick="goTab('r')">仕入れ履歴</button>
+    <button class="tab" id="tb-cfg" onclick="goTab('cfg')">⚙ 設定</button>
   </div>
 
   <!-- 在庫一覧 -->
@@ -531,6 +532,16 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
   <div id="t-r" style="display:none;">
     <div class="stl">仕入れ履歴（最新20件）</div>
     <div id="rshist"></div>
+  </div>
+
+  <!-- 設定 -->
+  <div id="t-cfg" style="display:none;">
+    <div class="stl">カテゴリ管理</div>
+    <div style="margin-bottom:12px;display:flex;gap:8px;">
+      <input class="fi" type="text" id="cat-new-input" placeholder="新しいカテゴリ名" style="flex:1;max-width:220px;">
+      <button class="btn" onclick="addCategory()" style="padding:8px 16px;font-size:13px;">＋ 追加</button>
+    </div>
+    <div id="cat-list" style="max-width:400px;"></div>
   </div>
 
   <!-- アラート -->
@@ -1319,7 +1330,7 @@ function toggleShowHidden(){
   renderP();
 }
 function goTab(n){
-  ['s','r','a','o','d','c'].forEach(function(t){
+  ['s','r','a','o','d','c','cfg'].forEach(function(t){
     document.getElementById('t-'+t).style.display=t===n?'':'none';
     document.getElementById('tb-'+t).classList.toggle('on',t===n);
   });
@@ -1328,6 +1339,7 @@ function goTab(n){
   if(n==='o'){ renderOrdLeft(); loadSuppliers(); }
   if(n==='d')loadOrdersData();
   if(n==='c')renderCandidates();
+  if(n==='cfg')loadCategories();
 }
 
 // ── レンダリング ──
@@ -2781,6 +2793,104 @@ function loadImgsBatch(){
   }
   setTimeout(next, 500); // 初期表示後に開始
 }
+// ══ カテゴリ管理 ══════════════════════════════════════
+var categories = [];
+
+function loadCategories() {
+  run1('getCategories').then(function(rows) {
+    categories = rows || [];
+    renderCategoryList();
+    updateCategorySelects();
+  });
+}
+
+function renderCategoryList() {
+  var list = document.getElementById('cat-list');
+  if (!categories.length) {
+    list.innerHTML = '<div style="color:var(--t3);font-size:13px;">カテゴリがありません</div>';
+    return;
+  }
+  list.innerHTML = categories.map(function(cat, i) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--bd);border-radius:10px;margin-bottom:6px;">'
+      + '<div style="display:flex;flex-direction:column;gap:2px;">'
+      + '<button onclick="moveCat('+i+',-1)" style="border:none;background:none;cursor:pointer;font-size:12px;color:var(--t2);padding:0;line-height:1;" '+(i===0?'disabled style="opacity:0.3;"':'')+'>▲</button>'
+      + '<button onclick="moveCat('+i+',1)" style="border:none;background:none;cursor:pointer;font-size:12px;color:var(--t2);padding:0;line-height:1;" '+(i===categories.length-1?'disabled style="opacity:0.3;"':'')+'>▼</button>'
+      + '</div>'
+      + '<span style="flex:1;font-size:14px;font-weight:700;">'+cat.name+'</span>'
+      + '<button onclick="editCat('+i+')" class="btns" style="font-size:11px;padding:3px 10px;">編集</button>'
+      + '<button onclick="deleteCat('+i+')" class="btns" style="font-size:11px;padding:3px 10px;color:var(--red);">削除</button>'
+      + '</div>';
+  }).join('');
+}
+
+function updateCategorySelects() {
+  // 商品編集フォームのカテゴリプルダウンを更新
+  var sel = document.getElementById('det-cat');
+  if (sel) {
+    var cur = sel.value;
+    sel.innerHTML = categories.map(function(c) {
+      return '<option'+(c.name===cur?' selected':'')+'>'+c.name+'</option>';
+    }).join('');
+  }
+  // フィルターのカテゴリプルダウンも更新
+  var catf = document.getElementById('catf');
+  if (catf) {
+    var curF = catf.value;
+    catf.innerHTML = '<option value="">全カテゴリ</option>'
+      + categories.map(function(c) {
+        return '<option'+(c.name===curF?' selected':'')+'>'+c.name+'</option>';
+      }).join('');
+  }
+}
+
+function addCategory() {
+  var name = (document.getElementById('cat-new-input').value || '').trim();
+  if (!name) { toast('カテゴリ名を入力してください'); return; }
+  if (categories.some(function(c){ return c.name === name; })) { toast('同じ名前のカテゴリが既にあります'); return; }
+  var sortOrder = categories.length ? categories[categories.length-1].sort_order + 1 : 1;
+  run1('saveCategory', { name: name, sort_order: sortOrder }).then(function() {
+    document.getElementById('cat-new-input').value = '';
+    toast('追加しました');
+    loadCategories();
+  });
+}
+
+function editCat(i) {
+  var cat = categories[i];
+  var newName = prompt('カテゴリ名を編集', cat.name);
+  if (!newName || newName.trim() === cat.name) return;
+  run1('saveCategory', { id: cat.id, name: newName.trim(), sort_order: cat.sort_order }).then(function() {
+    toast('更新しました');
+    loadCategories();
+  });
+}
+
+function deleteCat(i) {
+  var cat = categories[i];
+  showConfirm('「'+cat.name+'」を削除しますか？\n※ このカテゴリの商品は「その他」になります。', function() {
+    run1('deleteCategory', cat.id).then(function() {
+      toast('削除しました');
+      loadCategories();
+    });
+  });
+}
+
+function moveCat(i, dir) {
+  var j = i + dir;
+  if (j < 0 || j >= categories.length) return;
+  // 順序を入れ替え
+  var tmp = categories[i];
+  categories[i] = categories[j];
+  categories[j] = tmp;
+  // sort_orderを再割り当て
+  var promises = categories.map(function(cat, idx) {
+    return run1('saveCategory', { id: cat.id, name: cat.name, sort_order: idx + 1 });
+  });
+  Promise.all(promises).then(function() {
+    loadCategories();
+  });
+}
+
 // ── 起動 ──
 function showApp(){document.getElementById('loading').style.display='none';document.getElementById('app').style.display='block';}
 
@@ -2929,7 +3039,12 @@ function downloadCsv() {
 <script src="supabase-config.js"></script>
 <script src="supabase-adapter.js"></script>
 <script>
-loadData().then(function(){showApp();loadOrdersData();setInterval(loadData,300000);}).catch(function(e){showApp();setSS('er');toast('接続エラー: '+(e.message||e));});
+loadData().then(function(){
+  showApp();
+  loadOrdersData();
+  loadCategories();
+  setInterval(loadData,300000);
+}).catch(function(e){showApp();setSS('er');toast('接続エラー: '+(e.message||e));});
 </script>
 </body>
 </html>

@@ -91,6 +91,7 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'getSummaryData','saveClosingData','getDetailByDate','getLatestOrderDate',
     'invalidateDetailRow','updateDetailRow','getSavingsData',
     'addSavingsRow','testConnection','getProductsForBarcode','updateProductBarcode',
+    'getCategories','saveCategory','deleteCategory',
     'getProductSuppliers','saveProductSupplier','deleteProductSupplier'
   ];
   fns.forEach(function(name) {
@@ -494,6 +495,28 @@ GAS.saveSettings = function(customButtonsJson, customDiscountsJson) {
 GAS.saveRegiDefaults = function(jsonStr) {
   return sbFetch('settings', { method:'POST', body:JSON.stringify({ key:'regiDefaults', value:jsonStr }), prefer:'resolution=merge-duplicates,return=representation' })
     .then(function() { return 'OK'; });
+};
+
+// ─ getCategories ─
+GAS.getCategories = function() {
+  return sbGet('categories', 'select=*&order=sort_order.asc,id.asc');
+};
+
+// ─ saveCategory ─
+GAS.saveCategory = function(data) {
+  if (data.id) {
+    return sbPatch('categories', 'id=eq.' + data.id, { name: data.name, sort_order: data.sort_order })
+      .then(function() { return { ok: true }; });
+  } else {
+    return sbPost('categories', [{ name: data.name, sort_order: data.sort_order }])
+      .then(function() { return { ok: true }; });
+  }
+};
+
+// ─ deleteCategory ─
+GAS.deleteCategory = function(id) {
+  return sbDelete('categories', 'id=eq.' + id)
+    .then(function() { return { ok: true }; });
 };
 
 // ─ getProductsForBarcode ─
