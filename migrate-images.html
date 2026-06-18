@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画像移行ツール</title>
+<style>
+  body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 20px; background: #f9f9f9; }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  .desc { color: #666; font-size: 13px; margin-bottom: 24px; }
+  button { padding: 12px 24px; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; }
+  #start-btn { background: #f49576; color: #fff; }
+  #start-btn:disabled { background: #ccc; cursor: default; }
+  #clear-btn { background: #e0e0e0; color: #333; margin-left: 10px; }
+  #clear-btn:disabled { opacity: 0.4; cursor: default; }
+  #progress-wrap { margin-top: 24px; display: none; }
+  #progress-bar-bg { background: #e0e0e0; border-radius: 999px; height: 14px; margin-bottom: 8px; }
+  #progress-bar { background: #7bbf8c; height: 14px; border-radius: 999px; width: 0%; transition: width .3s; }
+  #progress-text { font-size: 13px; color: #555; margin-bottom: 12px; }
+  #log { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 12px; height: 300px; overflow-y: auto; font-size: 12px; font-family: monospace; }
+  .log-ok { color: #2e7d32; }
+  .log-skip { color: #888; }
+  .log-err { color: #c62828; }
+  #summary { margin-top: 16px; padding: 14px; background: #e8f5e9; border-radius: 10px; display: none; font-size: 14px; }
+  .warn { background: #fff8e1; border: 1px solid #f9a825; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>🖼 商品画像 移行ツール</h1>
+<p class="desc">productsテーブルのBase64画像をSupabase Storageに移行し、img_urlに変換します。</p>
+
+<div class="warn">
+  ⚠ <strong>実行前に確認</strong>：Storageに「product-images」バケット（Public）が作成されていることを確認してください。
+</div>
+
+<div>
+  <button id="start-btn" onclick="startMigration()">▶ 移行開始</button>
+  <button id="clear-btn" onclick="clearImgColumn()" disabled>🗑 img列をクリア（移行完了後）</button>
+</div>
+
+<div id="progress-wrap">
+  <div id="progress-bar-bg"><div id="progress-bar"></div></div>
+  <div id="progress-text">準備中...</div>
+  <div id="log"></div>
+</div>
+
+<div id="summary"></div>
+
+<script src="supabase-config.js"></script>
+<script>
+var BUCKET = 'product-images';
+var SUPABASE_STORAGE_URL = SUPABASE_URL + '/storage/v1';
+
+function log(msg, type) {
+  var el = document.getElementById('log');
+  var line = document.createElement('div');
+  line.className = 'log-' + (type || 'ok');
+  line.textContent = new Date().toLocaleTimeString('ja-JP') + ' ' + msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function setProgress(done, total) {
+  var pct = total > 0 ? Math.round(done / total * 100) : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = done + ' / ' + total + ' 件処理済み（' + pct + '%）';
+}
+
+async function fetchAllProducts() {
+  var res = await fetch(SUPABASE_URL + '/rest/v1/products?select=id,name,img,img_url&limit=1000', {
+    headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON }
+  });
+  return await res.json();
+}
+
+async function uploadToStorage(filename, base64data, mimeType) {
+  // Base64をBlobに変換
+  var byteStr = atob(base64data);
+  var arr = new Uint8Array(byteStr.length);
+  for (var i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
+  var blob = new Blob([arr], { type: mimeType });
+
+  var res = await fetch(SUPABASE_STORAGE_URL + '/object/' + BUCKET + '/' + filename, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON,
+      'Authorization': 'Bearer ' + SUPABASE_ANON,
+      'Content-Type': mimeType,
+      'x-upsert': 'true'
+    },
+    body: blob
+  });
+  if (!res.ok) {
+    var err = await res.text();
+    throw new Error(err);
+  }
+  return SUPABASE_URL + '/storage/v1/object/public/' + BUCKET + '/' + filename;
+}
+
+async function updateImgUrl(productId, imgUrl) {
+  var res = await fetch(SUPABASE_URL + '/rest/v1/products?id=eq.' + productId, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_ANON,
+      'Authorization': 'Bearer ' + SUPABASE_ANON,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify({ img_url: imgUrl })
+  });
+  if (!res.ok) throw new Error('UPDATE失敗: ' + productId);
+}
+
+async function clearImgData(productId) {
+  var res = await fetch(SUPABASE_URL + '/rest/v1/products?id=eq.' + productId, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_ANON,
+      'Authorization': 'Bearer ' + SUPABASE_ANON,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify({ img: null })
+  });
+  if (!res.ok) throw new Error('img列クリア失敗: ' + productId);
+}
+
+function extractMime(dataUrl) {
+  var m = dataUrl.match(/^data:([^;]+);base64,/);
+  return m ? m[1] : 'image/jpeg';
+}
+
+function extractBase64(dataUrl) {
+  return dataUrl.replace(/^data:[^;]+;base64,/, '');
+}
+
+function getExtension(mime) {
+  var map = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp' };
+  return map[mime] || 'jpg';
+}
+
+async function startMigration() {
+  document.getElementById('start-btn').disabled = true;
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('log').innerHTML = '';
+
+  log('商品データを取得中...', 'skip');
+  var products;
+  try {
+    products = await fetchAllProducts();
+  } catch(e) {
+    log('取得エラー: ' + e.message, 'err');
+    document.getElementById('start-btn').disabled = false;
+    return;
+  }
+
+  var targets = products.filter(function(p) { return p.img && p.img.indexOf('base64') >= 0; });
+  var alreadyDone = products.filter(function(p) { return p.img_url && !p.img; }).length;
+  log('全商品: ' + products.length + '件 / 移行対象（img列あり）: ' + targets.length + '件 / 移行済み: ' + alreadyDone + '件', 'skip');
+
+  if (targets.length === 0) {
+    log('移行対象なし。全て移行済みか画像なしです。', 'skip');
+    document.getElementById('start-btn').disabled = false;
+    document.getElementById('clear-btn').disabled = false;
+    return;
+  }
+
+  var ok = 0, skip = 0, err = 0;
+  for (var i = 0; i < targets.length; i++) {
+    var p = targets[i];
+    setProgress(i, targets.length);
+    try {
+      var mime = extractMime(p.img);
+      var base64 = extractBase64(p.img);
+      var ext = getExtension(mime);
+      var filename = p.id + '.' + ext;
+      var url = await uploadToStorage(filename, base64, mime);
+      await updateImgUrl(p.id, url);
+      log('✅ ' + (p.name || p.id) + ' → ' + url.split('/').pop(), 'ok');
+      ok++;
+    } catch(e) {
+      log('❌ ' + (p.name || p.id) + ': ' + e.message, 'err');
+      err++;
+    }
+    // レート制限対策で少し待つ
+    await new Promise(function(r){ setTimeout(r, 50); });
+  }
+
+  setProgress(targets.length, targets.length);
+  var summary = document.getElementById('summary');
+  summary.style.display = 'block';
+  summary.innerHTML = '<strong>移行完了！</strong><br>✅ 成功: ' + ok + '件　❌ エラー: ' + err + '件<br><br>'
+    + '次のステップ：「🗑 img列をクリア」ボタンを押してBase64データを削除してください。<br>'
+    + '（これでEgressが大幅に減ります）';
+  document.getElementById('clear-btn').disabled = false;
+}
+
+async function clearImgColumn() {
+  if (!confirm('img列（Base64画像データ）を全件削除します。img_urlへの移行が完了していることを確認してください。\n\nよろしいですか？')) return;
+
+  document.getElementById('clear-btn').disabled = true;
+  log('img列クリア開始...', 'skip');
+
+  var products = await fetchAllProducts();
+  var targets = products.filter(function(p) { return p.img; });
+  log('クリア対象: ' + targets.length + '件', 'skip');
+
+  var ok = 0, err = 0;
+  for (var i = 0; i < targets.length; i++) {
+    var p = targets[i];
+    try {
+      await clearImgData(p.id);
+      ok++;
+      if (i % 10 === 0) log((i+1) + '件処理...', 'skip');
+    } catch(e) {
+      log('❌ ' + p.id + ': ' + e.message, 'err');
+      err++;
+    }
+    await new Promise(function(r){ setTimeout(r, 30); });
+  }
+  log('✅ img列クリア完了: ' + ok + '件成功、' + err + '件エラー', 'ok');
+  document.getElementById('summary').innerHTML += '<br><strong>🗑 img列クリア完了！</strong><br>Egressが大幅に削減されます。';
+}
+</script>
+</body>
+</html>
