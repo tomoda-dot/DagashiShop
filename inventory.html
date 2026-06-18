@@ -323,6 +323,15 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
       </div>
     </div>
 
+    <!-- 仕入れ先別単価 -->
+    <div class="fg" id="det-suppliers-section" style="display:none;">
+      <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>仕入れ先別単価</span>
+        <button class="btns" onclick="addSupplierRow()" style="font-size:11px;padding:3px 10px;">＋ 追加</button>
+      </div>
+      <div id="det-supplier-rows"></div>
+    </div>
+
     <!-- 在庫数 -->
     <div id="det-stock-row" style="display:none;">
       <div class="fg">
@@ -764,7 +773,7 @@ function openEdit(id){
   if(rd)rd.checked=(st==='discontinued');
   detCalc();
   detSellMargin();
-  var iw=document.getElementById('det-img-wrap');
+  loadProductSuppliers(isCand ? null : p.id);
   var cls=CC[p.cat]||'co',ch=CH[p.cat]||'他';
   iw.innerHTML='<div class="'+cls+'" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;">'+ch+'</div>';
   if(p.img && p.img!=='none'){
@@ -823,6 +832,8 @@ function detProdChange(){
     document.getElementById('det-tanka').textContent='— 円 / 個';
     document.getElementById('det-tanka').style.color='var(--t3)';
     document.getElementById('det-margin').textContent='';
+    document.getElementById('det-suppliers-section').style.display='none';
+    detProductSuppliers=[];
   } else {
     var pid=parseInt(val);
     var p=prods.filter(function(x){return x.id===pid;})[0];
@@ -920,6 +931,101 @@ function detFormData(){
 }
 
 // 参考価格が変わったとき、販売価格が未入力なら自動コピー
+// ══ 仕入れ先別単価 ═══════════════════════════════════
+var detProductSuppliers = []; // 現在編集中の商品の仕入れ先別単価
+
+function loadProductSuppliers(productId) {
+  var sec = document.getElementById('det-suppliers-section');
+  if (!productId) { sec.style.display='none'; return; }
+  sec.style.display='';
+  run1('getProductSuppliers', productId).then(function(rows) {
+    detProductSuppliers = rows || [];
+    renderSupplierRows();
+  }).catch(function(){ detProductSuppliers=[]; renderSupplierRows(); });
+}
+
+function renderSupplierRows() {
+  var div = document.getElementById('det-supplier-rows');
+  if (!detProductSuppliers.length) {
+    div.innerHTML = '<div style="font-size:12px;color:var(--t3);padding:8px 0;">まだ登録なし。「＋追加」で仕入れ先を追加できます。</div>';
+    return;
+  }
+  div.innerHTML = detProductSuppliers.map(function(row, i) {
+    var supName = '';
+    for(var s=0; s<suppliers.length; s++){
+      if(suppliers[s].id===row.supplier_id){ supName=suppliers[s].name; break; }
+    }
+    var primaryChk = row.is_primary ? 'checked' : '';
+    return '<div style="background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;margin-bottom:8px;" data-psid="'+row.id+'">'
+      + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+      + '<select class="fi" style="flex:1;min-width:100px;" data-field="supplier_id" onchange="supplierRowChanged('+i+')">'
+      + suppliers.filter(function(s){return s.name;}).map(function(s){
+          return '<option value="'+s.id+'"'+(s.id===row.supplier_id?' selected':'')+'>'+(s.name||'')+'</option>';
+        }).join('')
+      + '</select>'
+      + '<input class="fi" type="number" min="0" placeholder="仕入価格" value="'+(row.buy_price||'')+'" data-field="buy_price" style="width:90px;" oninput="supplierRowChanged('+i+')">'
+      + '<span style="font-size:11px;color:var(--t2);">円/</span>'
+      + '<input class="fi" type="number" min="1" placeholder="入数" value="'+(row.buy_qty||1)+'" data-field="buy_qty" style="width:60px;" oninput="supplierRowChanged('+i+')">'
+      + '<span style="font-size:11px;color:var(--t2);">個</span>'
+      + '<label style="font-size:11px;display:flex;align-items:center;gap:4px;"><input type="radio" name="primary_sup" '+(primaryChk)+' onchange="setPrimary('+i+')">主</label>'
+      + '<button onclick="delSupplierRow('+i+')" class="btns" style="font-size:11px;padding:3px 8px;color:var(--red);">削除</button>'
+      + '</div>'
+      + '<div style="font-size:10px;color:var(--t3);margin-top:4px;" id="sup-tanka-'+i+'">'+calcSupTanka(row)+'</div>'
+      + '</div>';
+  }).join('');
+}
+
+function calcSupTanka(row) {
+  if(!row.buy_price||!row.buy_qty) return '';
+  var t = row.buy_price/row.buy_qty;
+  return '単価: '+(Math.round(t*100)/100)+'円/個（税込8%: '+(Math.round(t*1.08*100)/100)+'円）';
+}
+
+function supplierRowChanged(i) {
+  var div = document.getElementById('det-supplier-rows').children[i];
+  if(!div) return;
+  detProductSuppliers[i].supplier_id = parseInt(div.querySelector('[data-field="supplier_id"]').value);
+  detProductSuppliers[i].buy_price   = parseFloat(div.querySelector('[data-field="buy_price"]').value)||0;
+  detProductSuppliers[i].buy_qty     = parseInt(div.querySelector('[data-field="buy_qty"]').value)||1;
+  // 単価表示更新
+  var t = document.getElementById('sup-tanka-'+i);
+  if(t) t.textContent = calcSupTanka(detProductSuppliers[i]);
+}
+
+function setPrimary(i) {
+  detProductSuppliers.forEach(function(r,j){ r.is_primary=(j===i); });
+}
+
+function addSupplierRow() {
+  var defSup = suppliers.length ? suppliers[0].id : null;
+  if(!defSup){ toast('先に仕入れ先（サプライヤー）を登録してください'); return; }
+  detProductSuppliers.push({ id:null, product_id:detPid, supplier_id:defSup, buy_price:0, buy_qty:1, is_primary:detProductSuppliers.length===0 });
+  renderSupplierRows();
+}
+
+function delSupplierRow(i) {
+  var row = detProductSuppliers[i];
+  if(row.id) {
+    run1('deleteProductSupplier', row.id).then(function(){
+      detProductSuppliers.splice(i,1);
+      renderSupplierRows();
+      toast('削除しました');
+    });
+  } else {
+    detProductSuppliers.splice(i,1);
+    renderSupplierRows();
+  }
+}
+
+function saveProductSuppliers(productId) {
+  if(!detProductSuppliers.length) return Promise.resolve();
+  var promises = detProductSuppliers.map(function(row) {
+    row.product_id = productId;
+    return run1('saveProductSupplier', row);
+  });
+  return Promise.all(promises);
+}
+
 function syncSellPrice(){
   var ref=document.getElementById('det-price').value;
   var sell=document.getElementById('det-sell-price');
@@ -970,11 +1076,12 @@ function detMargin(){
 function saveDet(){
   var d=detFormData();
   if(!d.name){toast('商品名を入力してください');return;}
-  // 候補編集時はステータスを維持
   if(detMode==='candidate') d.status='candidate';
   setSS('sv');
   d.id=detPid;
   run1('updateProduct',d).then(function(){
+    return saveProductSuppliers(detPid);
+  }).then(function(){
     closeDet(); return loadData();
   }).then(function(){
     toast('「'+d.name+'」を保存しました');
@@ -1886,14 +1993,41 @@ function addToOrdList(id){
   }
   var p = prods.filter(function(x){return x.id===id;})[0];
   if(!p)return;
-  ordList.push({
+  var item = {
     id:p.id, name:p.name, unit:p.unit, stock:p.stock,
     min:p.min, buy_price:p.buy_price, buy_qty:p.buy_qty,
     memo:p.memo||'', maker:p.maker||'',
-    orderQty:1  // 標準は1個
-  });
+    orderQty:1,
+    productSuppliers:[] // 仕入れ先別単価リスト
+  };
+  ordList.push(item);
+  // 仕入れ先別単価を非同期で取得して更新
+  run1('getProductSuppliers', p.id).then(function(rows) {
+    item.productSuppliers = rows || [];
+    // 主仕入れ先があればデフォルトで選択
+    var primary = rows.filter(function(r){return r.is_primary;})[0] || rows[0];
+    if(primary) {
+      item.supplierId = primary.supplier_id;
+      item.buy_price  = primary.buy_price;
+      item.buy_qty    = primary.buy_qty;
+    }
+    renderOrdRight();
+  }).catch(function(){});
   renderOrdRight();
   renderOrdLeft();
+}
+
+function updateOrdSupplier(productId, supplierId) {
+  var item = ordList.filter(function(x){return x.id===productId;})[0];
+  if(!item) return;
+  item.supplierId = parseInt(supplierId);
+  // 対応する仕入れ価格・入数に更新
+  var ps = item.productSuppliers.filter(function(r){return r.supplier_id===item.supplierId;})[0];
+  if(ps) {
+    item.buy_price = ps.buy_price;
+    item.buy_qty   = ps.buy_qty;
+  }
+  renderOrdRight();
 }
 
 function removeFromOrdList(id){
@@ -1955,26 +2089,42 @@ function renderOrdRight(){
   if(document.getElementById('t-c').style.display!=='none') renderCandidates();
   el.innerHTML = ordList.map(function(item){
     var isZero=item.stock===0, isLow=item.stock<=item.min;
-    var stkColor=isZero?'var(--red)':isLow?'var(--amb)':'var(--t2)';
     var cost = calcItemCost(item);
     var costStr = cost > 0 ? '¥'+cost.toLocaleString() : '—';
     var priceStr = item.buy_price ? item.buy_price+'円/'+( item.buy_qty||'?')+'個入' : '仕入価格未設定';
+
+    // 仕入れ先プルダウン
+    var supSelect = '';
+    if(item.productSuppliers && item.productSuppliers.length > 1) {
+      supSelect = '<select style="font-size:11px;padding:2px 4px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);margin-top:4px;width:100%;max-width:160px;"'
+        + ' onchange="updateOrdSupplier('+item.id+',this.value)">'
+        + item.productSuppliers.map(function(ps){
+            var sname='';
+            for(var si=0;si<suppliers.length;si++){if(suppliers[si].id===ps.supplier_id){sname=suppliers[si].name;break;}}
+            var sel=(ps.supplier_id===item.supplierId)?'selected':'';
+            return '<option value="'+ps.supplier_id+'" '+sel+'>'+sname+' ('+ps.buy_price+'円/'+ps.buy_qty+'個入)</option>';
+          }).join('')
+        + '</select>';
+    } else if(item.productSuppliers && item.productSuppliers.length===1) {
+      var ps0=item.productSuppliers[0];
+      var sname0='';
+      for(var si0=0;si0<suppliers.length;si0++){if(suppliers[si0].id===ps0.supplier_id){sname0=suppliers[si0].name;break;}}
+      supSelect='<div style="font-size:11px;color:var(--t3);margin-top:2px;">'+sname0+'</div>';
+    }
+
     return '<div class="ord-right-item" style="flex-direction:row;align-items:center;gap:10px;padding:10px 12px;">'
-      // 商品名
       +'<div style="flex:1;min-width:0;">'
       +'<div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+item.name+'</div>'
       +'<div style="font-size:11px;color:var(--t2);">'+priceStr+'</div>'
+      +supSelect
       +'</div>'
-      // −個数+
       +'<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">'
       +'<button class="sbtn" onclick="stepOrdQty('+item.id+',-1)">−</button>'
       +'<input class="ord-qty-inp" type="number" min="0" value="'+item.orderQty+'" '
       +'oninput="updateOrdQty('+item.id+',this.value)" style="width:50px;" />'
       +'<button class="sbtn" onclick="stepOrdQty('+item.id+',1)">＋</button>'
       +'</div>'
-      // 金額
       +'<div style="font-size:14px;font-weight:700;color:'+(cost>0?'var(--red)':'var(--t3)')+';min-width:60px;text-align:right;flex-shrink:0;">'+costStr+'</div>'
-      // 削除
       +'<button class="ord-del" onclick="removeFromOrdList('+item.id+')" title="削除">×</button>'
       +'</div>';
   }).join('');

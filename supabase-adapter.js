@@ -90,7 +90,8 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'saveRegiDefaults','getTodaySalesData','saveOrderFromRegi',
     'getSummaryData','saveClosingData','getDetailByDate','getLatestOrderDate',
     'invalidateDetailRow','updateDetailRow','getSavingsData',
-    'addSavingsRow','testConnection','getProductsForBarcode','updateProductBarcode'
+    'addSavingsRow','testConnection','getProductsForBarcode','updateProductBarcode',
+    'getProductSuppliers','saveProductSupplier','deleteProductSupplier'
   ];
   fns.forEach(function(name) {
     GasProxy.prototype[name] = function(arg1, arg2) {
@@ -748,4 +749,35 @@ GAS.addSavingsRow = function(rowData) {
     content:    rowData.content    || '',
     withdrawal: rowData.withdrawal || 0
   }).then(function() { return '保存しました'; });
+};
+
+// ─ getProductSuppliers ─
+GAS.getProductSuppliers = function(productId) {
+  return sbGet('product_suppliers',
+    'select=id,product_id,supplier_id,buy_price,buy_qty,is_primary&product_id=eq.' + productId + '&order=is_primary.desc,id.asc'
+  ).then(function(rows) { return rows || []; });
+};
+
+// ─ saveProductSupplier ─
+GAS.saveProductSupplier = function(data) {
+  var body = {
+    product_id: data.product_id,
+    supplier_id: Number(data.supplier_id),
+    buy_price:  Number(data.buy_price) || 0,
+    buy_qty:    Number(data.buy_qty)   || 1,
+    is_primary: !!data.is_primary
+  };
+  if (data.id) {
+    return sbPatch('product_suppliers', 'id=eq.' + data.id, body)
+      .then(function() { return { ok: true }; });
+  } else {
+    return sbPost('product_suppliers', body)
+      .then(function() { return { ok: true }; });
+  }
+};
+
+// ─ deleteProductSupplier ─
+GAS.deleteProductSupplier = function(id) {
+  return sbDelete('product_suppliers', 'id=eq.' + id)
+    .then(function() { return { ok: true }; });
 };
