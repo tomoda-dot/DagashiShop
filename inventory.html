@@ -281,13 +281,17 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
           <option>スナック</option><option>チョコ</option><option>ガム</option><option>グミ</option><option>ラムネ</option><option>ゼリー</option><option>アメ</option><option>ソフトキャンディ</option><option>砂糖菓子</option><option>味付け珍味</option><option>その他</option><option>玩具</option>
         </select>
       </div>
-      <div>
-        <label class="fl">単位</label>
-        <input class="fi" type="text" id="det-unit" value="個" />
+      <div id="det-stock-inline-wrap">
+        <label class="fl" id="det-stock-label">在庫数</label>
+        <input class="fi" type="number" id="det-stock" min="0" value="0" />
       </div>
       <div>
         <label class="fl">アラート在庫数</label>
         <input class="fi" type="number" id="det-min" min="0" value="5" />
+      </div>
+      <!-- 単位（非表示・固定値） -->
+      <div style="display:none;">
+        <input type="text" id="det-unit" value="個" />
       </div>
       <div class="ff" id="det-exp-wrap">
         <label class="fl">賞味期限（任意）</label>
@@ -318,8 +322,8 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
       <div id="det-supplier-content" style="background:var(--sf);border:1px solid var(--bd);border-top:none;border-radius:0 0 var(--r) var(--r);padding:14px;"></div>
     </div>
 
-    <!-- 在庫数 -->
-    <div id="det-stock-row" style="display:none;">
+    <!-- 在庫数（上部の商品情報グリッドに移動済み） -->
+    <div id="det-stock-row" style="display:none!important;">
       <div class="fg">
         <div>
           <label class="fl" id="det-stock-label">在庫数</label>
@@ -744,7 +748,7 @@ function openEdit(id){
   var spEl=document.getElementById('det-sell-price');
   spEl.value=p.sell_price||p.price||'';
   spEl.dataset.edited=p.sell_price?'1':'';
-  document.getElementById('det-stock-row').style.display=isCand?'none':'block';
+  document.getElementById('det-stock-inline-wrap').style.display=isCand?'none':'';
   document.getElementById('det-stock-label').textContent='在庫数';
   document.getElementById('det-stock').value=p.stock||0;
   document.getElementById('det-other-row').style.display=isCand?'none':'block';
@@ -780,7 +784,7 @@ function openEdit(id){
 function openRestock(){
   detMode='restock'; detPid=null; detSellEdited=false;
   document.getElementById('det-img-area').style.display='none';
-  document.getElementById('det-stock-row').style.display='none';
+  document.getElementById('det-stock-inline-wrap').style.display='none';
   document.getElementById('det-other-row').style.display='none';
   document.getElementById('det-exp-wrap').style.display='';
   // Product selector
@@ -865,7 +869,7 @@ function openCandidate(){
   document.getElementById('det-tanka').textContent='— 円 / 個';
   document.getElementById('det-tanka').style.color='var(--t3)';
   document.getElementById('det-margin').textContent='';
-  document.getElementById('det-stock-row').style.display='none';
+  document.getElementById('det-stock-inline-wrap').style.display='none';
   document.getElementById('det-other-row').style.display='none';
   setDetFoot('candidate');
   document.getElementById('det-modal').style.display='flex';
