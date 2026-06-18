@@ -1810,9 +1810,9 @@ function fetchImg(id){
   p.imgLoad=true; renderP();
   var name=p.name.replace(/（[^）]*）/g,'').replace(/\([^)]*\)/g,'').trim();
   return searchWiki(name).then(function(r){
-    p.imgLoad=false; p.img=r?r.url:'none'; p.imgSrc=r?r.src:null;
-    return run2('updateImg',id,p.img).catch(function(){});
-  }).then(function(){renderP();}).catch(function(){p.imgLoad=false;p.img='none';renderP();});
+    p.imgLoad=false; p.img_url=r?r.url:null; p.imgSrc=r?r.src:null;
+    if(p.img_url) return run1('updateImgUrl', {id:id, img_url:p.img_url}).catch(function(){});
+  }).then(function(){renderP();}).catch(function(){p.imgLoad=false;p.img_url=null;renderP();});
 }
 function fetchAll(){
   var btn=document.getElementById('imgbtn');btn.textContent='取得中...';btn.disabled=true;
@@ -2862,7 +2862,7 @@ function loadImgsBatch(){
     var ids = batch.map(function(p){ return p.id; });
     GAS.getProductImgsBatch(ids).then(function(map){
       batch.forEach(function(p){
-        if(map[p.id] !== undefined) p.img = map[p.id];
+        if(map[p.id] !== undefined) p.img_url = map[p.id];
       });
       renderP(); // 画像更新でカード再描画
       setTimeout(next, 200); // 次のバッチ
