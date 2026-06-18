@@ -142,6 +142,7 @@ GAS.getAllData = function() {
         unit:      p.unit      || '個',
         exp:       p.exp       || '',
         img:       p.img       || null,
+        img_url:   p.img_url   || null,
         buy_price: p.buy_price || 0,
         buy_qty:   p.buy_qty   || 0,
         memo:      p.memo      || '',
