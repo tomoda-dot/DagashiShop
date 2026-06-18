@@ -774,6 +774,7 @@ function openEdit(id){
   detCalc();
   detSellMargin();
   loadProductSuppliers(isCand ? null : p.id);
+  var iw=document.getElementById('det-img-wrap');
   var cls=CC[p.cat]||'co',ch=CH[p.cat]||'他';
   iw.innerHTML='<div class="'+cls+'" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;">'+ch+'</div>';
   if(p.img && p.img!=='none'){
