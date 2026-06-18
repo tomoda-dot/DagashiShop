@@ -124,7 +124,7 @@ GAS.testConnection = function() {
 // ─ getAllData ─
 GAS.getAllData = function() {
   return Promise.all([
-    sbGet('products', 'select=id,name,name_kana,cat,stock,min,price,sell_price,unit,exp,buy_price,buy_qty,memo,status,sort_order,maker,barcode&order=sort_order.asc,id.asc'),
+    sbGet('products', 'select=id,name,name_kana,cat,stock,min,price,sell_price,unit,exp,buy_price,buy_qty,memo,status,sort_order,maker,barcode,img_url&order=sort_order.asc,id.asc'),
     sbGet('restock',  'select=*&order=id.desc')
   ]).then(function(results) {
     var products = (results[0] || []).map(function(p) {
