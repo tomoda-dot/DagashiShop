@@ -313,9 +313,9 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
         <button class="btns" onclick="addSupplierRow()" style="font-size:11px;padding:3px 10px;">＋ 追加</button>
       </div>
       <!-- タブヘッダー -->
-      <div id="det-supplier-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
+      <div class="tabs" id="det-supplier-tabs" style="margin-bottom:0;"></div>
       <!-- タブコンテンツ -->
-      <div id="det-supplier-content" style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:14px;"></div>
+      <div id="det-supplier-content" style="background:var(--bg);border:1px solid var(--bd);border-top:none;border-radius:0 0 var(--r) var(--r);padding:14px;"></div>
     </div>
 
     <!-- 在庫数 -->
@@ -952,10 +952,7 @@ function renderSupplierTabs() {
     var supName = getSupName(row.supplier_id) || '仕入れ先'+(i+1);
     var isActive = i === detActiveSupTab;
     var isPrimary = row.is_primary;
-    return '<button onclick="switchSupTab('+i+')" style="'
-      + 'padding:7px 14px;border-radius:999px;border:2px solid '+(isActive?'var(--red)':'var(--bd)')+';'
-      + 'background:'+(isActive?'var(--red)':'#fff')+';color:'+(isActive?'#fff':'var(--tx)')+';'
-      + 'font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">'
+    return '<button class="tab'+(isActive?' on':'')+'" onclick="switchSupTab('+i+')">'
       + (isPrimary?'⭐ ':'')+supName
       + '</button>';
   }).join('');
