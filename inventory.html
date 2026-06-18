@@ -313,7 +313,7 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
         <button class="btns" onclick="addSupplierRow()" style="font-size:11px;padding:3px 10px;">＋ 追加</button>
       </div>
       <!-- タブヘッダー -->
-      <div id="det-supplier-tabs" style="display:flex;flex-wrap:wrap;gap:0;border-bottom:1px solid var(--bd);margin-bottom:0;"></div>
+      <div id="det-supplier-tabs" style="display:flex!important;flex-direction:row!important;flex-wrap:nowrap;overflow-x:auto;gap:4px;border-bottom:2px solid var(--bd);margin-bottom:0;"></div>
       <!-- タブコンテンツ -->
       <div id="det-supplier-content" style="background:var(--sf);border:1px solid var(--bd);border-top:none;border-radius:0 0 var(--r) var(--r);padding:14px;"></div>
     </div>
@@ -973,8 +973,9 @@ function renderSupplierTabs() {
     var supName = getSupName(row.supplier_id) || ('仕入れ先' + (i + 1));
     var active = (i === detActiveSupTab);
     tabHtml += '<button onclick="switchSupTab(' + i + ')" style="'
+      + 'display:inline-flex!important;align-items:center;'
       + 'padding:8px 18px;font-size:13px;font-weight:' + (active ? '700' : '500') + ';'
-      + 'cursor:pointer;white-space:nowrap;border:none;outline:none;'
+      + 'cursor:pointer;white-space:nowrap;border:none;outline:none;flex-shrink:0;'
       + 'background:' + (active ? '#fff' : 'var(--bg)') + ';'
       + 'color:' + (active ? 'var(--red)' : 'var(--t2)') + ';'
       + 'border-bottom:' + (active ? '2px solid var(--red)' : '2px solid transparent') + ';'
