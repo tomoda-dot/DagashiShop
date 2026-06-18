@@ -313,9 +313,9 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
         <button class="btns" onclick="addSupplierRow()" style="font-size:11px;padding:3px 10px;">＋ 追加</button>
       </div>
       <!-- タブヘッダー -->
-      <div class="tabs" id="det-supplier-tabs" style="margin-bottom:0;"></div>
+      <div id="det-supplier-tabs" style="display:flex;flex-wrap:wrap;gap:0;border-bottom:1px solid var(--bd);margin-bottom:0;"></div>
       <!-- タブコンテンツ -->
-      <div id="det-supplier-content" style="background:var(--bg);border:1px solid var(--bd);border-top:none;border-radius:0 0 var(--r) var(--r);padding:14px;"></div>
+      <div id="det-supplier-content" style="background:var(--sf);border:1px solid var(--bd);border-top:none;border-radius:0 0 var(--r) var(--r);padding:14px;"></div>
     </div>
 
     <!-- 在庫数 -->
@@ -933,10 +933,27 @@ function loadProductSuppliers(productId) {
   sec.style.display = '';
   run1('getProductSuppliers', productId).then(function(rows) {
     detProductSuppliers = rows || [];
+    // product_suppliersが未登録でも buy_price/buy_qty があればデフォルトタブを自動生成
+    if (!detProductSuppliers.length) {
+      var bp = parseFloat(document.getElementById('det-bprice').value)||0;
+      var bq = parseInt(document.getElementById('det-bqty').value)||1;
+      // 主仕入れ先を探す（suppliersの先頭 or 発注タブで使っていたID）
+      var defSup = suppliers.length ? suppliers[0].id : null;
+      if (defSup) {
+        detProductSuppliers = [{
+          id: null,
+          product_id: productId,
+          supplier_id: defSup,
+          buy_price: bp,
+          buy_qty: bq,
+          is_primary: true
+        }];
+      }
+    }
     detActiveSupTab = 0;
     renderSupplierTabs();
     syncPrimaryToBprice();
-  }).catch(function(){ detProductSuppliers=[]; renderSupplierTabs(); });
+  }).catch(function(){ detProductSuppliers=[]; detActiveSupTab=0; renderSupplierTabs(); });
 }
 
 function renderSupplierTabs() {
