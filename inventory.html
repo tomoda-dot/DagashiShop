@@ -931,29 +931,31 @@ function loadProductSuppliers(productId) {
     return;
   }
   sec.style.display = '';
-  run1('getProductSuppliers', productId).then(function(rows) {
+
+  // suppliersが未ロードなら先に取得
+  var suppliersReady = suppliers.length > 0
+    ? Promise.resolve(suppliers)
+    : run1('getSuppliers').then(function(rows) { suppliers = rows || []; return suppliers; });
+
+  suppliersReady.then(function() {
+    return run1('getProductSuppliers', productId);
+  }).then(function(rows) {
     detProductSuppliers = rows || [];
-    // product_suppliersが未登録でも buy_price/buy_qty があればデフォルトタブを自動生成
     if (!detProductSuppliers.length) {
-      var bp = parseFloat(document.getElementById('det-bprice').value)||0;
-      var bq = parseInt(document.getElementById('det-bqty').value)||1;
-      // 主仕入れ先を探す（suppliersの先頭 or 発注タブで使っていたID）
+      var bp = parseFloat(document.getElementById('det-bprice').value) || 0;
+      var bq = parseInt(document.getElementById('det-bqty').value) || 1;
       var defSup = suppliers.length ? suppliers[0].id : null;
       if (defSup) {
         detProductSuppliers = [{
-          id: null,
-          product_id: productId,
-          supplier_id: defSup,
-          buy_price: bp,
-          buy_qty: bq,
-          is_primary: true
+          id: null, product_id: productId, supplier_id: defSup,
+          buy_price: bp, buy_qty: bq, is_primary: true
         }];
       }
     }
     detActiveSupTab = 0;
     renderSupplierTabs();
     syncPrimaryToBprice();
-  }).catch(function(){ detProductSuppliers=[]; detActiveSupTab=0; renderSupplierTabs(); });
+  }).catch(function() { detProductSuppliers = []; detActiveSupTab = 0; renderSupplierTabs(); });
 }
 
 function renderSupplierTabs() {
