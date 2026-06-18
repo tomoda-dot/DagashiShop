@@ -959,65 +959,70 @@ function loadProductSuppliers(productId) {
 function renderSupplierTabs() {
   var tabsEl = document.getElementById('det-supplier-tabs');
   var contentEl = document.getElementById('det-supplier-content');
+
   if (!detProductSuppliers.length) {
     tabsEl.innerHTML = '';
     contentEl.innerHTML = '<div style="font-size:12px;color:var(--t3);padding:8px 0;">「＋ 追加」で仕入れ先を追加できます。</div>';
     return;
   }
-  // タブヘッダー（inline-blockで横並び確保）
-  tabsEl.innerHTML = detProductSuppliers.map(function(row, i) {
-    var supName = getSupName(row.supplier_id) || '仕入れ先'+(i+1);
-    var isActive = i === detActiveSupTab;
-    var isPrimary = row.is_primary;
-    return '<button onclick="switchSupTab('+i+')" style="'
-      + 'display:inline-block;padding:8px 16px;font-size:13px;font-weight:'+(isActive?'700':'500')+';cursor:pointer;'
-      + 'background:'+(isActive?'var(--sf)':'none')+';color:'+(isActive?'var(--tx)':'var(--t2)')+';'
-      + 'border:1px solid '+(isActive?'var(--bd)':'transparent')+';border-bottom:'+(isActive?'1px solid var(--sf)':'none')+';'
-      + 'border-radius:var(--r) var(--r) 0 0;margin-bottom:-1px;white-space:nowrap;">'
-      + (isPrimary?'⭐ ':'')+supName+'</button>';
+
+  // ── タブボタン（横並び） ──
+  var tabHtml = '';
+  for (var i = 0; i < detProductSuppliers.length; i++) {
+    var row = detProductSuppliers[i];
+    var supName = getSupName(row.supplier_id) || ('仕入れ先' + (i + 1));
+    var active = (i === detActiveSupTab);
+    tabHtml += '<button onclick="switchSupTab(' + i + ')" style="'
+      + 'padding:8px 18px;font-size:13px;font-weight:' + (active ? '700' : '500') + ';'
+      + 'cursor:pointer;white-space:nowrap;border:none;outline:none;'
+      + 'background:' + (active ? '#fff' : 'var(--bg)') + ';'
+      + 'color:' + (active ? 'var(--red)' : 'var(--t2)') + ';'
+      + 'border-bottom:' + (active ? '2px solid var(--red)' : '2px solid transparent') + ';'
+      + '">' + (row.is_primary ? '⭐ ' : '') + supName + '</button>';
+  }
+  tabsEl.innerHTML = tabHtml;
+
+  // ── タブコンテンツ ──
+  var r = detProductSuppliers[detActiveSupTab];
+  if (!r) return;
+
+  var tankaWith = (r.buy_price && r.buy_qty) ? Math.round(r.buy_price / r.buy_qty * 1.08 * 100) / 100 : 0;
+  var refPrice  = parseFloat(document.getElementById('det-price').value) || 0;
+  var sellPrice = parseFloat(document.getElementById('det-sell-price').value) || 0;
+  var margin    = (tankaWith && sellPrice) ? Math.round((sellPrice - tankaWith) * 10) / 10 : null;
+  var marginPct = (margin !== null && sellPrice) ? Math.round(margin / sellPrice * 1000) / 10 : null;
+
+  var supOptions = suppliers.filter(function(s) { return s.name; }).map(function(s) {
+    return '<option value="' + s.id + '"' + (s.id === r.supplier_id ? ' selected' : '') + '>' + s.name + '</option>';
   }).join('');
-  // タブコンテンツ
-  var row = detProductSuppliers[detActiveSupTab];
-  if (!row) return;
-  var tanka = row.buy_price && row.buy_qty ? Math.round(row.buy_price/row.buy_qty*100)/100 : null;
-  var tankaWith = tanka ? Math.round(tanka*1.08*100)/100 : null;
-  var refPrice = parseFloat(document.getElementById('det-price').value)||0;
-  var sellPrice = parseFloat(document.getElementById('det-sell-price').value)||0;
-  var margin = tankaWith && sellPrice ? Math.round((sellPrice-tankaWith)*10)/10 : null;
-  var marginPct = margin && sellPrice ? Math.round(margin/sellPrice*1000)/10 : null;
-  contentEl.innerHTML =
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">'
-    // 仕入れ先選択（プルダウン）
-    + '<div style="grid-column:1/-1;"><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">仕入れ先</label>'
-    + '<select class="fi" id="tab-supplier-id" onchange="tabSupplierChanged()" style="width:100%;max-width:260px;">'
-    + suppliers.filter(function(s){return s.name;}).map(function(s){
-        return '<option value="'+s.id+'"'+(s.id===row.supplier_id?' selected':'')+'>'+(s.name||'')+'</option>';
-      }).join('')
-    + '</select></div>'
-    // 仕入れ価格
-    + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">仕入れ価格（円/ロット）</label>'
-    + '<input class="fi" type="number" id="tab-buy-price" min="0" value="'+(row.buy_price||'')+'" oninput="tabFieldChanged()" style="width:100%;"></div>'
-    // 入り数
-    + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">入り数（個）</label>'
-    + '<input class="fi" type="number" id="tab-buy-qty" min="1" value="'+(row.buy_qty||1)+'" oninput="tabFieldChanged()" style="width:100%;"></div>'
-    // 仕入れ単価
-    + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">仕入れ単価（自動計算）</label>'
-    + '<div class="calc" id="tab-tanka" style="font-size:13px;padding:10px 12px;">'+(tankaWith?tankaWith+'円/個（税込8%）':'—')+'</div></div>'
-    // 参考価格
-    + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">参考価格（円）</label>'
-    + '<input class="fi" type="number" id="tab-ref-price" min="0" value="'+(refPrice||'')+'" oninput="tabRefPriceChanged()" style="width:100%;">'
-    + (margin!==null?'<div style="font-size:10px;color:'+(margin>=0?'var(--grn)':'var(--red)')+';margin-top:3px;">粗利: '+(margin>=0?'+':'')+margin+'円/個（'+marginPct+'%）</div>':'')
+
+  contentEl.innerHTML = ''
+    // 仕入れ先
+    + '<div style="margin-bottom:10px;">'
+    + '<label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">仕入れ先</label>'
+    + '<select class="fi" id="tab-supplier-id" onchange="tabSupplierChanged()" style="max-width:260px;">' + supOptions + '</select>'
     + '</div>'
-    // 販売価格
-    + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">販売価格（円）</label>'
-    + '<input class="fi" type="number" id="tab-sell-price" min="0" value="'+(sellPrice||'')+'" oninput="tabSellPriceChanged()" style="width:100%;">'
-    + '<div style="font-size:10px;color:var(--t3);margin-top:3px;">上書き可</div></div>'
+    // 仕入れ価格・入り数・単価
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">'
+    + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">仕入れ価格（円/ロット）</label>'
+    + '<input class="fi" type="number" id="tab-buy-price" min="0" value="' + (r.buy_price || '') + '" oninput="tabFieldChanged()"></div>'
+    + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">入り数（個）</label>'
+    + '<input class="fi" type="number" id="tab-buy-qty" min="1" value="' + (r.buy_qty || 1) + '" oninput="tabFieldChanged()"></div>'
+    + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">仕入れ単価（自動計算）</label>'
+    + '<div class="calc" id="tab-tanka" style="font-size:13px;padding:10px 12px;">' + (tankaWith ? tankaWith + '円/個（税込8%）' : '—') + '</div></div>'
+    + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">参考価格（円）</label>'
+    + '<input class="fi" type="number" id="tab-ref-price" min="0" value="' + (refPrice || '') + '" oninput="tabRefPriceChanged()">'
+    + (margin !== null ? '<div style="font-size:10px;color:' + (margin >= 0 ? 'var(--grn)' : 'var(--red)') + ';margin-top:3px;">粗利: ' + (margin >= 0 ? '+' : '') + margin + '円（' + marginPct + '%）</div>' : '')
+    + '</div>'
+    + '<div style="grid-column:1/-1;"><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">販売価格（円）</label>'
+    + '<input class="fi" type="number" id="tab-sell-price" min="0" value="' + (sellPrice || '') + '" oninput="tabSellPriceChanged()" style="max-width:180px;">'
+    + '</div>'
     + '</div>'
     // ⭐主・削除
     + '<div style="display:flex;gap:10px;align-items:center;padding-top:8px;border-top:1px solid var(--bd);">'
     + '<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;font-weight:700;">'
-    + '<input type="checkbox" id="tab-is-primary" '+(row.is_primary?'checked':'')+' onchange="tabPrimaryChanged()">⭐ 主仕入れ先</label>'
-    + '<button onclick="delSupplierRow('+detActiveSupTab+')" class="btns" style="font-size:11px;padding:4px 10px;color:var(--red);margin-left:auto;">削除</button>'
+    + '<input type="checkbox" id="tab-is-primary" ' + (r.is_primary ? 'checked' : '') + ' onchange="tabPrimaryChanged()"> ⭐ 主仕入れ先</label>'
+    + '<button onclick="delSupplierRow(' + detActiveSupTab + ')" class="btns" style="font-size:11px;padding:4px 10px;color:var(--red);margin-left:auto;">削除</button>'
     + '</div>';
 }
 
