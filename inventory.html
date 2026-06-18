@@ -625,34 +625,42 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
 
 <!-- 入荷確認モーダル -->
 <div class="ov" id="recv-modal" style="display:none;" onclick="if(event.target===this)closeRecv()">
-<div class="mb" style="max-width:480px;">
+<div class="mb" style="max-width:500px;">
   <div class="mhead">
-    <div class="mhtl">入荷確認</div>
+    <div class="mhtl">📦 入荷確認</div>
     <button onclick="closeRecv()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--t3);">×</button>
   </div>
   <div class="mbody">
-    <div id="recv-name" style="font-size:15px;font-weight:700;margin-bottom:1rem;"></div>
+    <div id="recv-name" style="font-size:16px;font-weight:800;margin-bottom:4px;"></div>
+    <div id="recv-supplier-name" style="font-size:13px;color:var(--t2);margin-bottom:1rem;"></div>
 
+    <!-- 発注時の情報（参照用） -->
+    <div style="background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--t3);margin-bottom:8px;">📋 発注時の情報</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div><div style="font-size:10px;color:var(--t3);">発注ロット数</div><div style="font-size:15px;font-weight:800;" id="recv-ord-lots">—</div></div>
+        <div><div style="font-size:10px;color:var(--t3);">仕入れ価格</div><div style="font-size:15px;font-weight:800;" id="recv-ord-price">—</div></div>
+        <div><div style="font-size:10px;color:var(--t3);">入り数</div><div style="font-size:15px;font-weight:800;" id="recv-ord-bqty">—</div></div>
+      </div>
+    </div>
+
+    <!-- 実際に届いた情報（確認・変更可） -->
+    <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">✅ 実際に届いた内容を確認・修正</div>
     <div class="fg">
-      <div class="sec-title">数量</div>
       <div>
         <label class="fl">入荷ロット数</label>
         <input class="fi" type="number" id="recv-lots" min="1" value="1" oninput="recvCalc()" />
       </div>
       <div>
-        <label class="fl">入荷合計数</label>
+        <label class="fl">入荷合計数（自動）</label>
         <div class="fi" id="recv-total" style="background:var(--sf);color:var(--t2);font-weight:700;">—</div>
       </div>
-    </div>
-
-    <div class="fg">
-      <div class="sec-title">仕入れ情報</div>
       <div>
-        <label class="fl">仕入れ価格（円/ロット）</label>
+        <label class="fl">仕入れ価格（円/ロット）<span id="recv-price-diff" style="font-size:10px;margin-left:6px;"></span></label>
         <input class="fi" type="number" id="recv-price" min="0" oninput="recvCalc()" />
       </div>
       <div>
-        <label class="fl">入り数（個/ロット）</label>
+        <label class="fl">入り数（個/ロット）<span id="recv-bqty-diff" style="font-size:10px;margin-left:6px;"></span></label>
         <input class="fi" type="number" id="recv-bqty" min="1" oninput="recvCalc()" />
       </div>
       <div>
@@ -664,14 +672,23 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
         <input class="fi" type="number" id="recv-sell" min="0" oninput="recvCalc()" />
         <div id="recv-margin" style="font-size:11px;margin-top:4px;"></div>
       </div>
-    </div>
-
-    <div class="fg">
-      <div class="sec-title">賞味期限</div>
-      <div>
-        <label class="fl">賞味期限（任意）</label>
+      <div class="ff">
+        <label class="fl">賞味期限</label>
         <input class="fi" type="date" id="recv-exp" />
       </div>
+    </div>
+
+    <!-- 変更サマリー -->
+    <div id="recv-diff-summary" style="display:none;background:#fff8f0;border:1px solid var(--amb);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--amb);font-weight:700;margin-top:4px;">
+      ⚠ 発注時から変更あり。確定すると仕入れ先の価格情報も更新されます。
+    </div>
+
+    <!-- product_suppliers更新オプション -->
+    <div style="margin-top:10px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+        <input type="checkbox" id="recv-update-supplier" checked>
+        この仕入れ先の価格・入数を今回の内容で更新する
+      </label>
     </div>
   </div>
   <div class="mfoot">
@@ -2408,17 +2425,38 @@ function renderOrders(){
 var recvItemId = null;
 
 function receiveItem(itemId){
-  var it=orders.filter(function(x){return x.id===itemId;})[0];
-  if(!it)return;
+  var it = orders.filter(function(x){ return x.id === itemId; })[0];
+  if(!it) return;
   recvItemId = itemId;
+
+  // 発注時の仕入れ先情報を取得
+  var supName = '';
+  for(var s=0; s<suppliers.length; s++){
+    if(suppliers[s].id === it.supplier_id){ supName = suppliers[s].name; break; }
+  }
+
   document.getElementById('recv-name').textContent = it.product_name;
+  document.getElementById('recv-supplier-name').textContent = supName ? '仕入れ先: ' + supName : '';
+
+  // 発注時の情報（参照表示）
+  document.getElementById('recv-ord-lots').textContent = (it.order_qty || 1) + ' ロット';
+  document.getElementById('recv-ord-price').textContent = it.buy_price ? it.buy_price + ' 円' : '—';
+  document.getElementById('recv-ord-bqty').textContent = it.buy_qty ? it.buy_qty + ' 個' : '—';
+
+  // 実際に届いた情報（初期値＝発注時の値）
   document.getElementById('recv-lots').value = it.order_qty || 1;
-  document.getElementById('recv-bqty').value = it.buy_qty || '';
   document.getElementById('recv-price').value = it.buy_price || '';
+  document.getElementById('recv-bqty').value = it.buy_qty || '';
   document.getElementById('recv-exp').value = '';
+  document.getElementById('recv-price-diff').textContent = '';
+  document.getElementById('recv-bqty-diff').textContent = '';
+  document.getElementById('recv-diff-summary').style.display = 'none';
+  document.getElementById('recv-update-supplier').checked = true;
+
   // 販売価格を商品マスタから取得
-  var prod = prods.filter(function(x){return x.id===it.product_id;})[0];
-  document.getElementById('recv-sell').value = prod ? (prod.price||'') : '';
+  var prod = prods.filter(function(x){ return x.id === it.product_id; })[0];
+  document.getElementById('recv-sell').value = prod ? (prod.sell_price || prod.price || '') : '';
+
   recvCalc();
   document.getElementById('recv-modal').style.display = 'flex';
 }
@@ -2426,55 +2464,91 @@ function receiveItem(itemId){
 function closeRecv(){ document.getElementById('recv-modal').style.display='none'; recvItemId=null; }
 
 function recvCalc(){
-  var lots = parseInt(document.getElementById('recv-lots').value)||0;
-  var bqty = parseInt(document.getElementById('recv-bqty').value)||0;
+  var lots  = parseInt(document.getElementById('recv-lots').value)||0;
+  var bqty  = parseInt(document.getElementById('recv-bqty').value)||0;
   var price = parseFloat(document.getElementById('recv-price').value)||0;
-  var sell = parseFloat(document.getElementById('recv-sell').value)||0;
+  var sell  = parseFloat(document.getElementById('recv-sell').value)||0;
   var total = lots * bqty;
   document.getElementById('recv-total').textContent = total > 0 ? total + ' 個' : '—';
   var tanka = price > 0 && bqty > 0 ? Math.round(price / bqty * 100) / 100 : 0;
   var tankaWithTax = tanka > 0 ? Math.round(tanka * 1.08 * 100) / 100 : 0;
-  document.getElementById('recv-tanka').textContent = tanka > 0 ? tankaWithTax + ' 円 / 個（税込8%）' : '— 円 / 個';
-  var el=document.getElementById('recv-margin');
+  document.getElementById('recv-tanka').textContent = tanka > 0 ? tankaWithTax + ' 円/個（税込8%）' : '— 円 / 個';
+  var el = document.getElementById('recv-margin');
   if(el){
-    if(tanka>0 && sell>0){
-      var t=tanka*1.08, m=sell-t, pct=Math.round(m/sell*100);
-      el.textContent='粗利: '+(m>=0?'+':'')+(m%1===0?m:m.toFixed(1))+'円/個（'+pct+'%）';
-      el.style.color=m>=0?'var(--grn)':'var(--red)';
-    } else { el.textContent=''; }
+    if(tanka > 0 && sell > 0){
+      var t = tanka*1.08, m = sell-t, pct = Math.round(m/sell*100);
+      el.textContent = '粗利: '+(m>=0?'+':'')+(m%1===0?m:m.toFixed(1))+'円/個（'+pct+'%）';
+      el.style.color = m >= 0 ? 'var(--grn)' : 'var(--red)';
+    } else { el.textContent = ''; }
   }
+
+  // 発注時との差異チェック
+  var it = orders.filter(function(x){ return x.id === recvItemId; })[0];
+  if(!it) return;
+  var hasDiff = false;
+  var priceEl = document.getElementById('recv-price-diff');
+  var bqtyEl  = document.getElementById('recv-bqty-diff');
+  if(price && it.buy_price && price !== it.buy_price){
+    priceEl.textContent = '発注時: '+it.buy_price+'円';
+    priceEl.style.color = 'var(--red)';
+    hasDiff = true;
+  } else { priceEl.textContent = ''; }
+  if(bqty && it.buy_qty && bqty !== it.buy_qty){
+    bqtyEl.textContent = '発注時: '+it.buy_qty+'個';
+    bqtyEl.style.color = 'var(--red)';
+    hasDiff = true;
+  } else { bqtyEl.textContent = ''; }
+  document.getElementById('recv-diff-summary').style.display = hasDiff ? '' : 'none';
 }
 
 function confirmReceive(){
   if(!recvItemId) return;
-  var it=orders.filter(function(x){return x.id===recvItemId;})[0];
-  if(!it)return;
+  var it = orders.filter(function(x){ return x.id === recvItemId; })[0];
+  if(!it) return;
   var lots  = parseInt(document.getElementById('recv-lots').value)||0;
   var bqty  = parseInt(document.getElementById('recv-bqty').value)||0;
   var price = parseFloat(document.getElementById('recv-price').value)||0;
-  var exp   = document.getElementById('recv-exp').value||'';
-  if(lots<=0||bqty<=0){toast('ロット数と入り数を入力してください');return;}
+  var sell  = parseFloat(document.getElementById('recv-sell').value)||0;
+  var exp   = document.getElementById('recv-exp').value || '';
+  var updateSupplier = document.getElementById('recv-update-supplier').checked;
+  if(lots<=0||bqty<=0){ toast('ロット数と入り数を入力してください'); return; }
 
-  var btn=document.querySelector('#recv-modal .btna');
-  if(btn){btn.disabled=true;btn.textContent='保存中...';}
+  var btn = document.querySelector('#recv-modal .btna');
+  if(btn){ btn.disabled=true; btn.textContent='保存中...'; }
   setSS('sv');
+
+  // 在庫・仕入れ履歴に反映
   run1('receiveOrderItem', [recvItemId, {
-    buy_price: price,
-    buy_qty: bqty,
-    order_qty: lots,
-    exp: exp
+    buy_price: price, buy_qty: bqty, order_qty: lots, exp: exp, sell_price: sell
   }]).then(function(res){
-    if(res&&res.ok){
-      toast('「'+(res.nm||it.product_name)+'」を'+(res.iri||'')+'個 仕入れ履歴に追加しました');
-      closeRecv();
-      return loadData();
+    if(res && res.ok){
+      toast('「'+(res.nm||it.product_name)+'」を'+(res.iri||'')+'個 入荷しました');
+
+      // 価格・入数に変更があり、かつupdateSupplierがONの場合はproduct_suppliersも更新
+      if(updateSupplier && it.supplier_id && (price !== it.buy_price || bqty !== it.buy_qty)){
+        return run1('saveProductSupplier', {
+          product_id: it.product_id,
+          supplier_id: it.supplier_id,
+          buy_price: price,
+          buy_qty: bqty,
+          is_primary: null // is_primaryは変更しない
+        }).then(function(){
+          toast('仕入れ先の価格情報も更新しました');
+        }).catch(function(){});
+      }
     } else {
       toast('エラー: '+(res&&res.error||'不明'));
     }
   }).then(function(){
+    closeRecv();
+    return loadData();
+  }).then(function(){
     loadOrdersData();
-  }).catch(function(e){setSS('er');toast('エラー: '+(e.message||e));
-  }).finally(function(){if(btn){btn.disabled=false;btn.textContent='入荷を確定する';}});
+  }).catch(function(e){
+    setSS('er'); toast('エラー: '+(e.message||e));
+  }).finally(function(){
+    if(btn){ btn.disabled=false; btn.textContent='入荷を確定する'; }
+  });
 }
 
 function deleteOrder(orderId){
