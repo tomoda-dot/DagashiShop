@@ -295,17 +295,27 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
       </div>
     </div>
 
-    <!-- 仕入れ情報 -->
+    <!-- 仕入れ情報（hidden：主仕入れ先タブと同期） -->
+    <div style="display:none;">
+      <input type="number" id="det-bprice" oninput="detCalc()" />
+      <input type="number" id="det-bqty" oninput="detCalc()" />
+    </div>
+
+    <!-- 仕入れ先タブ -->
+    <div class="fg" id="det-suppliers-section">
+      <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>仕入れ先 / 仕入れ情報</span>
+        <button class="btns" onclick="addSupplierRow()" style="font-size:11px;padding:3px 10px;">＋ 追加</button>
+      </div>
+      <!-- タブヘッダー -->
+      <div id="det-supplier-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
+      <!-- タブコンテンツ -->
+      <div id="det-supplier-content" style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:14px;"></div>
+    </div>
+
+    <!-- 参考価格・販売価格 -->
     <div class="fg">
-      <div class="sec-title">仕入れ情報</div>
-      <div>
-        <label class="fl">仕入れ価格 (円/ロット)</label>
-        <input class="fi" type="number" id="det-bprice" min="0" placeholder="例：240" oninput="detCalc()" />
-      </div>
-      <div>
-        <label class="fl">入り数 (個)</label>
-        <input class="fi" type="number" id="det-bqty" min="1" placeholder="例：30" oninput="detCalc()" />
-      </div>
+      <div class="sec-title">価格設定</div>
       <div>
         <label class="fl">仕入れ単価（自動計算）</label>
         <div class="calc" id="det-tanka" style="color:var(--t3);">— 円 / 個</div>
@@ -321,15 +331,6 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
         <div style="font-size:10px;color:var(--t3);margin-top:3px;">※ 実際の販売価格。上書き可</div>
         <div style="font-size:10px;margin-top:3px;" id="det-sell-margin"></div>
       </div>
-    </div>
-
-    <!-- 仕入れ先別単価 -->
-    <div class="fg" id="det-suppliers-section" style="display:none;">
-      <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center;">
-        <span>仕入れ先別単価</span>
-        <button class="btns" onclick="addSupplierRow()" style="font-size:11px;padding:3px 10px;">＋ 追加</button>
-      </div>
-      <div id="det-supplier-rows"></div>
     </div>
 
     <!-- 在庫数 -->
@@ -934,46 +935,134 @@ function detFormData(){
 // 参考価格が変わったとき、販売価格が未入力なら自動コピー
 // ══ 仕入れ先別単価 ═══════════════════════════════════
 var detProductSuppliers = []; // 現在編集中の商品の仕入れ先別単価
+var detActiveSupTab = 0; // 現在表示中のタブインデックス
 
 function loadProductSuppliers(productId) {
   var sec = document.getElementById('det-suppliers-section');
-  if (!productId) { sec.style.display='none'; return; }
-  sec.style.display='';
-  run1('getProductSuppliers', productId).then(function(rows) {
-    detProductSuppliers = rows || [];
-    renderSupplierRows();
-  }).catch(function(){ detProductSuppliers=[]; renderSupplierRows(); });
-}
-
-function renderSupplierRows() {
-  var div = document.getElementById('det-supplier-rows');
-  if (!detProductSuppliers.length) {
-    div.innerHTML = '<div style="font-size:12px;color:var(--t3);padding:8px 0;">まだ登録なし。「＋追加」で仕入れ先を追加できます。</div>';
+  if (!productId) {
+    sec.style.display = 'none';
+    detProductSuppliers = [];
+    detActiveSupTab = 0;
     return;
   }
-  div.innerHTML = detProductSuppliers.map(function(row, i) {
-    var supName = '';
-    for(var s=0; s<suppliers.length; s++){
-      if(suppliers[s].id===row.supplier_id){ supName=suppliers[s].name; break; }
-    }
-    var primaryChk = row.is_primary ? 'checked' : '';
-    return '<div style="background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;margin-bottom:8px;" data-psid="'+row.id+'">'
-      + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-      + '<select class="fi" style="flex:1;min-width:100px;" data-field="supplier_id" onchange="supplierRowChanged('+i+')">'
-      + suppliers.filter(function(s){return s.name;}).map(function(s){
-          return '<option value="'+s.id+'"'+(s.id===row.supplier_id?' selected':'')+'>'+(s.name||'')+'</option>';
-        }).join('')
-      + '</select>'
-      + '<input class="fi" type="number" min="0" placeholder="仕入価格" value="'+(row.buy_price||'')+'" data-field="buy_price" style="width:90px;" oninput="supplierRowChanged('+i+')">'
-      + '<span style="font-size:11px;color:var(--t2);">円/</span>'
-      + '<input class="fi" type="number" min="1" placeholder="入数" value="'+(row.buy_qty||1)+'" data-field="buy_qty" style="width:60px;" oninput="supplierRowChanged('+i+')">'
-      + '<span style="font-size:11px;color:var(--t2);">個</span>'
-      + '<label style="font-size:11px;display:flex;align-items:center;gap:4px;"><input type="radio" name="primary_sup" '+(primaryChk)+' onchange="setPrimary('+i+')">主</label>'
-      + '<button onclick="delSupplierRow('+i+')" class="btns" style="font-size:11px;padding:3px 8px;color:var(--red);">削除</button>'
-      + '</div>'
-      + '<div style="font-size:10px;color:var(--t3);margin-top:4px;" id="sup-tanka-'+i+'">'+calcSupTanka(row)+'</div>'
-      + '</div>';
+  sec.style.display = '';
+  run1('getProductSuppliers', productId).then(function(rows) {
+    detProductSuppliers = rows || [];
+    detActiveSupTab = 0;
+    renderSupplierTabs();
+    syncPrimaryToBprice();
+  }).catch(function(){ detProductSuppliers=[]; renderSupplierTabs(); });
+}
+
+function renderSupplierTabs() {
+  var tabsEl = document.getElementById('det-supplier-tabs');
+  var contentEl = document.getElementById('det-supplier-content');
+  if (!detProductSuppliers.length) {
+    tabsEl.innerHTML = '';
+    contentEl.innerHTML = '<div style="font-size:12px;color:var(--t3);padding:8px 0;">「＋ 追加」で仕入れ先を追加できます。</div>';
+    return;
+  }
+  // タブヘッダー
+  tabsEl.innerHTML = detProductSuppliers.map(function(row, i) {
+    var supName = getSupName(row.supplier_id) || '仕入れ先'+(i+1);
+    var isActive = i === detActiveSupTab;
+    var isPrimary = row.is_primary;
+    return '<button onclick="switchSupTab('+i+')" style="'
+      + 'padding:7px 14px;border-radius:999px;border:2px solid '+(isActive?'var(--red)':'var(--bd)')+';'
+      + 'background:'+(isActive?'var(--red)':'#fff')+';color:'+(isActive?'#fff':'var(--tx)')+';'
+      + 'font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">'
+      + (isPrimary?'⭐ ':'')+supName
+      + '</button>';
   }).join('');
+  // タブコンテンツ
+  var row = detProductSuppliers[detActiveSupTab];
+  if (!row) return;
+  var supName = getSupName(row.supplier_id) || '';
+  var tanka = row.buy_price && row.buy_qty ? Math.round(row.buy_price/row.buy_qty*100)/100 : null;
+  var tankaWith = tanka ? Math.round(tanka*1.08*100)/100 : null;
+  contentEl.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">'
+    // 仕入れ先選択
+    + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">仕入れ先</label>'
+    + '<select class="fi" id="tab-supplier-id" onchange="tabFieldChanged()" style="width:100%;">'
+    + suppliers.filter(function(s){return s.name;}).map(function(s){
+        return '<option value="'+s.id+'"'+(s.id===row.supplier_id?' selected':'')+'>'+(s.name||'')+'</option>';
+      }).join('')
+    + '</select></div>'
+    // 仕入れ価格
+    + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">仕入れ価格（円/ロット）</label>'
+    + '<input class="fi" type="number" id="tab-buy-price" min="0" value="'+(row.buy_price||'')+'" oninput="tabFieldChanged()" style="width:100%;"></div>'
+    // 入り数
+    + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">入り数（個）</label>'
+    + '<input class="fi" type="number" id="tab-buy-qty" min="1" value="'+(row.buy_qty||1)+'" oninput="tabFieldChanged()" style="width:100%;"></div>'
+    // 仕入れ単価（自動計算）
+    + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">仕入れ単価</label>'
+    + '<div class="calc" id="tab-tanka" style="font-size:13px;">'+(tanka?tankaWith+'円/個（税込8%）':'—')+'</div></div>'
+    + '</div>'
+    // 主仕入れ先・削除
+    + '<div style="display:flex;gap:10px;align-items:center;">'
+    + '<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;font-weight:700;">'
+    + '<input type="checkbox" id="tab-is-primary" '+(row.is_primary?'checked':'')+' onchange="tabPrimaryChanged()">⭐ 主仕入れ先にする</label>'
+    + '<button onclick="delSupplierRow('+detActiveSupTab+')" class="btns" style="font-size:11px;padding:4px 10px;color:var(--red);margin-left:auto;">この仕入れ先を削除</button>'
+    + '</div>';
+}
+
+function getSupName(supplierId) {
+  for(var s=0;s<suppliers.length;s++){
+    if(suppliers[s].id===supplierId) return suppliers[s].name;
+  }
+  return '';
+}
+
+function switchSupTab(i) {
+  tabFieldChanged(); // 現在のタブの変更を保存してから切り替え
+  detActiveSupTab = i;
+  renderSupplierTabs();
+}
+
+function tabFieldChanged() {
+  var row = detProductSuppliers[detActiveSupTab];
+  if(!row) return;
+  var supEl = document.getElementById('tab-supplier-id');
+  var priceEl = document.getElementById('tab-buy-price');
+  var qtyEl = document.getElementById('tab-buy-qty');
+  if(supEl) row.supplier_id = parseInt(supEl.value);
+  if(priceEl) row.buy_price = parseFloat(priceEl.value)||0;
+  if(qtyEl) row.buy_qty = parseInt(qtyEl.value)||1;
+  // タブ名更新
+  var tabs = document.getElementById('det-supplier-tabs').querySelectorAll('button');
+  if(tabs[detActiveSupTab]) {
+    var sname = getSupName(row.supplier_id)||'仕入れ先'+(detActiveSupTab+1);
+    tabs[detActiveSupTab].textContent = (row.is_primary?'⭐ ':'')+sname;
+  }
+  // 単価表示更新
+  var tankaEl = document.getElementById('tab-tanka');
+  if(tankaEl && row.buy_price && row.buy_qty) {
+    var t = row.buy_price/row.buy_qty;
+    tankaEl.textContent = (Math.round(t*1.08*100)/100)+'円/個（税込8%）';
+  } else if(tankaEl) {
+    tankaEl.textContent = '—';
+  }
+  syncPrimaryToBprice();
+}
+
+function tabPrimaryChanged() {
+  var chk = document.getElementById('tab-is-primary');
+  if(!chk) return;
+  detProductSuppliers.forEach(function(r,j){ r.is_primary=(j===detActiveSupTab); });
+  renderSupplierTabs();
+  syncPrimaryToBprice();
+}
+
+function syncPrimaryToBprice() {
+  // 主仕入れ先の価格をdet-bprice/det-bqtyに同期（粗利計算用）
+  var primary = detProductSuppliers.filter(function(r){return r.is_primary;})[0]
+    || detProductSuppliers[0];
+  if(primary) {
+    document.getElementById('det-bprice').value = primary.buy_price||'';
+    document.getElementById('det-bqty').value = primary.buy_qty||1;
+    detCalc();
+  }
 }
 
 function calcSupTanka(row) {
@@ -982,44 +1071,34 @@ function calcSupTanka(row) {
   return '単価: '+(Math.round(t*100)/100)+'円/個（税込8%: '+(Math.round(t*1.08*100)/100)+'円）';
 }
 
-function supplierRowChanged(i) {
-  var div = document.getElementById('det-supplier-rows').children[i];
-  if(!div) return;
-  detProductSuppliers[i].supplier_id = parseInt(div.querySelector('[data-field="supplier_id"]').value);
-  detProductSuppliers[i].buy_price   = parseFloat(div.querySelector('[data-field="buy_price"]').value)||0;
-  detProductSuppliers[i].buy_qty     = parseInt(div.querySelector('[data-field="buy_qty"]').value)||1;
-  // 単価表示更新
-  var t = document.getElementById('sup-tanka-'+i);
-  if(t) t.textContent = calcSupTanka(detProductSuppliers[i]);
-}
-
-function setPrimary(i) {
-  detProductSuppliers.forEach(function(r,j){ r.is_primary=(j===i); });
-}
-
 function addSupplierRow() {
   var defSup = suppliers.length ? suppliers[0].id : null;
   if(!defSup){ toast('先に仕入れ先（サプライヤー）を登録してください'); return; }
+  tabFieldChanged();
   detProductSuppliers.push({ id:null, product_id:detPid, supplier_id:defSup, buy_price:0, buy_qty:1, is_primary:detProductSuppliers.length===0 });
-  renderSupplierRows();
+  detActiveSupTab = detProductSuppliers.length - 1;
+  renderSupplierTabs();
 }
 
 function delSupplierRow(i) {
   var row = detProductSuppliers[i];
+  function doDelete() {
+    detProductSuppliers.splice(i, 1);
+    detActiveSupTab = Math.min(detActiveSupTab, Math.max(0, detProductSuppliers.length-1));
+    renderSupplierTabs();
+    syncPrimaryToBprice();
+    toast('削除しました');
+  }
   if(row.id) {
-    run1('deleteProductSupplier', row.id).then(function(){
-      detProductSuppliers.splice(i,1);
-      renderSupplierRows();
-      toast('削除しました');
-    });
+    run1('deleteProductSupplier', row.id).then(doDelete);
   } else {
-    detProductSuppliers.splice(i,1);
-    renderSupplierRows();
+    doDelete();
   }
 }
 
 function saveProductSuppliers(productId) {
   if(!detProductSuppliers.length) return Promise.resolve();
+  tabFieldChanged(); // 保存前に現在のタブ入力を確定
   var promises = detProductSuppliers.map(function(row) {
     row.product_id = productId;
     return run1('saveProductSupplier', row);
