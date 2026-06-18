@@ -3120,7 +3120,6 @@ loadData().then(function(){
   showApp();
   loadOrdersData();
   loadCategories();
-  setInterval(loadData,300000);
 }).catch(function(e){showApp();setSS('er');toast('接続エラー: '+(e.message||e));});
 </script>
 </body>
