@@ -1244,6 +1244,16 @@ function saveDet(){
   var d=detFormData();
   if(!d.name){toast('商品名を入力してください');return;}
   if(detMode==='candidate') d.status='candidate';
+
+  // タブ表示中の参考価格・販売価格をhidden要素に強制同期
+  var tabRef  = document.getElementById('tab-ref-price');
+  var tabSell = document.getElementById('tab-sell-price');
+  if(tabRef  && tabRef.value)  document.getElementById('det-price').value      = tabRef.value;
+  if(tabSell && tabSell.value) document.getElementById('det-sell-price').value = tabSell.value;
+
+  // 同期後に再取得
+  d = detFormData();
+
   setSS('sv');
   d.id=detPid;
   run1('updateProduct',d).then(function(){
