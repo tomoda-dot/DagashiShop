@@ -2426,6 +2426,7 @@ function renderOrders(){
 }
 
 var recvItemId = null;
+var recvSupplierRowId = null; // 対象商品×仕入れ先のproduct_suppliers.id（更新用）
 
 function receiveItem(itemId){
   var it = orders.filter(function(x){ return x.id === itemId; })[0];
@@ -2455,6 +2456,15 @@ function receiveItem(itemId){
   document.getElementById('recv-bqty-diff').textContent = '';
   document.getElementById('recv-diff-summary').style.display = 'none';
   document.getElementById('recv-update-supplier').checked = true;
+  recvSupplierRowId = null;
+
+  // この商品×この仕入れ先のproduct_suppliersレコードIDを取得（更新用）
+  if (it.supplier_id) {
+    run1('getProductSuppliers', it.product_id).then(function(rows) {
+      var match = (rows || []).filter(function(r){ return r.supplier_id === it.supplier_id; })[0];
+      recvSupplierRowId = match ? match.id : null;
+    }).catch(function(){ recvSupplierRowId = null; });
+  }
 
   // 販売価格を商品マスタから取得
   var prod = prods.filter(function(x){ return x.id === it.product_id; })[0];
@@ -2530,11 +2540,12 @@ function confirmReceive(){
       // 価格・入数に変更があり、かつupdateSupplierがONの場合はproduct_suppliersも更新
       if(updateSupplier && it.supplier_id && (price !== it.buy_price || bqty !== it.buy_qty)){
         return run1('saveProductSupplier', {
+          id: recvSupplierRowId, // 既存レコードがあれば更新、なければ新規作成
           product_id: it.product_id,
           supplier_id: it.supplier_id,
           buy_price: price,
           buy_qty: bqty,
-          is_primary: null // is_primaryは変更しない
+          is_primary: recvSupplierRowId ? undefined : true // 新規の場合のみ主仕入れ先扱い
         }).then(function(){
           toast('仕入れ先の価格情報も更新しました');
         }).catch(function(){});

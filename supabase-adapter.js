@@ -791,13 +791,16 @@ GAS.saveProductSupplier = function(data) {
     product_id: data.product_id,
     supplier_id: Number(data.supplier_id),
     buy_price:  Number(data.buy_price) || 0,
-    buy_qty:    Number(data.buy_qty)   || 1,
-    is_primary: !!data.is_primary
+    buy_qty:    Number(data.buy_qty)   || 1
   };
+  if (data.is_primary !== undefined && data.is_primary !== null) {
+    body.is_primary = !!data.is_primary;
+  }
   if (data.id) {
     return sbPatch('product_suppliers', 'id=eq.' + data.id, body)
       .then(function() { return { ok: true }; });
   } else {
+    if (body.is_primary === undefined) body.is_primary = false;
     return sbPost('product_suppliers', body)
       .then(function() { return { ok: true }; });
   }
