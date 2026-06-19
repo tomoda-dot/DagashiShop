@@ -88,7 +88,7 @@
             grid-column: 1;
             display: flex; flex-direction: column;
             padding: 8px; gap: 7px;
-            overflow: hidden;
+            overflow-y: auto; overflow-x: hidden;
             background: var(--cream);
         }
 
@@ -103,7 +103,7 @@
 
         .grid {
             display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 7px; flex: 1; align-content: start;
+            gap: 7px; flex-shrink: 0; align-content: start;
         }
 
         /* 商品ボタン */
