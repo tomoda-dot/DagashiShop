@@ -25,7 +25,7 @@
     @media print {
       body { background: white !important; height: auto !important; overflow: visible !important; }
       header, nav, .no-print, .loading-overlay,
-      #content-summary, #content-regi, #content-detail, #content-config,
+      #content-summary, #content-regi, #content-detail, #content-config, #content-pettycash,
       .edit-modal-overlay, #savings-add-modal { display: none !important; }
 
       main { overflow: visible !important; height: auto !important; }
@@ -197,6 +197,7 @@
     <button onclick="switchTab('regi')"    id="tab-regi"    class="flex-1 py-3 text-sm text-gray-500">🧮 レジ締め入力</button>
     <button onclick="switchTab('detail')"  id="tab-detail"  class="flex-1 py-3 text-sm text-gray-500">📋 明細管理</button>
     <button onclick="switchTab('savings')" id="tab-savings" class="flex-1 py-3 text-sm text-gray-500">💰 積立金管理</button>
+    <button onclick="switchTab('pettycash')" id="tab-pettycash" class="flex-1 py-3 text-sm text-gray-500">💴 小口現金</button>
     <button onclick="switchTab('config')"  id="tab-config"  class="flex-1 py-3 text-sm text-gray-500">⚙️ 設定</button>
   </nav>
 
@@ -388,7 +389,80 @@
       </div>
     </section>
 
-    <!-- 設定 -->
+    <!-- 小口現金 -->
+    <section id="content-pettycash" class="hidden h-full flex flex-col p-4 gap-3 overflow-hidden">
+
+      <!-- 操作バー -->
+      <div class="flex items-center gap-3 flex-shrink-0 no-print">
+        <select id="pettycash-month-selector" class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none" onchange="filterPettyCashByMonth()"></select>
+        <button onclick="loadPettyCashData()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+          <span class="material-icons text-sm">refresh</span> 更新
+        </button>
+        <button onclick="openPettyCashModal('入金')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+          <span class="material-icons text-sm">add</span> 入金を追加
+        </button>
+        <button onclick="openPettyCashModal('出金')" class="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+          <span class="material-icons text-sm">remove</span> 出金を追加
+        </button>
+        <span id="pettycash-status" class="text-sm text-slate-400 font-medium"></span>
+        <div class="ml-auto flex items-center gap-4">
+          <div class="text-right">
+            <div class="text-xs text-slate-400 font-bold">現在の残高（小口現金）</div>
+            <div class="text-2xl font-black text-emerald-600" id="pettycash-balance-total">¥0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- テーブル -->
+      <div class="flex-1 overflow-auto bg-white rounded-xl shadow-sm border border-slate-200 min-h-0">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>日付</th>
+              <th>種別</th>
+              <th>理由</th>
+              <th>備考</th>
+              <th class="text-right">入金額</th>
+              <th class="text-right">出金額</th>
+              <th class="text-right">残高</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="pettycash-tbody">
+            <tr><td colspan="8" class="text-center text-slate-400 py-12">「更新」を押してデータを読み込んでください</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 小口現金 入出金モーダル -->
+    <div id="pettycash-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+      <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
+        <h3 class="font-bold text-lg mb-4" id="pettycash-modal-title">入金を追加</h3>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">日付</label>
+            <input type="date" id="pettycash-date" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">金額（円）</label>
+            <input type="number" id="pettycash-amount" min="0" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="0">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">理由</label>
+            <input type="text" id="pettycash-reason" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="例：採買、経費精算など">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">備考（任意）</label>
+            <textarea id="pettycash-memo" rows="2" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none"></textarea>
+          </div>
+        </div>
+        <div class="flex gap-2 mt-5">
+          <button onclick="closePettyCashModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
+          <button onclick="savePettyCashRow()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
+        </div>
+      </div>
+    </div>
     <section id="content-config" class="hidden h-full overflow-y-auto p-4 max-w-4xl mx-auto">
 
       <!-- レジ締め初期値設定 -->
@@ -546,7 +620,7 @@
 
     // ── タブ切り替え ──────────────────────────────
     function switchTab(tab) {
-      ['summary','regi','detail','savings','config'].forEach(t => {
+      ['summary','regi','detail','savings','pettycash','config'].forEach(t => {
         document.getElementById('content-' + t).classList.toggle('hidden', t !== tab);
         const btn = document.getElementById('tab-' + t);
         btn.className = t === tab
@@ -557,6 +631,10 @@
       if (tab === 'savings') {
         if (!document.getElementById('savings-month-selector').options.length) initSavingsMonthSelector();
         loadSavingsData();
+      }
+      if (tab === 'pettycash') {
+        if (!document.getElementById('pettycash-month-selector').options.length) initPettyCashMonthSelector();
+        loadPettyCashData();
       }
       if (tab === 'config') loadConfigData();
     }
@@ -1133,6 +1211,142 @@
           showNotify('エラー: ' + e, 'error');
         });
     }
+    // ── 小口現金タブ ──────────────────────────────
+    function initPettyCashMonthSelector() {
+      const sel = document.getElementById('pettycash-month-selector');
+      const now = new Date();
+      sel.innerHTML = '';
+      for (let i = -6; i <= 1; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        const y = d.getFullYear(), m = d.getMonth() + 1;
+        const val = `${y}-${m.toString().padStart(2,'0')}`;
+        const opt = document.createElement('option');
+        opt.value = val; opt.innerText = `${y}年 ${m}月`;
+        if (i === 0) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+
+    let g_allPettyCashData = [];
+
+    function loadPettyCashData() {
+      document.getElementById('pettycash-status').textContent = '読み込み中...';
+      GAS.getPettyCashData().then(function(rows) {
+          g_allPettyCashData = rows || [];
+          filterPettyCashByMonth();
+        }).catch(function(e) {
+          document.getElementById('pettycash-status').textContent = 'エラー: ' + e;
+        });
+    }
+
+    function filterPettyCashByMonth() {
+      const selectedMonth = document.getElementById('pettycash-month-selector').value;
+
+      const lastRow = g_allPettyCashData.length > 0
+        ? g_allPettyCashData[g_allPettyCashData.length - 1]
+        : null;
+      const currentBalance = lastRow ? lastRow.balance : 0;
+      document.getElementById('pettycash-balance-total').textContent = '¥' + currentBalance.toLocaleString();
+
+      const monthRows = g_allPettyCashData.filter(r => r.date && r.date.startsWith(selectedMonth));
+
+      let carryover = 0;
+      g_allPettyCashData.forEach(r => {
+        if (r.date < selectedMonth + '-01') carryover = r.balance;
+      });
+
+      renderPettyCashTable(monthRows, carryover, selectedMonth);
+    }
+
+    function renderPettyCashTable(rows, carryover, month) {
+      const tbody = document.getElementById('pettycash-tbody');
+
+      if ((!rows || rows.length === 0) && carryover === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-slate-400 py-12">この月のデータはありません</td></tr>`;
+        document.getElementById('pettycash-status').textContent = '0件';
+        return;
+      }
+
+      document.getElementById('pettycash-status').textContent = rows.length + '件';
+
+      const sorted = [...rows].reverse();
+
+      let html = sorted.map(r => {
+        const isDeposit = r.type === '入金';
+        const amount = Number(r.amount) || 0;
+        return `<tr class="${isDeposit ? 'deposit-row' : 'withdrawal-row'}">
+          <td class="font-mono text-sm">${r.date}</td>
+          <td>${isDeposit ? '<span class="text-blue-600 font-bold">入金</span>' : '<span class="text-red-500 font-bold">出金</span>'}</td>
+          <td class="text-slate-600">${r.reason || ''}</td>
+          <td class="text-slate-500 text-sm">${r.memo || ''}</td>
+          <td class="text-right font-mono font-bold text-blue-600">${isDeposit ? '¥' + amount.toLocaleString() : ''}</td>
+          <td class="text-right font-mono font-bold ${!isDeposit ? 'text-red-500' : ''}">${!isDeposit ? '¥' + amount.toLocaleString() : ''}</td>
+          <td class="text-right font-mono font-black text-emerald-600 text-base">¥${r.balance.toLocaleString()}</td>
+          <td><button onclick="deletePettyCashRow(${r.id})" class="text-red-400 hover:text-red-600 text-xs font-bold">削除</button></td>
+        </tr>`;
+      }).join('');
+
+      if (carryover !== 0) {
+        html += `<tr class="carryover-row">
+          <td class="font-mono text-sm">${month}-01</td>
+          <td></td><td>📋 前月繰越</td><td></td><td></td><td></td>
+          <td class="text-right font-mono font-black text-sky-700 text-base">¥${carryover.toLocaleString()}</td>
+          <td></td>
+        </tr>`;
+      }
+
+      tbody.innerHTML = html;
+    }
+
+    let g_pettyCashType = '入金';
+
+    function openPettyCashModal(type) {
+      g_pettyCashType = type;
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      document.getElementById('pettycash-modal-title').textContent = (type === '入金' ? '入金を追加' : '出金を追加');
+      document.getElementById('pettycash-date').value = dateStr;
+      document.getElementById('pettycash-amount').value = '';
+      document.getElementById('pettycash-reason').value = '';
+      document.getElementById('pettycash-memo').value = '';
+      document.getElementById('pettycash-modal').classList.remove('hidden');
+      document.getElementById('pettycash-modal').classList.add('flex');
+    }
+
+    function closePettyCashModal() {
+      document.getElementById('pettycash-modal').classList.add('hidden');
+      document.getElementById('pettycash-modal').classList.remove('flex');
+    }
+
+    function savePettyCashRow() {
+      const dateInput = document.getElementById('pettycash-date').value;
+      const amount    = parseInt(document.getElementById('pettycash-amount').value) || 0;
+      const reason    = document.getElementById('pettycash-reason').value.trim();
+      const memo      = document.getElementById('pettycash-memo').value.trim();
+
+      if (!dateInput) { showNotify('日付を選択してください', 'error'); return; }
+      if (amount <= 0) { showNotify('金額を入力してください', 'error'); return; }
+      if (!reason)     { showNotify('理由を入力してください', 'error'); return; }
+
+      GAS.addPettyCashRow({ date: dateInput, type: g_pettyCashType, amount: amount, reason: reason, memo: memo }).then(function() {
+          showNotify('保存しました', 'success');
+          closePettyCashModal();
+          loadPettyCashData();
+        }).catch(function(e) {
+          showNotify('エラー: ' + e, 'error');
+        });
+    }
+
+    function deletePettyCashRow(id) {
+      if (!confirm('この記録を削除しますか？')) return;
+      GAS.deletePettyCashRow(id).then(function() {
+          showNotify('削除しました', 'success');
+          loadPettyCashData();
+        }).catch(function(e) {
+          showNotify('エラー: ' + e, 'error');
+        });
+    }
+
     // ── 設定タブ ──────────────────────────────────
     function loadConfigData() {
       GAS.getSettings().then(function(data) {

@@ -92,6 +92,7 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'invalidateDetailRow','updateDetailRow','getSavingsData',
     'addSavingsRow','testConnection','getProductsForBarcode','updateProductBarcode',
     'getCategories','saveCategory','deleteCategory',
+    'getPettyCashData','addPettyCashRow','deletePettyCashRow',
     'getProductSuppliers','saveProductSupplier','deleteProductSupplier'
   ];
   fns.forEach(function(name) {
@@ -777,6 +778,37 @@ GAS.addSavingsRow = function(rowData) {
     content:    rowData.content    || '',
     withdrawal: rowData.withdrawal || 0
   }).then(function() { return '保存しました'; });
+};
+
+// ─ getPettyCashData ─
+GAS.getPettyCashData = function() {
+  return sbGet('petty_cash', 'select=*&order=date.asc,id.asc').then(function(rows) {
+    rows = rows || [];
+    var balance = 0;
+    rows.forEach(function(r) {
+      var amt = Number(r.amount) || 0;
+      balance += (r.type === '入金' ? amt : -amt);
+      r.balance = balance;
+    });
+    return rows;
+  });
+};
+
+// ─ addPettyCashRow ─
+GAS.addPettyCashRow = function(rowData) {
+  return sbPost('petty_cash', {
+    date:   rowData.date   || todayJST(),
+    type:   rowData.type   || '入金',
+    amount: Number(rowData.amount) || 0,
+    reason: rowData.reason || '',
+    memo:   rowData.memo   || ''
+  }).then(function() { return { ok: true }; });
+};
+
+// ─ deletePettyCashRow ─
+GAS.deletePettyCashRow = function(id) {
+  return sbDelete('petty_cash', 'id=eq.' + id)
+    .then(function() { return { ok: true }; });
 };
 
 // ─ getProductSuppliers ─
