@@ -489,8 +489,8 @@
           <div id="pettycash-category-wrap">
             <label class="text-xs font-bold text-slate-500 block mb-1">内訳</label>
             <select id="pettycash-category" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
-              <option value="旅費交通費">旅費交通費</option>
               <option value="消耗品費">消耗品費</option>
+              <option value="旅費交通費">旅費交通費</option>
               <option value="通信費">通信費</option>
               <option value="水道光熱費">水道光熱費</option>
               <option value="新聞図書費">新聞図書費</option>
@@ -1397,7 +1397,7 @@
       const sel = document.getElementById('pettycash-month-selector');
       const monthLabel = sel.options[sel.selectedIndex].innerText;
       const selectedMonth = sel.value;
-      const CATS = ['旅費交通費','消耗品費','通信費','水道光熱費','新聞図書費','雑費'];
+      const CATS = ['消耗品費','旅費交通費','通信費','水道光熱費','新聞図書費','雑費'];
 
       // 選択月のデータ（昇順）
       const monthRows = g_allPettyCashData.filter(r => r.date && r.date.startsWith(selectedMonth));
