@@ -404,6 +404,9 @@
         <button onclick="openPettyCashModal('出金')" class="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">remove</span> 出金を追加
         </button>
+        <button onclick="printPettyCash()" class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+          <span class="material-icons text-sm">print</span> 印刷
+        </button>
         <span id="pettycash-status" class="text-sm text-slate-400 font-medium"></span>
         <div class="ml-auto flex items-center gap-4">
           <div class="text-right">
@@ -1345,6 +1348,59 @@
         }).catch(function(e) {
           showNotify('エラー: ' + e, 'error');
         });
+    }
+
+    function printPettyCash() {
+      const sel = document.getElementById('pettycash-month-selector');
+      const monthLabel = sel.options[sel.selectedIndex].innerText;
+      const balance = document.getElementById('pettycash-balance-total').textContent;
+
+      // テーブルを複製し、操作列（削除ボタン）を取り除く
+      var tableEl = document.querySelector('#content-pettycash .detail-table');
+      var clone = tableEl.cloneNode(true);
+      clone.querySelectorAll('tr').forEach(function(tr) {
+        if (tr.cells.length >= 8) tr.deleteCell(7); // 操作列を削除
+      });
+      var tableHTML = clone.outerHTML;
+
+      var pw = window.open('', '_blank', 'width=900,height=700');
+      pw.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+        <title>小口現金管理表 印刷</title>
+        <style>
+          body { font-family: sans-serif; padding: 20px; color: #333; }
+          h2 { font-size: 1.2rem; margin-bottom: 4px; }
+          .meta { font-size: 0.9rem; color: #555; margin-bottom: 2px; }
+          .balance { font-size: 1rem; font-weight: 800; color: #16a34a; margin-bottom: 16px; }
+          table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+          th { background: #333; color: white; padding: 6px 10px; text-align: left;
+               font-size: 8pt; font-weight: 700; white-space: nowrap;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          td { padding: 4px 10px; border-bottom: 1px solid #ccc; white-space: nowrap; }
+          tr.carryover-row td { background: #e8f4f8 !important; font-weight: 700; color: #0369a1;
+               border-top: 2px solid #666; border-bottom: 2px solid #666;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          tr.withdrawal-row td { background: #fff0f0 !important;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          @page { size: A4 portrait; margin: 8mm 10mm; }
+          @media print { .no-print { display: none; } }
+        </style>
+      </head><body>
+        <h2>💴 小口現金管理表</h2>
+        <p class="meta">対象月：${monthLabel}</p>
+        <p class="balance">現在の残高（小口現金）：${balance}</p>
+        ${tableHTML}
+        <div class="no-print" style="margin-top:20px;text-align:center;">
+          <button onclick="window.print()" style="padding:10px 30px;font-size:1rem;font-weight:700;
+            background:#2563eb;color:white;border:none;border-radius:10px;cursor:pointer;">
+            🖨 印刷する
+          </button>
+          <button onclick="window.close()" style="padding:10px 30px;font-size:1rem;font-weight:700;
+            background:#e5e7eb;color:#333;border:none;border-radius:10px;cursor:pointer;margin-left:10px;">
+            閉じる
+          </button>
+        </div>
+</body></html>`);
+      pw.document.close();
     }
 
     // ── 設定タブ ──────────────────────────────────
