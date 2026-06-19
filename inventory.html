@@ -985,7 +985,12 @@ function loadProductSuppliers(productId) {
         }];
       }
     }
-    detActiveSupTab = 0;
+    // ⭐主仕入れ先のタブを優先して表示
+    var primaryIdx = -1;
+    for (var pi = 0; pi < detProductSuppliers.length; pi++) {
+      if (detProductSuppliers[pi].is_primary) { primaryIdx = pi; break; }
+    }
+    detActiveSupTab = primaryIdx >= 0 ? primaryIdx : 0;
     renderSupplierTabs();
     syncPrimaryToBprice();
   }).catch(function() { detProductSuppliers = []; detActiveSupTab = 0; renderSupplierTabs(); });
@@ -1048,10 +1053,10 @@ function renderSupplierTabs() {
     + '<div class="calc" id="tab-tanka" style="font-size:13px;padding:10px 12px;">' + (tankaWith ? tankaWith + '円/個（税込8%）' : '—') + '</div></div>'
     + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">参考価格（円）</label>'
     + '<input class="fi" type="number" id="tab-ref-price" min="0" value="' + (refPrice || '') + '" oninput="tabRefPriceChanged()">'
-    + (margin !== null ? '<div style="font-size:10px;color:' + (margin >= 0 ? 'var(--grn)' : 'var(--red)') + ';margin-top:3px;">粗利: ' + (margin >= 0 ? '+' : '') + margin + '円（' + marginPct + '%）</div>' : '')
     + '</div>'
     + '<div style="grid-column:1/-1;"><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">販売価格（円）</label>'
     + '<input class="fi" type="number" id="tab-sell-price" min="0" value="' + (sellPrice || '') + '" oninput="tabSellPriceChanged()" style="max-width:180px;">'
+    + (margin !== null ? '<div style="font-size:10px;color:' + (margin >= 0 ? 'var(--grn)' : 'var(--red)') + ';margin-top:3px;">粗利: ' + (margin >= 0 ? '+' : '') + margin + '円（' + marginPct + '%）</div>' : '')
     + '</div>'
     + '</div>'
     // ⭐主・削除
