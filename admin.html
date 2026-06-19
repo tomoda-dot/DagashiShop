@@ -95,6 +95,41 @@
     }
     .detail-table tr.deposit-row td  { }
     .detail-table tr.withdrawal-row td { background: #fef2f2; }
+
+    /* 小口現金テーブル：列幅を固定してヘッダーとずれないように */
+    .pettycash-table { table-layout: fixed; }
+    .pettycash-table th:nth-child(1), .pettycash-table td:nth-child(1) { width: 12%; }
+    .pettycash-table th:nth-child(2), .pettycash-table td:nth-child(2) { width: 8%; }
+    .pettycash-table th:nth-child(3), .pettycash-table td:nth-child(3) { width: 14%; }
+    .pettycash-table th:nth-child(4), .pettycash-table td:nth-child(4) { width: 26%; white-space: normal; }
+    .pettycash-table th:nth-child(5), .pettycash-table td:nth-child(5) { width: 12%; }
+    .pettycash-table th:nth-child(6), .pettycash-table td:nth-child(6) { width: 12%; }
+    .pettycash-table th:nth-child(7), .pettycash-table td:nth-child(7) { width: 12%; }
+    .pettycash-table th:nth-child(8), .pettycash-table td:nth-child(8) { width: 8%; min-width: 50px; }
+
+    /* 明細管理テーブル：列幅を固定 */
+    .summary-detail-table { table-layout: fixed; }
+    .summary-detail-table th:nth-child(1), .summary-detail-table td:nth-child(1) { width: 13%; }
+    .summary-detail-table th:nth-child(2), .summary-detail-table td:nth-child(2) { width: 12%; }
+    .summary-detail-table th:nth-child(3), .summary-detail-table td:nth-child(3) { width: 7%; }
+    .summary-detail-table th:nth-child(4), .summary-detail-table td:nth-child(4) { width: 20%; white-space: normal; }
+    .summary-detail-table th:nth-child(5), .summary-detail-table td:nth-child(5) { width: 9%; }
+    .summary-detail-table th:nth-child(6), .summary-detail-table td:nth-child(6) { width: 7%; }
+    .summary-detail-table th:nth-child(7), .summary-detail-table td:nth-child(7) { width: 9%; }
+    .summary-detail-table th:nth-child(8), .summary-detail-table td:nth-child(8) { width: 9%; }
+    .summary-detail-table th:nth-child(9), .summary-detail-table td:nth-child(9) { width: 8%; }
+    .summary-detail-table th:nth-child(10), .summary-detail-table td:nth-child(10) { width: 6%; }
+    .summary-detail-table th:nth-child(11), .summary-detail-table td:nth-child(11) { width: 10%; min-width: 90px; }
+
+    /* 積立金管理テーブル：列幅を固定 */
+    .savings-table { table-layout: fixed; }
+    .savings-table th:nth-child(1), .savings-table td:nth-child(1) { width: 14%; }
+    .savings-table th:nth-child(2), .savings-table td:nth-child(2) { width: 16%; }
+    .savings-table th:nth-child(3), .savings-table td:nth-child(3) { width: 28%; white-space: normal; }
+    .savings-table th:nth-child(4), .savings-table td:nth-child(4) { width: 14%; }
+    .savings-table th:nth-child(5), .savings-table td:nth-child(5) { width: 14%; }
+    .savings-table th:nth-child(6), .savings-table td:nth-child(6) { width: 14%; }
+
     .badge {
       display: inline-block; padding: 2px 8px;
       border-radius: 999px; font-size: 0.7rem; font-weight: 700;
@@ -313,7 +348,7 @@
 
       <!-- テーブル -->
       <div class="flex-1 overflow-auto bg-white rounded-xl shadow-sm border border-slate-200 min-h-0">
-        <table class="detail-table">
+        <table class="detail-table summary-detail-table">
           <thead>
             <tr>
               <th>注文ID</th>
@@ -371,7 +406,7 @@
 
       <!-- テーブル -->
       <div class="flex-1 overflow-auto bg-white rounded-xl shadow-sm border border-slate-200 min-h-0">
-        <table class="detail-table">
+        <table class="detail-table savings-table">
           <thead>
             <tr>
               <th>日付</th>
@@ -418,7 +453,7 @@
 
       <!-- テーブル -->
       <div class="flex-1 overflow-auto bg-white rounded-xl shadow-sm border border-slate-200 min-h-0">
-        <table class="detail-table">
+        <table class="detail-table pettycash-table">
           <thead>
             <tr>
               <th>日付</th>
