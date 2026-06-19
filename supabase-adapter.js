@@ -174,6 +174,7 @@ GAS.updateProduct = function(p) {
   if (p.name_kana !== undefined) body.name_kana = p.name_kana;
   if (p.maker     !== undefined) body.maker      = p.maker;
   if (p.cat       !== undefined) body.cat        = p.cat;
+  if (p.stock      !== undefined) body.stock      = Number(p.stock);
   if (p.min       !== undefined) body.min        = Number(p.min);
   if (p.price      !== undefined) body.price      = Number(p.price);
   if (p.sell_price !== undefined) body.sell_price = Number(p.sell_price);
