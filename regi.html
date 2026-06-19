@@ -102,8 +102,9 @@
         .atari-banner.show { display: block; }
 
         .grid {
-            display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 7px; flex-shrink: 0; align-content: start;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(clamp(78px, 18vw, 130px), 1fr));
+            gap: clamp(5px, 1vw, 9px); flex-shrink: 0; align-content: start;
         }
 
         /* 商品ボタン */
@@ -115,7 +116,7 @@
             box-shadow: 0 3px 10px rgba(61,64,54,0.1);
             transition: transform 0.1s;
             -webkit-tap-highlight-color: transparent;
-            min-height: 82px;
+            min-height: clamp(64px, 11vh, 96px);
             position: relative;
             overflow: hidden;
         }
@@ -128,17 +129,17 @@
         .btn-inner {
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            padding: 10px 6px; gap: 2px;
+            padding: clamp(6px, 1.2vh, 12px) 6px; gap: 2px;
             position: relative; z-index: 1;
         }
-        .btn-emoji { font-size: 1.6rem; line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
+        .btn-emoji { font-size: clamp(1.2rem, 3vw, 1.7rem); line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
         .btn-price {
-            font-size: 1.5rem; font-weight: 800;
+            font-size: clamp(1.1rem, 2.6vw, 1.6rem); font-weight: 800;
             text-shadow: 0 1px 3px rgba(0,0,0,0.1);
             letter-spacing: 0.02em;
         }
         .btn-label {
-            font-size: 0.65rem; opacity: 0.8; font-weight: 700;
+            font-size: clamp(0.55rem, 1.3vw, 0.7rem); opacity: 0.8; font-weight: 700;
             background: rgba(0,0,0,0.06); padding: 1px 8px;
             border-radius: 8px;
         }
@@ -164,8 +165,8 @@
             background: var(--white); border-radius: 12px;
             padding: 7px 9px; border: 2px dashed var(--mustard);
         }
-        .discount-title { font-size: 0.65rem; color: var(--mustard); font-weight: 700; margin-bottom: 5px; }
-        .discount-grid  { display: grid; grid-template-columns: repeat(5,1fr); gap: 5px; }
+        .discount-title { font-size: clamp(0.58rem, 1.4vw, 0.68rem); color: var(--mustard); font-weight: 700; margin-bottom: 5px; }
+        .discount-grid  { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(50px, 11vw, 80px), 1fr)); gap: 5px; }
         .discount-btn {
             border: none; border-radius: 10px; padding: 0;
             cursor: pointer; font-family: 'M PLUS Rounded 1c', sans-serif;
@@ -178,11 +179,11 @@
         .discount-btn:active { transform: scale(0.93); }
         .discount-btn-inner {
             display: flex; flex-direction: column;
-            align-items: center; padding: 7px 3px; gap: 1px;
+            align-items: center; padding: clamp(5px, 1vh, 9px) 3px; gap: 1px;
         }
-        .discount-btn-emoji  { font-size: 0.9rem; }
-        .discount-btn-amount { font-size: 0.85rem; font-weight: 800; }
-        .discount-btn-label  { font-size: 0.58rem; opacity: 0.8; }
+        .discount-btn-emoji  { font-size: clamp(0.8rem, 1.8vw, 1rem); }
+        .discount-btn-amount { font-size: clamp(0.75rem, 1.7vw, 0.95rem); font-weight: 800; }
+        .discount-btn-label  { font-size: clamp(0.52rem, 1.1vw, 0.62rem); opacity: 0.8; }
 
         /* 右カラム */
         .col-right {
