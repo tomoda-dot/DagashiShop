@@ -451,13 +451,20 @@
             <label class="text-xs font-bold text-slate-500 block mb-1">金額（円）</label>
             <input type="number" id="pettycash-amount" min="0" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="0">
           </div>
-          <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">理由</label>
-            <input type="text" id="pettycash-reason" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="例：採買、経費精算など">
+          <div id="pettycash-category-wrap">
+            <label class="text-xs font-bold text-slate-500 block mb-1">内訳</label>
+            <select id="pettycash-category" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+              <option value="旅費交通費">旅費交通費</option>
+              <option value="消耗品費">消耗品費</option>
+              <option value="通信費">通信費</option>
+              <option value="水道光熱費">水道光熱費</option>
+              <option value="新聞図書費">新聞図書費</option>
+              <option value="雑費">雑費</option>
+            </select>
           </div>
           <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">備考（任意）</label>
-            <textarea id="pettycash-memo" rows="2" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none"></textarea>
+            <label class="text-xs font-bold text-slate-500 block mb-1">内容（摘要）</label>
+            <textarea id="pettycash-memo" rows="2" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none" placeholder="例：コピー用紙購入、タクシー代など"></textarea>
           </div>
         </div>
         <div class="flex gap-2 mt-5">
@@ -1310,8 +1317,9 @@
       document.getElementById('pettycash-modal-title').textContent = (type === '入金' ? '入金を追加' : '出金を追加');
       document.getElementById('pettycash-date').value = dateStr;
       document.getElementById('pettycash-amount').value = '';
-      document.getElementById('pettycash-reason').value = '';
+      document.getElementById('pettycash-category').selectedIndex = 0;
       document.getElementById('pettycash-memo').value = '';
+      document.getElementById('pettycash-category-wrap').style.display = (type === '入金') ? 'none' : '';
       document.getElementById('pettycash-modal').classList.remove('hidden');
       document.getElementById('pettycash-modal').classList.add('flex');
     }
@@ -1324,14 +1332,14 @@
     function savePettyCashRow() {
       const dateInput = document.getElementById('pettycash-date').value;
       const amount    = parseInt(document.getElementById('pettycash-amount').value) || 0;
-      const reason    = document.getElementById('pettycash-reason').value.trim();
+      const category  = g_pettyCashType === '出金' ? document.getElementById('pettycash-category').value : '';
       const memo      = document.getElementById('pettycash-memo').value.trim();
 
       if (!dateInput) { showNotify('日付を選択してください', 'error'); return; }
       if (amount <= 0) { showNotify('金額を入力してください', 'error'); return; }
-      if (!reason)     { showNotify('理由を入力してください', 'error'); return; }
+      if (g_pettyCashType === '出金' && !category) { showNotify('内訳を選択してください', 'error'); return; }
 
-      GAS.addPettyCashRow({ date: dateInput, type: g_pettyCashType, amount: amount, reason: reason, memo: memo }).then(function() {
+      GAS.addPettyCashRow({ date: dateInput, type: g_pettyCashType, amount: amount, reason: category, memo: memo }).then(function() {
           showNotify('保存しました', 'success');
           closePettyCashModal();
           loadPettyCashData();
@@ -1353,42 +1361,104 @@
     function printPettyCash() {
       const sel = document.getElementById('pettycash-month-selector');
       const monthLabel = sel.options[sel.selectedIndex].innerText;
-      const balance = document.getElementById('pettycash-balance-total').textContent;
+      const selectedMonth = sel.value;
+      const CATS = ['旅費交通費','消耗品費','通信費','水道光熱費','新聞図書費','雑費'];
 
-      // テーブルを複製し、操作列（削除ボタン）を取り除く
-      var tableEl = document.querySelector('#content-pettycash .detail-table');
-      var clone = tableEl.cloneNode(true);
-      clone.querySelectorAll('tr').forEach(function(tr) {
-        if (tr.cells.length >= 8) tr.deleteCell(7); // 操作列を削除
+      // 選択月のデータ（昇順）
+      const monthRows = g_allPettyCashData.filter(r => r.date && r.date.startsWith(selectedMonth));
+
+      // 前月繰越
+      let carryover = 0;
+      g_allPettyCashData.forEach(r => {
+        if (r.date < selectedMonth + '-01') carryover = r.balance;
       });
-      var tableHTML = clone.outerHTML;
 
-      var pw = window.open('', '_blank', 'width=900,height=700');
+      // 科目別合計
+      const catTotals = {}; CATS.forEach(c => catTotals[c] = 0);
+      let totalReceive = 0, totalPay = 0;
+
+      // 行HTML生成
+      let rowsHtml = '';
+      rowsHtml += `<tr class="carry-row">
+        <td>${selectedMonth.split('-')[1]}/1</td>
+        <td>前月繰越</td>
+        <td class="num">${carryover ? carryover.toLocaleString() : ''}</td>
+        <td class="num"></td>
+        ${CATS.map(()=>'<td class="num"></td>').join('')}
+        <td class="num bold">${carryover.toLocaleString()}</td>
+      </tr>`;
+
+      monthRows.forEach(r => {
+        const d = new Date(r.date);
+        const md = `${d.getMonth()+1}/${d.getDate()}`;
+        const amount = Number(r.amount) || 0;
+        const isDeposit = r.type === '入金';
+        if (isDeposit) totalReceive += amount; else totalPay += amount;
+        if (!isDeposit && r.reason && catTotals[r.reason] !== undefined) catTotals[r.reason] += amount;
+
+        rowsHtml += `<tr>
+          <td>${md}</td>
+          <td>${r.memo || (isDeposit ? '受入' : r.reason || '')}</td>
+          <td class="num">${isDeposit ? amount.toLocaleString() : ''}</td>
+          <td class="num">${!isDeposit ? amount.toLocaleString() : ''}</td>
+          ${CATS.map(c => `<td class="num">${(!isDeposit && r.reason === c) ? amount.toLocaleString() : ''}</td>`).join('')}
+          <td class="num bold">${r.balance.toLocaleString()}</td>
+        </tr>`;
+      });
+
+      // 合計行
+      rowsHtml += `<tr class="total-row">
+        <td colspan="2">合計</td>
+        <td class="num">${totalReceive.toLocaleString()}</td>
+        <td class="num">${totalPay.toLocaleString()}</td>
+        ${CATS.map(c => `<td class="num">${catTotals[c] ? catTotals[c].toLocaleString() : ''}</td>`).join('')}
+        <td class="num"></td>
+      </tr>`;
+
+      const finalBalance = monthRows.length ? monthRows[monthRows.length-1].balance : carryover;
+
+      var pw = window.open('', '_blank', 'width=1100,height=750');
       pw.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-        <title>小口現金管理表 印刷</title>
+        <title>小口現金出納帳 印刷</title>
         <style>
-          body { font-family: sans-serif; padding: 20px; color: #333; }
-          h2 { font-size: 1.2rem; margin-bottom: 4px; }
-          .meta { font-size: 0.9rem; color: #555; margin-bottom: 2px; }
-          .balance { font-size: 1rem; font-weight: 800; color: #16a34a; margin-bottom: 16px; }
-          table { width: 100%; border-collapse: collapse; font-size: 9pt; }
-          th { background: #333; color: white; padding: 6px 10px; text-align: left;
-               font-size: 8pt; font-weight: 700; white-space: nowrap;
+          body { font-family: 'Hiragino Mincho ProN', serif; padding: 20px; color: #222; }
+          h2 { font-size: 1.3rem; text-align: center; margin-bottom: 6px; letter-spacing: 0.3em; }
+          .meta { font-size: 0.85rem; color: #555; margin-bottom: 12px; text-align: right; }
+          table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+          th, td { border: 1px solid #333; padding: 4px 6px; }
+          th { background: #f0ebe0; text-align: center; font-weight: 700;
                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          td { padding: 4px 10px; border-bottom: 1px solid #ccc; white-space: nowrap; }
-          tr.carryover-row td { background: #e8f4f8 !important; font-weight: 700; color: #0369a1;
-               border-top: 2px solid #666; border-bottom: 2px solid #666;
+          th.group { background: #e0d8c8; }
+          td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+          td.bold { font-weight: 700; }
+          tr.carry-row td { background: #f5f0e8 !important; font-weight: 700;
                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          tr.withdrawal-row td { background: #fff0f0 !important;
+          tr.total-row td { background: #eee !important; font-weight: 800; border-top: 2px solid #333;
                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          @page { size: A4 portrait; margin: 8mm 10mm; }
+          @page { size: A4 landscape; margin: 10mm; }
           @media print { .no-print { display: none; } }
         </style>
       </head><body>
-        <h2>💴 小口現金管理表</h2>
-        <p class="meta">対象月：${monthLabel}</p>
-        <p class="balance">現在の残高（小口現金）：${balance}</p>
-        ${tableHTML}
+        <h2>小 口 現 金 出 納 帳</h2>
+        <p class="meta">対象月：${monthLabel}　　現在の残高：¥${finalBalance.toLocaleString()}</p>
+        <table>
+          <thead>
+            <tr>
+              <th rowspan="2">月日</th>
+              <th rowspan="2">摘要</th>
+              <th rowspan="2">受入</th>
+              <th rowspan="2">支払</th>
+              <th colspan="6" class="group">内訳</th>
+              <th rowspan="2">残高</th>
+            </tr>
+            <tr>
+              ${CATS.map(c => `<th class="group">${c}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
         <div class="no-print" style="margin-top:20px;text-align:center;">
           <button onclick="window.print()" style="padding:10px 30px;font-size:1rem;font-weight:700;
             background:#2563eb;color:white;border:none;border-radius:10px;cursor:pointer;">
