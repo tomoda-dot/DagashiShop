@@ -3006,21 +3006,6 @@ var CSV_COLS = [
   { key:'name_kana',  label:'読み仮名',     fn: function(p){ return p.name_kana||''; } },
   { key:'barcode',    label:'バーコード',   fn: function(p){ return p.barcode||''; } },
   { key:'stock',      label:'在庫数',       fn: function(p){ return p.stock||0; } },
-  { key:'buy_price',  label:'仕入単価(ロット)', fn: function(p){ return p.buy_price||0; } },
-  { key:'tanka',      label:'仕入単価(1個)', fn: function(p){
-    return (p.buy_price && p.buy_qty) ? Math.round(p.buy_price/p.buy_qty*100)/100 : '';
-  }},
-  { key:'sell_price', label:'販売価格',     fn: function(p){ return p.sell_price||0; } },
-  { key:'price',      label:'参考価格',     fn: function(p){ return p.price||0; } },
-  { key:'margin',     label:'粗利(円)',     fn: function(p){
-    if(!p.buy_price||!p.buy_qty||!p.sell_price) return '';
-    return Math.round((p.sell_price - p.buy_price/p.buy_qty*1.08)*100)/100;
-  }},
-  { key:'margin_pct', label:'粗利率(%)',    fn: function(p){
-    if(!p.buy_price||!p.buy_qty||!p.sell_price) return '';
-    var m = p.sell_price - p.buy_price/p.buy_qty*1.08;
-    return Math.round(m/p.sell_price*1000)/10;
-  }},
   { key:'memo',       label:'備考',         fn: function(p){ return p.memo||''; } }
 ];
 
@@ -3035,7 +3020,7 @@ function openCsvModal() {
   // 列チェックボックス生成
   var colDiv = document.getElementById('csv-col-checks');
   colDiv.innerHTML = CSV_COLS.map(function(c) {
-    var checked = (c.key==='name'||c.key==='maker'||c.key==='sell_price'||c.key==='margin'||c.key==='margin_pct') ? 'checked' : '';
+    var checked = (c.key==='name'||c.key==='maker') ? 'checked' : '';
     return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:4px 6px;border:1px solid var(--bd);border-radius:8px;">'
       + '<input type="checkbox" data-col="'+c.key+'" '+checked+'> '+c.label+'</label>';
   }).join('');
@@ -3158,7 +3143,13 @@ function buildAndDownloadCsv(selCols, selProds, supplierMap) {
   // ヘッダー生成
   var headerParts = selCols.map(function(c){ return c.label; });
   supplierNames.forEach(function(name){
-    headerParts.push(name+'単価(1個)', name+'粗利(円)', name+'粗利率(%)');
+    headerParts.push(
+      name+'仕入単価(ロット)',
+      name+'仕入単価(1個)',
+      name+'販売価格',
+      name+'粗利(円)',
+      name+'粗利率(%)'
+    );
   });
   var header = headerParts.map(function(h){ return '"'+h+'"'; }).join(',');
 
@@ -3179,9 +3170,15 @@ function buildAndDownloadCsv(selCols, selProds, supplierMap) {
           var sell = p.sell_price || p.price || 0;
           var margin = sell ? Math.round((sell-tankaTax)*10)/10 : '';
           var marginPct = (sell && margin!=='') ? Math.round(margin/sell*1000)/10 : '';
-          parts.push('"'+tankaTax+'"', '"'+margin+'"', '"'+marginPct+'"');
+          parts.push(
+            '"'+match.buy_price+'"',
+            '"'+tankaTax+'"',
+            '"'+sell+'"',
+            '"'+margin+'"',
+            '"'+marginPct+'"'
+          );
         } else {
-          parts.push('""','""','""');
+          parts.push('""','""','""','""','""');
         }
       });
     }
