@@ -453,6 +453,15 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
       <div id="csv-col-checks" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>
     </div>
 
+    <!-- 仕入れ先比較オプション -->
+    <div style="margin-bottom:16px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;cursor:pointer;">
+        <input type="checkbox" id="csv-include-suppliers">
+        仕入れ先別の単価・粗利を比較列として追加する
+      </label>
+      <div style="font-size:11px;color:var(--t3);margin-top:4px;">商品に登録されている仕入れ先ごとに「○○単価」「○○粗利」「○○粗利率」の列が追加されます</div>
+    </div>
+
     <!-- 商品の選択 -->
     <div style="margin-bottom:16px;">
       <div style="font-size:13px;font-weight:700;color:var(--t2);margin-bottom:8px;">出力する商品を選択</div>
@@ -3019,6 +3028,10 @@ var csvSelectedProds = []; // 選択商品のidリスト
 var csvFilteredProds = []; // 現在の絞り込み結果
 
 function openCsvModal() {
+  // suppliersが未ロードなら取得（仕入れ先比較用）
+  if (!suppliers.length) {
+    run1('getSuppliers').then(function(rows){ suppliers = rows || []; }).catch(function(){});
+  }
   // 列チェックボックス生成
   var colDiv = document.getElementById('csv-col-checks');
   colDiv.innerHTML = CSV_COLS.map(function(c) {
@@ -3100,22 +3113,81 @@ function downloadCsv() {
     var el = document.querySelector('#csv-col-checks input[data-col="'+c.key+'"]');
     return el && el.checked;
   });
-  if(!selCols.length){ toast('列を1つ以上選択してください'); return; }
+  var includeSuppliers = document.getElementById('csv-include-suppliers').checked;
+  if(!selCols.length && !includeSuppliers){ toast('列を1つ以上選択してください'); return; }
   if(!csvSelectedProds.length){ toast('商品を1つ以上選択してください'); return; }
 
   // 選択商品を順序通りに取得
   var selProds = prods.filter(function(p){ return csvSelectedProds.indexOf(p.id)>=0; });
 
-  // CSV生成（BOM付きUTF-8でExcelが文字化けしない）
-  var header = selCols.map(function(c){return '"'+c.label+'"';}).join(',');
+  if (!includeSuppliers) {
+    buildAndDownloadCsv(selCols, selProds, {});
+    return;
+  }
+
+  // 仕入れ先データを全商品分まとめて取得
+  toast('仕入れ先データを取得中...');
+  var promises = selProds.map(function(p){
+    return run1('getProductSuppliers', p.id).then(function(rows){
+      return { id: p.id, rows: rows || [] };
+    }).catch(function(){ return { id: p.id, rows: [] }; });
+  });
+
+  Promise.all(promises).then(function(results){
+    var supplierMap = {}; // productId -> [{supplier_id, buy_price, buy_qty, is_primary}]
+    results.forEach(function(r){ supplierMap[r.id] = r.rows; });
+    buildAndDownloadCsv(selCols, selProds, supplierMap);
+  }).catch(function(e){
+    toast('仕入れ先データの取得に失敗しました: ' + (e.message||e));
+  });
+}
+
+function buildAndDownloadCsv(selCols, selProds, supplierMap) {
+  // 全商品に登場する仕入れ先名を集める（出現順）
+  var supplierNames = [];
+  var hasSuppliers = Object.keys(supplierMap).length > 0;
+  if (hasSuppliers) {
+    selProds.forEach(function(p){
+      (supplierMap[p.id]||[]).forEach(function(row){
+        var name = getSupName(row.supplier_id) || ('仕入れ先'+row.supplier_id);
+        if (supplierNames.indexOf(name) < 0) supplierNames.push(name);
+      });
+    });
+  }
+
+  // ヘッダー生成
+  var headerParts = selCols.map(function(c){ return c.label; });
+  supplierNames.forEach(function(name){
+    headerParts.push(name+'単価(1個)', name+'粗利(円)', name+'粗利率(%)');
+  });
+  var header = headerParts.map(function(h){ return '"'+h+'"'; }).join(',');
+
+  // 行生成
   var rows = selProds.map(function(p){
-    return selCols.map(function(c){
+    var parts = selCols.map(function(c){
       var v = c.fn(p);
       if(v===null||v===undefined) v='';
-      v = String(v).replace(/"/g,'""');
-      return '"'+v+'"';
-    }).join(',');
+      return '"'+String(v).replace(/"/g,'""')+'"';
+    });
+    if (hasSuppliers) {
+      var prows = supplierMap[p.id] || [];
+      supplierNames.forEach(function(name){
+        var match = prows.filter(function(r){ return (getSupName(r.supplier_id)||('仕入れ先'+r.supplier_id))===name; })[0];
+        if (match && match.buy_price && match.buy_qty) {
+          var tanka = Math.round(match.buy_price/match.buy_qty*100)/100;
+          var tankaTax = Math.round(tanka*1.08*100)/100;
+          var sell = p.sell_price || p.price || 0;
+          var margin = sell ? Math.round((sell-tankaTax)*10)/10 : '';
+          var marginPct = (sell && margin!=='') ? Math.round(margin/sell*1000)/10 : '';
+          parts.push('"'+tankaTax+'"', '"'+margin+'"', '"'+marginPct+'"');
+        } else {
+          parts.push('""','""','""');
+        }
+      });
+    }
+    return parts.join(',');
   });
+
   var csv = '\uFEFF' + header + '\n' + rows.join('\n');
 
   // ダウンロード
