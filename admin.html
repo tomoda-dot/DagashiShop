@@ -74,6 +74,17 @@
       letter-spacing: 0.05em; white-space: nowrap;
       position: sticky; top: 0; z-index: 10;
     }
+    .detail-table th.text-right,
+    .detail-table td.text-right { text-align: right !important; }
+    .detail-table th, .detail-table td {
+      border-right: 1px solid rgba(148,163,184,0.25);
+    }
+    .detail-table th {
+      border-right: 1px solid rgba(255,255,255,0.15);
+    }
+    .detail-table th:last-child, .detail-table td:last-child {
+      border-right: none;
+    }
     .detail-table td {
       padding: 8px 12px; border-bottom: 1px solid #f1f5f9;
       white-space: nowrap; color: #334155;
