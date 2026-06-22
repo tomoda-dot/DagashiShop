@@ -1772,18 +1772,18 @@
       }
     }
 
-    async function fetchTableAsCSV(table, dateCol, year, columns, header) {
-      const from = `${year}-01-01`;
-      const to   = `${year}-12-31`;
+    async function fetchTableAsCSV(t) {
+      const from = t.fromVal || `${t.year}-01-01`;
+      const to   = t.toVal   || `${t.year}-12-31`;
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/${table}?${dateCol}=gte.${from}&${dateCol}=lte.${to}&select=${columns}&order=${dateCol}.asc`,
+        `${SUPABASE_URL}/rest/v1/${t.table}?${t.dateCol}=gte.${encodeURIComponent(from)}&${t.dateCol}=lte.${encodeURIComponent(to)}&select=${t.columns}&order=${t.dateCol}.asc`,
         { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON } }
       );
-      if (!res.ok) throw new Error(table + ' 取得失敗');
+      if (!res.ok) throw new Error(t.table + ' 取得失敗');
       const rows = await res.json();
       if (!rows.length) return null;
-      const cols = columns.split(',');
-      const csvHeader = header.map(h => `"${h}"`).join(',');
+      const cols = t.columns.split(',');
+      const csvHeader = t.header.map(h => `"${h}"`).join(',');
       const csvRows = rows.map(r => cols.map(c => {
         const v = r[c.trim()] ?? '';
         return `"${String(v).replace(/"/g, '""')}"`;
@@ -1822,7 +1822,9 @@
             table: 'order_items', dateCol: 'created_at', year,
             columns: 'created_at,order_id,label,price,qty,subtotal,received,change,status',
             header: ['日時', '注文ID', '商品名', '単価', '個数', '小計', '預り金', 'おつり', '状態'],
-            filename: `明細管理_${year}.csv`
+            filename: `明細管理_${year}.csv`,
+            fromVal: `${year}-01-01T00:00:00`,
+            toVal:   `${year}-12-31T23:59:59`
           },
           {
             table: 'petty_cash', dateCol: 'date', year,
@@ -1835,7 +1837,7 @@
         let count = 0;
         for (const t of tables) {
           status.textContent = `${t.table} を取得中...`;
-          const csv = await fetchTableAsCSV(t.table, t.dateCol, t.year, t.columns, t.header);
+          const csv = await fetchTableAsCSV(t);
           if (csv) {
             downloadBlob(csv, t.filename);
             count++;
@@ -1922,15 +1924,15 @@
 
         // ── 各テーブルの対象年データを削除 ──
         const targets = [
-          { table: 'daily_summary', col: 'date' },
-          { table: 'savings',       col: 'date' },
-          { table: 'order_items',   col: 'created_at' },
-          { table: 'petty_cash',    col: 'date' }
+          { table: 'daily_summary', col: 'date',       from, to },
+          { table: 'savings',       col: 'date',       from, to },
+          { table: 'order_items',   col: 'created_at', from: `${year}-01-01T00:00:00`, to: `${year}-12-31T23:59:59` },
+          { table: 'petty_cash',    col: 'date',       from, to }
         ];
         for (const t of targets) {
           status.textContent = `${t.table} を削除中...`;
           const res = await fetch(
-            `${SUPABASE_URL}/rest/v1/${t.table}?${t.col}=gte.${from}&${t.col}=lte.${to}`,
+            `${SUPABASE_URL}/rest/v1/${t.table}?${t.col}=gte.${encodeURIComponent(t.from)}&${t.col}=lte.${encodeURIComponent(t.to)}`,
             {
               method: 'DELETE',
               headers: {
