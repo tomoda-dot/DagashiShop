@@ -174,6 +174,7 @@ GAS.updateProduct = function(p) {
   if (p.name      !== undefined) body.name      = p.name;
   if (p.name_kana !== undefined) body.name_kana = p.name_kana;
   if (p.maker     !== undefined) body.maker      = p.maker;
+  if (p.barcode   !== undefined) body.barcode   = p.barcode;
   if (p.cat       !== undefined) body.cat        = p.cat;
   if (p.stock      !== undefined) body.stock      = Number(p.stock);
   if (p.min       !== undefined) body.min        = Number(p.min);
@@ -303,8 +304,34 @@ GAS.getProductImg = function(id) {
 };
 // ─ saveImageData / updateImg ─
 GAS.saveImageData = function(base64data, productId) {
-  return sbPatch('products', 'id=eq.' + productId, { img: base64data })
-    .then(function() { return { ok: true, url: base64data }; });
+  // Base64 → Blob に変換してStorageにアップロード
+  var mime = 'image/jpeg';
+  var b64 = base64data.replace(/^data:[^;]+;base64,/, '');
+  try {
+    var byteStr = atob(b64);
+    var arr = new Uint8Array(byteStr.length);
+    for (var i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
+    var blob = new Blob([arr], { type: mime });
+  } catch(e) {
+    return Promise.reject(new Error('画像変換エラー: ' + e.message));
+  }
+  var filename = productId + '.jpg';
+  var storageUrl = SUPABASE_URL + '/storage/v1/object/product-images/' + filename;
+  return fetch(storageUrl, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON,
+      'Authorization': 'Bearer ' + SUPABASE_ANON,
+      'Content-Type': mime,
+      'x-upsert': 'true'
+    },
+    body: blob
+  }).then(function(res) {
+    if (!res.ok) return res.text().then(function(t){ throw new Error(t); });
+    var publicUrl = SUPABASE_URL + '/storage/v1/object/public/product-images/' + filename;
+    return sbPatch('products', 'id=eq.' + productId, { img_url: publicUrl })
+      .then(function() { return { ok: true, url: publicUrl }; });
+  });
 };
 GAS.updateImg = function(id, img) {
   return sbPatch('products', 'id=eq.' + id, { img: img || null })

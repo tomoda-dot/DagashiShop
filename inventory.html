@@ -1311,7 +1311,7 @@ function saveAdd(){
   var d=detFormData();
   if(!d.name){toast('商品名を入力してください');return;}
   setSS('sv');
-  run1('addProduct',{name:d.name,name_kana:d.name_kana,maker:d.maker,cat:d.cat,unit:d.unit,min:d.min,exp:d.exp,price:d.price,sell_price:d.sell_price,stock:0,buy_price:d.buy_price,buy_qty:d.buy_qty})
+  run1('addProduct',{name:d.name,name_kana:d.name_kana,maker:d.maker,barcode:d.barcode,cat:d.cat,unit:d.unit,min:d.min,exp:d.exp,price:d.price,sell_price:d.sell_price,stock:0,buy_price:d.buy_price,buy_qty:d.buy_qty,memo:d.memo,status:'active'})
   .then(function(){closeDet();return loadData();})
   .then(function(){toast('「'+d.name+'」を在庫に追加しました！');})
   .catch(function(e){setSS('er');toast('エラー: '+(e.message||e));});
@@ -1825,15 +1825,14 @@ function applyImg(){
   function doSave(d){
     var kb=Math.round(d.length*0.75/1024);
     progLbl.textContent='保存中... ('+kb+'KB)'; progVal.style.width='70%';
-    if(d.length>49000){onFail('画像が大きすぎます('+kb+'KB)。より小さい画像を使ってください。');return;}
     GAS.saveImageData(d, imgPid)
       .then(function(res){
         progVal.style.width='100%';
         if(res&&res.ok){
-          p.img=d; p.imgSrc='ローカル';
+          p.img_url = res.url;
           if(detPid===imgPid){
             var iw=document.getElementById('det-img-wrap');
-            iw.innerHTML='<img src="'+d+'" style="width:100%;height:100%;object-fit:cover;" />';
+            iw.innerHTML='<img src="'+res.url+'" style="width:100%;height:100%;object-fit:cover;" />';
           }
           closeImg(); renderP(); toast('画像を保存しました！');
         } else { onFail((res&&res.error)?res.error:'不明なエラー'); }
@@ -1856,8 +1855,8 @@ function applyImg(){
 function clearProdImg(){
   var p=prods.filter(function(x){return x.id===imgPid;})[0];
   if(!p)return;
-  p.img=null; p.imgSrc=null;
-  run2('updateImg',imgPid,'').catch(function(){});
+  p.img_url=null; p.img=null; p.imgSrc=null;
+  run1('updateImgUrl',{id:imgPid, img_url:null}).catch(function(){});
   clearPrev(); closeImg(); renderP(); toast('画像を削除しました');
 }
 
