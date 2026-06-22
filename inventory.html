@@ -201,9 +201,10 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
     <!-- 商品選択（仕入れモードのみ） -->
     <div id="det-prod-row" style="display:none;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--bd);">
       <label class="fl">商品を選択</label>
-      <select class="fi" id="det-prod" style="width:100%;" onchange="detProdChange()">
-        <option value="new">＋ 新しい商品を追加</option>
-      </select>
+      <input class="fi" type="text" id="det-prod-search" placeholder="商品名で検索..." oninput="detProdSearchInput()" autocomplete="off" style="width:100%;margin-bottom:6px;" />
+      <div id="det-prod-search-list" style="display:none;max-height:200px;overflow-y:auto;border:1px solid var(--bd);border-radius:10px;background:#fff;"></div>
+      <input type="hidden" id="det-prod" value="new">
+      <div id="det-prod-selected" style="font-size:12px;color:var(--t2);margin-top:4px;"></div>
     </div>
 
     <!-- 画像エリア（編集モードのみ） -->
@@ -817,17 +818,47 @@ function openRestock(){
   document.getElementById('det-stock-inline-wrap').style.display='none';
   document.getElementById('det-other-row').style.display='none';
   document.getElementById('det-exp-wrap').style.display='';
-  // Product selector
-  var sel=document.getElementById('det-prod');
-  var rsProds=prods.filter(function(p){return p.status!=='discontinued';});
-  sel.innerHTML='<option value="new">＋ 新しい商品を追加</option>'
-    +rsProds.map(function(p){
-      var label=p.name+(p.status==='hidden'?' 【一時非表示】':'');
-      return '<option value="'+p.id+'">'+label+'</option>';
-    }).join('');
+  // 検索UIを初期化
+  document.getElementById('det-prod-search').value='';
+  document.getElementById('det-prod').value='new';
+  document.getElementById('det-prod-selected').textContent='▶ 新しい商品を追加';
+  document.getElementById('det-prod-search-list').style.display='none';
   document.getElementById('det-prod-row').style.display='block';
+  // 仕入れ価格欄を表示
+  document.getElementById('det-suppliers-section').style.display='';
   detProdChange();
   document.getElementById('det-modal').style.display='flex';
+}
+
+function detProdSearchInput() {
+  var q = document.getElementById('det-prod-search').value.trim();
+  var list = document.getElementById('det-prod-search-list');
+  if (!q) { list.style.display='none'; return; }
+  var rsProds = prods.filter(function(p){ return p.status !== 'discontinued'; });
+  var matched = rsProds.filter(function(p){
+    return p.name.indexOf(q) >= 0 || (p.name_kana && p.name_kana.indexOf(q) >= 0);
+  }).slice(0, 20);
+  var html = '<div onclick="detProdSelectId(\'new\')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--bd);font-weight:700;color:var(--red);">＋ 新しい商品を追加</div>';
+  html += matched.map(function(p){
+    return '<div onclick="detProdSelectId('+p.id+')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--bd);font-size:13px;">'+p.name+'</div>';
+  }).join('');
+  if (!matched.length) html += '<div style="padding:10px 14px;color:var(--t3);font-size:13px;">見つかりません</div>';
+  list.innerHTML = html;
+  list.style.display = '';
+}
+
+function detProdSelectId(id) {
+  document.getElementById('det-prod').value = id;
+  document.getElementById('det-prod-search-list').style.display = 'none';
+  if (id === 'new') {
+    document.getElementById('det-prod-search').value = '';
+    document.getElementById('det-prod-selected').textContent = '▶ 新しい商品を追加';
+  } else {
+    var p = prods.filter(function(x){ return x.id === parseInt(id); })[0];
+    document.getElementById('det-prod-search').value = p ? p.name : '';
+    document.getElementById('det-prod-selected').textContent = '';
+  }
+  detProdChange();
 }
 
 function detProdChange(){
@@ -873,6 +904,8 @@ function detProdChange(){
       spEl2.dataset.edited=p.sell_price?'1':'';
       document.getElementById('det-exp').value='';
       detCalc();
+      // 仕入れ先タブをロード
+      loadProductSuppliers(pid);
     }
   }
   setDetFoot(isNew?'add':'restock');
@@ -1287,7 +1320,6 @@ function saveAdd(){
 function saveAddRestock(){
   var d=detFormData();
   if(!d.name){toast('商品名を入力してください');return;}
-  if(!d.buy_qty||d.buy_qty<1){toast('入り数を入力してください');return;}
   setSS('sv');
   var tanka=d.buy_price>0&&d.buy_qty>0?d.buy_price/d.buy_qty:0;
   var today=new Date().toISOString().split('T')[0];
