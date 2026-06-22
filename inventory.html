@@ -1320,6 +1320,20 @@ function saveAdd(){
 function saveAddRestock(){
   var d=detFormData();
   if(!d.name){toast('商品名を入力してください');return;}
+  // 同じ商品名が既に登録されていないか確認
+  var duplicate=prods.filter(function(p){
+    return p.name.trim()===d.name.trim() && p.status!=='discontinued';
+  });
+  if(duplicate.length>0){
+    showConfirm('「'+d.name+'」は既に登録されています。\n重複して追加しますか？', function(){
+      doSaveAddRestock(d);
+    });
+    return;
+  }
+  doSaveAddRestock(d);
+}
+
+function doSaveAddRestock(d){
   setSS('sv');
   var tanka=d.buy_price>0&&d.buy_qty>0?d.buy_price/d.buy_qty:0;
   var today=new Date().toISOString().split('T')[0];
