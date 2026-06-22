@@ -1865,8 +1865,9 @@
 
     async function archiveDelete() {
       const year = document.getElementById('archive-year').value;
-      if (!confirm(`${year}年のデータをDBから削除します。\n\n必ずCSVをダウンロード済みであることを確認してください。\n\n・小口現金・積立金は残高を繰越行として自動挿入します。\n\n本当に削除しますか？`)) return;
-      if (!confirm(`最終確認：${year}年のデータを完全削除します。この操作は取り消せません。`)) return;
+      if (!confirm(`【確認1/3】\n\n${year}年のデータをDBから削除します。\n\n必ずCSVをダウンロード済みであることを確認してください。`)) return;
+      if (!confirm(`【確認2/3】\n\n小口現金・積立金は残高を繰越行として自動挿入します。\n日計表・明細管理は完全に削除されます。\n\n本当によろしいですか？`)) return;
+      if (!confirm(`【確認3/3・最終確認】\n\n${year}年のデータを完全削除します。\nこの操作は絶対に取り消せません。\n\n実行しますか？`)) return;
 
       const status = document.getElementById('archive-status');
       const from = `${year}-01-01`;
