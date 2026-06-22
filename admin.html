@@ -109,14 +109,13 @@
 
     /* 小口現金テーブル：列幅を固定してヘッダーとずれないように */
     .pettycash-table { table-layout: fixed; }
-    .pettycash-table th:nth-child(1), .pettycash-table td:nth-child(1) { width: 12%; }
+    .pettycash-table th:nth-child(1), .pettycash-table td:nth-child(1) { width: 13%; }
     .pettycash-table th:nth-child(2), .pettycash-table td:nth-child(2) { width: 8%; }
     .pettycash-table th:nth-child(3), .pettycash-table td:nth-child(3) { width: 14%; }
-    .pettycash-table th:nth-child(4), .pettycash-table td:nth-child(4) { width: 26%; white-space: normal; }
+    .pettycash-table th:nth-child(4), .pettycash-table td:nth-child(4) { width: 30%; white-space: normal; }
     .pettycash-table th:nth-child(5), .pettycash-table td:nth-child(5) { width: 12%; }
     .pettycash-table th:nth-child(6), .pettycash-table td:nth-child(6) { width: 12%; }
-    .pettycash-table th:nth-child(7), .pettycash-table td:nth-child(7) { width: 12%; }
-    .pettycash-table th:nth-child(8), .pettycash-table td:nth-child(8) { width: 8%; min-width: 50px; }
+    .pettycash-table th:nth-child(7), .pettycash-table td:nth-child(7) { width: 11%; }
 
     /* 明細管理テーブル：列幅を固定 */
     .summary-detail-table { table-layout: fixed; }
@@ -474,7 +473,6 @@
               <th class="text-right">入金額</th>
               <th class="text-right">出金額</th>
               <th class="text-right">残高</th>
-              <th>操作</th>
             </tr>
           </thead>
           <tbody id="pettycash-tbody">
@@ -484,7 +482,46 @@
       </div>
     </section>
 
-    <!-- 小口現金 入出金モーダル -->
+    <!-- 小口現金 編集モーダル -->
+  <div id="pettycash-edit-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
+      <h3 class="font-bold text-lg mb-4" id="pettycash-edit-title">✏️ 編集</h3>
+      <input type="hidden" id="pettycash-edit-id">
+      <input type="hidden" id="pettycash-edit-type">
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">日付</label>
+          <input type="date" id="pettycash-edit-date" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">金額（円）</label>
+          <input type="number" id="pettycash-edit-amount" min="0" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+        </div>
+        <div id="pettycash-edit-category-wrap">
+          <label class="text-xs font-bold text-slate-500 block mb-1">内訳</label>
+          <select id="pettycash-edit-category" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+            <option value="消耗品費">消耗品費</option>
+            <option value="旅費交通費">旅費交通費</option>
+            <option value="通信費">通信費</option>
+            <option value="水道光熱費">水道光熱費</option>
+            <option value="新聞図書費">新聞図書費</option>
+            <option value="雑費">雑費</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">内容（摘要）</label>
+          <textarea id="pettycash-edit-memo" rows="2" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none"></textarea>
+        </div>
+      </div>
+      <div class="flex gap-2 mt-5">
+        <button onclick="deletePettyCashRowById()" class="bg-red-500 hover:bg-red-400 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition">削除</button>
+        <button onclick="closePettyCashEditModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
+        <button onclick="savePettyCashEdit()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 小口現金 入出金モーダル -->
     <div id="pettycash-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
       <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
         <h3 class="font-bold text-lg mb-4" id="pettycash-modal-title">入金を追加</h3>
@@ -1390,7 +1427,7 @@
       let html = sorted.map(r => {
         const isDeposit = r.type === '入金';
         const amount = Number(r.amount) || 0;
-        return `<tr class="${isDeposit ? 'deposit-row' : 'withdrawal-row'}">
+        return `<tr class="${isDeposit ? 'deposit-row' : 'withdrawal-row'}" onclick="openPettyCashEditModal(${r.id})" style="cursor:pointer;" title="クリックで編集・削除">
           <td class="font-mono text-sm">${r.date}</td>
           <td>${isDeposit ? '<span class="text-blue-600 font-bold">入金</span>' : '<span class="text-red-500 font-bold">出金</span>'}</td>
           <td class="text-slate-600">${r.reason || ''}</td>
@@ -1398,7 +1435,6 @@
           <td class="text-right font-mono font-bold text-blue-600">${isDeposit ? '¥' + amount.toLocaleString() : ''}</td>
           <td class="text-right font-mono font-bold ${!isDeposit ? 'text-red-500' : ''}">${!isDeposit ? '¥' + amount.toLocaleString() : ''}</td>
           <td class="text-right font-mono font-black text-emerald-600 text-base">¥${r.balance.toLocaleString()}</td>
-          <td><button onclick="deletePettyCashRow(${r.id})" class="text-red-400 hover:text-red-600 text-xs font-bold">削除</button></td>
         </tr>`;
       }).join('');
 
@@ -1407,7 +1443,6 @@
           <td class="font-mono text-sm">${month}-01</td>
           <td></td><td>📋 前月繰越</td><td></td><td></td><td></td>
           <td class="text-right font-mono font-black text-sky-700 text-base">¥${carryover.toLocaleString()}</td>
-          <td></td>
         </tr>`;
       }
 
@@ -1459,6 +1494,68 @@
         }).catch(function(e) {
           showNotify('エラー: ' + e, 'error');
         });
+    }
+
+    function openPettyCashEditModal(id) {
+      const row = g_allPettyCashData.filter(r => r.id === id)[0];
+      if (!row) return;
+      const isDeposit = row.type === '入金';
+      document.getElementById('pettycash-edit-id').value = id;
+      document.getElementById('pettycash-edit-type').value = row.type;
+      document.getElementById('pettycash-edit-title').textContent = (isDeposit ? '✏️ 入金を編集' : '✏️ 出金を編集');
+      document.getElementById('pettycash-edit-date').value = row.date;
+      document.getElementById('pettycash-edit-amount').value = row.amount;
+      document.getElementById('pettycash-edit-memo').value = row.memo || '';
+      // 内訳（出金のみ）
+      const catWrap = document.getElementById('pettycash-edit-category-wrap');
+      catWrap.style.display = isDeposit ? 'none' : '';
+      if (!isDeposit && row.reason) {
+        document.getElementById('pettycash-edit-category').value = row.reason;
+      }
+      document.getElementById('pettycash-edit-modal').classList.remove('hidden');
+      document.getElementById('pettycash-edit-modal').classList.add('flex');
+    }
+
+    function closePettyCashEditModal() {
+      document.getElementById('pettycash-edit-modal').classList.add('hidden');
+      document.getElementById('pettycash-edit-modal').classList.remove('flex');
+    }
+
+    function savePettyCashEdit() {
+      const id     = document.getElementById('pettycash-edit-id').value;
+      const type   = document.getElementById('pettycash-edit-type').value;
+      const date   = document.getElementById('pettycash-edit-date').value;
+      const amount = parseInt(document.getElementById('pettycash-edit-amount').value) || 0;
+      const reason = type === '出金' ? document.getElementById('pettycash-edit-category').value : '';
+      const memo   = document.getElementById('pettycash-edit-memo').value.trim();
+      if (!date) { showNotify('日付を入力してください', 'error'); return; }
+      if (amount <= 0) { showNotify('金額を入力してください', 'error'); return; }
+      // PATCH
+      fetch(`${SUPABASE_URL}/rest/v1/petty_cash?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_ANON,
+          'Authorization': 'Bearer ' + SUPABASE_ANON,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ date, type, amount, reason, memo })
+      }).then(res => {
+        if (!res.ok) throw new Error('更新失敗');
+        showNotify('更新しました', 'success');
+        closePettyCashEditModal();
+        loadPettyCashData();
+      }).catch(e => showNotify('エラー: ' + e, 'error'));
+    }
+
+    function deletePettyCashRowById() {
+      if (!confirm('この記録を削除しますか？')) return;
+      const id = document.getElementById('pettycash-edit-id').value;
+      GAS.deletePettyCashRow(id).then(() => {
+        showNotify('削除しました', 'success');
+        closePettyCashEditModal();
+        loadPettyCashData();
+      }).catch(e => showNotify('エラー: ' + e, 'error'));
     }
 
     function onPettyCashSupplierSelect() {
