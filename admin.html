@@ -604,6 +604,37 @@
 
   </main>
 
+  <!-- 積立金 編集モーダル -->
+  <div id="savings-edit-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
+      <h3 class="font-bold text-lg mb-4">✏️ 出金データを編集</h3>
+      <input type="hidden" id="savings-edit-id">
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">日付</label>
+          <input type="date" id="savings-edit-date" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">取引先</label>
+          <input type="text" id="savings-edit-partner" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="例：ジュントウ">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">内容</label>
+          <input type="text" id="savings-edit-content" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="例：駄菓子">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">出金額（円）</label>
+          <input type="number" id="savings-edit-withdrawal" min="0" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+        </div>
+      </div>
+      <div class="flex gap-2 mt-5">
+        <button onclick="deleteSavingsRow()" class="bg-red-500 hover:bg-red-400 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition">削除</button>
+        <button onclick="closeSavingsEditModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
+        <button onclick="saveSavingsEdit()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 積立金 出金追加モーダル -->
   <div class="edit-modal-overlay" id="savings-add-modal">
     <div class="edit-modal">
@@ -1173,8 +1204,8 @@
       html += sorted.map(r => {
         const isDeposit = r.type === 'deposit';
         const rowClass  = isDeposit ? 'deposit-row' : 'withdrawal-row';
-
-        return `<tr class="${rowClass}">
+        const clickable = r.type === 'withdrawal' && r.id ? `onclick="openSavingsEditModal(${r.id})" style="cursor:pointer;" title="クリックで編集・削除"` : '';
+        return `<tr class="${rowClass}" ${clickable}>
           <td class="font-mono text-sm">${r.date}</td>
           <td class="text-slate-600">${r.partner || ''}</td>
           <td class="text-slate-600">${r.content || ''}</td>
@@ -1563,6 +1594,48 @@
         </div>
 </body></html>`);
       pw.document.close();
+    }
+
+    function openSavingsEditModal(id) {
+      const row = g_allSavingsData.filter(r => r.id === id)[0];
+      if (!row) return;
+      document.getElementById('savings-edit-id').value = id;
+      document.getElementById('savings-edit-date').value = row.date;
+      document.getElementById('savings-edit-partner').value = row.partner || '';
+      document.getElementById('savings-edit-content').value = row.content || '';
+      document.getElementById('savings-edit-withdrawal').value = row.withdrawal || '';
+      document.getElementById('savings-edit-modal').classList.remove('hidden');
+      document.getElementById('savings-edit-modal').classList.add('flex');
+    }
+
+    function closeSavingsEditModal() {
+      document.getElementById('savings-edit-modal').classList.add('hidden');
+      document.getElementById('savings-edit-modal').classList.remove('flex');
+    }
+
+    function saveSavingsEdit() {
+      const id         = document.getElementById('savings-edit-id').value;
+      const date       = document.getElementById('savings-edit-date').value;
+      const partner    = document.getElementById('savings-edit-partner').value.trim();
+      const content    = document.getElementById('savings-edit-content').value.trim();
+      const withdrawal = parseInt(document.getElementById('savings-edit-withdrawal').value) || 0;
+      if (!date) { showNotify('日付を入力してください', 'error'); return; }
+      if (withdrawal <= 0) { showNotify('出金額を入力してください', 'error'); return; }
+      GAS.updateSavingsRow({ id, date, partner, content, withdrawal }).then(() => {
+        showNotify('更新しました', 'success');
+        closeSavingsEditModal();
+        loadSavingsData();
+      }).catch(e => showNotify('エラー: ' + e, 'error'));
+    }
+
+    function deleteSavingsRow() {
+      if (!confirm('この出金データを削除しますか？')) return;
+      const id = document.getElementById('savings-edit-id').value;
+      GAS.deleteSavingsRow(id).then(() => {
+        showNotify('削除しました', 'success');
+        closeSavingsEditModal();
+        loadSavingsData();
+      }).catch(e => showNotify('エラー: ' + e, 'error'));
     }
 
     // ── 設定タブ ──────────────────────────────────

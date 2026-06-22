@@ -90,7 +90,7 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'saveRegiDefaults','getTodaySalesData','saveOrderFromRegi',
     'getSummaryData','saveClosingData','getDetailByDate','getLatestOrderDate',
     'invalidateDetailRow','updateDetailRow','getSavingsData',
-    'addSavingsRow','testConnection','getProductsForBarcode','updateProductBarcode',
+    'addSavingsRow','updateSavingsRow','deleteSavingsRow','testConnection','getProductsForBarcode','updateProductBarcode',
     'getCategories','saveCategory','deleteCategory',
     'getPettyCashData','addPettyCashRow','deletePettyCashRow',
     'getProductSuppliers','saveProductSupplier','deleteProductSupplier'
@@ -736,7 +736,7 @@ GAS.updateDetailRow = function(rowNumber, values) {
 GAS.getSavingsData = function() {
   return Promise.all([
     sbGet('daily_summary', 'select=date,sales_total,diff&order=date.asc'),
-    sbGet('savings',       'select=date,partner,content,withdrawal&order=date.asc')
+    sbGet('savings', 'select=id,date,partner,content,withdrawal&order=date.asc')
   ]).then(function(results) {
     var daily   = results[0] || [];
     var savings = results[1] || [];
@@ -760,7 +760,7 @@ GAS.getSavingsData = function() {
     savings.forEach(function(r) {
       var w = Number(r.withdrawal) || 0;
       if (!r.date) return;
-      allRows.push({ type:'withdrawal', date:r.date, partner:r.partner||'', content:r.content||'', deposit:0, withdrawal:w });
+      allRows.push({ id:r.id, type:'withdrawal', date:r.date, partner:r.partner||'', content:r.content||'', deposit:0, withdrawal:w });
     });
 
     // 日付昇順ソート（同日は入金→出金の順）
@@ -806,6 +806,22 @@ GAS.addSavingsRow = function(rowData) {
     content:    rowData.content    || '',
     withdrawal: rowData.withdrawal || 0
   }).then(function() { return '保存しました'; });
+};
+
+// ─ updateSavingsRow ─
+GAS.updateSavingsRow = function(rowData) {
+  return sbPatch('savings', 'id=eq.' + rowData.id, {
+    date:       rowData.date,
+    partner:    rowData.partner    || '',
+    content:    rowData.content    || '',
+    withdrawal: Number(rowData.withdrawal) || 0
+  }).then(function() { return { ok: true }; });
+};
+
+// ─ deleteSavingsRow ─
+GAS.deleteSavingsRow = function(id) {
+  return sbDelete('savings', 'id=eq.' + id)
+    .then(function() { return { ok: true }; });
 };
 
 // ─ getPettyCashData ─
