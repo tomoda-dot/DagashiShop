@@ -201,7 +201,7 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
     <!-- 商品選択（仕入れモードのみ） -->
     <div id="det-prod-row" style="display:none;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--bd);">
       <label class="fl">商品を選択</label>
-      <input class="fi" type="text" id="det-prod-search" placeholder="商品名で検索..." oninput="detProdSearchInput()" autocomplete="off" style="width:100%;margin-bottom:6px;" />
+      <input class="fi" type="text" id="det-prod-search" placeholder="商品名で検索..." oninput="detProdSearchInput()" autocomplete="on" lang="ja" inputmode="text" style="width:100%;margin-bottom:6px;" />
       <div id="det-prod-search-list" style="display:none;max-height:200px;overflow-y:auto;border:1px solid var(--bd);border-radius:10px;background:#fff;"></div>
       <input type="hidden" id="det-prod" value="new">
       <div id="det-prod-selected" style="font-size:12px;color:var(--t2);margin-top:4px;"></div>
@@ -511,7 +511,7 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
     <!-- コンパクトフィルタバー -->
     <div id="stats" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;"></div>
     <div class="srow">
-      <input class="inp" type="text" id="srch" oninput="renderP()" placeholder="商品名で検索..." style="flex:1;min-width:140px;" />
+      <input class="inp" type="text" id="srch" oninput="renderP()" placeholder="商品名で検索..." style="flex:1;min-width:140px;" inputmode="text" lang="ja" autocomplete="on" x-inputmode="ja" />
       <select class="inp" id="catf" onchange="renderP()">
         <option value="">全カテゴリ</option>
         <option>スナック</option><option>チョコ</option><option>ガム</option><option>グミ</option><option>ラムネ</option><option>ゼリー</option><option>アメ</option><option>ソフトキャンディ</option><option>砂糖菓子</option><option>味付け珍味</option><option>その他</option><option>玩具</option>
@@ -1390,9 +1390,11 @@ function saveRestock(){
   var tanka=d.buy_price>0&&d.buy_qty>0?d.buy_price/d.buy_qty:0;
   var today=new Date().toISOString().split('T')[0];
   var rsData={productId:pid,nm:p.name,iri:d.buy_qty,buy_price:d.buy_price,tanka:tanka,sell:d.sell_price||d.price,d:d.exp||today};
-  // 商品情報を更新してから仕入れ記録
+  // 商品情報・仕入れ先情報を更新してから仕入れ記録
   d.id=pid; d.name=p.name;
   run1('updateProduct',d).then(function(){
+    return saveProductSuppliers(pid);
+  }).then(function(){
     return run1('addRestock',rsData);
   }).then(function(){closeDet();return loadData();})
   .then(function(){toast('「'+p.name+'」を'+d.buy_qty+d.unit+'仕入れました！');})
