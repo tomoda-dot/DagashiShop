@@ -278,7 +278,7 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
       </div>
       <div>
         <label class="fl">カテゴリ</label>
-        <select class="fi" id="det-cat">
+        <select class="fi" id="det-cat" onchange="detCalc()">
           <option>スナック</option><option>チョコ</option><option>ガム</option><option>グミ</option><option>ラムネ</option><option>ゼリー</option><option>アメ</option><option>ソフトキャンディ</option><option>砂糖菓子</option><option>味付け珍味</option><option>その他</option><option>玩具</option>
         </select>
       </div>
@@ -1061,7 +1061,9 @@ function renderSupplierTabs() {
   var r = detProductSuppliers[detActiveSupTab];
   if (!r) return;
 
-  var tankaWith = (r.buy_price && r.buy_qty) ? Math.round(r.buy_price / r.buy_qty * 1.08 * 100) / 100 : 0;
+  var tax = getTaxRate();
+  var tankaWith = (r.buy_price && r.buy_qty) ? Math.round(r.buy_price / r.buy_qty * tax * 100) / 100 : 0;
+  var taxLabel = getTaxLabel();
   var refPrice  = parseFloat(document.getElementById('det-price').value) || 0;
   var sellPrice = parseFloat(document.getElementById('det-sell-price').value) || 0;
   var margin    = (tankaWith && sellPrice) ? Math.round((sellPrice - tankaWith) * 10) / 10 : null;
@@ -1084,7 +1086,7 @@ function renderSupplierTabs() {
     + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">入り数（個）</label>'
     + '<input class="fi" type="number" id="tab-buy-qty" min="1" value="' + (r.buy_qty || 1) + '" oninput="tabFieldChanged()"></div>'
     + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">仕入れ単価（自動計算）</label>'
-    + '<div class="calc" id="tab-tanka" style="font-size:13px;padding:10px 12px;">' + (tankaWith ? tankaWith + '円/個（税込8%）' : '—') + '</div></div>'
+    + '<div class="calc" id="tab-tanka" style="font-size:13px;padding:10px 12px;">' + (tankaWith ? tankaWith + '円/個（' + taxLabel + '）' : '—') + '</div></div>'
     + '<div><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">参考価格（円）</label>'
     + '<input class="fi" type="number" id="tab-ref-price" min="0" value="' + (refPrice || '') + '" oninput="tabRefPriceChanged()">'
     + '</div>'
@@ -1142,8 +1144,8 @@ function tabFieldChanged() {
   var tankaEl = document.getElementById('tab-tanka');
   if(tankaEl) {
     if(row.buy_price && row.buy_qty) {
-      var t = Math.round(row.buy_price/row.buy_qty*1.08*100)/100;
-      tankaEl.textContent = t+'円/個（税込8%）';
+      var t = Math.round(row.buy_price/row.buy_qty*getTaxRate()*100)/100;
+      tankaEl.textContent = t+'円/個（'+getTaxLabel()+'）';
     } else {
       tankaEl.textContent = '—';
     }
@@ -1241,14 +1243,25 @@ function syncSellPrice(){
   if(!sell.dataset.edited) { sell.value=ref; detSellMargin(); }
 }
 
+// カテゴリに応じた税率を返す（玩具=10%、その他=8%）
+function getTaxRate() {
+  var cat = document.getElementById('det-cat') ? document.getElementById('det-cat').value : '';
+  return cat === '玩具' ? 1.10 : 1.08;
+}
+function getTaxLabel() {
+  var cat = document.getElementById('det-cat') ? document.getElementById('det-cat').value : '';
+  return cat === '玩具' ? '税込10%' : '税込8%';
+}
+
 function detSellMargin(){
   var bp=parseFloat(document.getElementById('det-bprice').value)||0;
   var bq=parseInt(document.getElementById('det-bqty').value)||0;
   var sell=parseFloat(document.getElementById('det-sell-price').value)||0;
   var el=document.getElementById('det-sell-margin');
   if(!el) return;
+  var tax=getTaxRate();
   if(bp>0&&bq>0&&sell>0){
-    var t=bp/bq*1.08,m=sell-t,pct=Math.round(m/sell*100);
+    var t=bp/bq*tax,m=sell-t,pct=Math.round(m/sell*100);
     el.textContent='粗利: '+(m>=0?'+':'')+(m%1===0?m:m.toFixed(1))+'円/個（'+pct+'%）';
     el.style.color=m>=0?'var(--grn)':'var(--red)';
   } else { el.textContent=''; }
@@ -1259,9 +1272,10 @@ function detCalc(){
   var bq=parseInt(document.getElementById('det-bqty').value)||0;
   var tel=document.getElementById('det-tanka');
   var pel=document.getElementById('det-price');
+  var tax=getTaxRate();
   if(bp>0&&bq>0){
-    var t=bp/bq*1.08;
-    tel.textContent=(t%1===0?t:t.toFixed(2))+'円 / 個（税込8%）';
+    var t=bp/bq*tax;
+    tel.textContent=(t%1===0?t:t.toFixed(2))+'円 / 個（'+getTaxLabel()+'）';
     tel.style.color='var(--tx)';
     if(!detSellEdited){ pel.value=roundUp5(t); }
     detMargin();
@@ -1275,8 +1289,9 @@ function detMargin(){
   var bq=parseInt(document.getElementById('det-bqty').value)||0;
   var sell=parseFloat(document.getElementById('det-price').value)||0;
   var el=document.getElementById('det-margin');
+  var tax=getTaxRate();
   if(bp>0&&bq>0&&sell>0){
-    var t=bp/bq*1.08,m=sell-t,pct=Math.round(m/sell*100);
+    var t=bp/bq*tax,m=sell-t,pct=Math.round(m/sell*100);
     el.textContent='粗利: '+(m>=0?'+':'')+(m%1===0?m:m.toFixed(1))+'円/個（'+pct+'%）';
     el.style.color=m>=0?'var(--grn)':'var(--red)';
   } else { el.textContent=''; }
@@ -2565,12 +2580,17 @@ function recvCalc(){
   var total = lots * bqty;
   document.getElementById('recv-total').textContent = total > 0 ? total + ' 個' : '—';
   var tanka = price > 0 && bqty > 0 ? Math.round(price / bqty * 100) / 100 : 0;
-  var tankaWithTax = tanka > 0 ? Math.round(tanka * 1.08 * 100) / 100 : 0;
-  document.getElementById('recv-tanka').textContent = tanka > 0 ? tankaWithTax + ' 円/個（税込8%）' : '— 円 / 個';
+  // 商品カテゴリに応じた税率
+  var recvIt = orders.filter(function(x){ return x.id === recvItemId; })[0];
+  var recvProd = recvIt ? prods.filter(function(p){ return p.id === recvIt.product_id; })[0] : null;
+  var recvTax = (recvProd && recvProd.cat === '玩具') ? 1.10 : 1.08;
+  var recvTaxLabel = (recvProd && recvProd.cat === '玩具') ? '税込10%' : '税込8%';
+  var tankaWithTax = tanka > 0 ? Math.round(tanka * recvTax * 100) / 100 : 0;
+  document.getElementById('recv-tanka').textContent = tanka > 0 ? tankaWithTax + ' 円/個（' + recvTaxLabel + '）' : '— 円 / 個';
   var el = document.getElementById('recv-margin');
   if(el){
     if(tanka > 0 && sell > 0){
-      var t = tanka*1.08, m = sell-t, pct = Math.round(m/sell*100);
+      var t = tanka*recvTax, m = sell-t, pct = Math.round(m/sell*100);
       el.textContent = '粗利: '+(m>=0?'+':'')+(m%1===0?m:m.toFixed(1))+'円/個（'+pct+'%）';
       el.style.color = m >= 0 ? 'var(--grn)' : 'var(--red)';
     } else { el.textContent = ''; }
@@ -3230,8 +3250,9 @@ function buildAndDownloadCsv(selCols, selProds, supplierMap) {
       supplierNames.forEach(function(name){
         var match = prows.filter(function(r){ return (getSupName(r.supplier_id)||('仕入れ先'+r.supplier_id))===name; })[0];
         if (match && match.buy_price && match.buy_qty) {
+          var csvTax = (p.cat === '玩具') ? 1.10 : 1.08;
           var tanka = Math.round(match.buy_price/match.buy_qty*100)/100;
-          var tankaTax = Math.round(tanka*1.08*100)/100;
+          var tankaTax = Math.round(tanka*csvTax*100)/100;
           var sell = p.sell_price || p.price || 0;
           var margin = sell ? Math.round((sell-tankaTax)*10)/10 : '';
           var marginPct = (sell && margin!=='') ? Math.round(margin/sell*1000)/10 : '';
