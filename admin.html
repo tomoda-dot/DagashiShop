@@ -612,12 +612,24 @@
       <div class="card p-5">
         <h3 class="font-bold text-slate-700 text-base mb-4">🧮 レジ締め初期値</h3>
         <div class="mb-4">
+          <!-- 合計保管額設定 -->
+          <div class="flex items-center gap-3 mb-3 bg-slate-50 rounded-lg px-4 py-3 border-2 border-slate-200">
+            <span class="text-sm font-bold text-slate-600 w-32">合計保管額</span>
+            <span class="text-xs text-slate-400">（レジ準備金＋金庫）</span>
+            <input type="number" id="cfg-total-cash" class="border-2 border-slate-300 rounded-lg px-3 py-1 text-sm font-mono w-32 text-right outline-none focus:border-blue-300 ml-auto" value="50000" min="0" oninput="calcCfgFixed()">
+            <span class="text-sm text-slate-500">円</span>
+          </div>
+          <!-- 固定準備金・金庫表示 -->
           <div class="flex items-center gap-3 mb-3 bg-blue-50 rounded-lg px-4 py-3 border-2 border-blue-200">
-            <span class="text-sm font-bold text-blue-700 w-28">固定準備金</span>
+            <span class="text-sm font-bold text-blue-700 w-32">固定準備金</span>
             <span class="text-2xl font-black font-mono text-blue-700" id="cfg-fixed-cash-display">¥33,300</span>
             <input type="hidden" id="cfg-fixed-cash" value="33300">
+            <div class="ml-auto text-right">
+              <div class="text-xs text-slate-500">金庫保管額</div>
+              <div class="text-lg font-black font-mono text-slate-600" id="cfg-safe-cash-display">¥16,700</div>
+            </div>
           </div>
-          <div class="text-xs font-bold text-slate-400 mb-2">金種の標準枚数（変更すると固定準備金が自動計算されます）</div>
+          <div class="text-xs font-bold text-slate-400 mb-2">金種の標準枚数（変更すると固定準備金・金庫保管額が自動計算されます）</div>
           <div class="grid grid-cols-3 gap-2">
             <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
               <span class="text-xs font-bold text-slate-500 w-16 text-right">10,000円</span>
@@ -1978,6 +1990,9 @@
             [10000,5000,1000,500,100,50,10,5,1].forEach(function(v) {
               if (d['d'+v] !== undefined) document.getElementById('cfg-d-'+v).value = d['d'+v];
             });
+            if (d.totalCash !== undefined) {
+              document.getElementById('cfg-total-cash').value = d.totalCash;
+            }
           }
           calcCfgFixed();
         }).catch(function() {});
@@ -1990,12 +2005,22 @@
         var el = document.getElementById('cfg-d-'+v);
         total += v * (parseInt(el.value) || 0);
       });
+      var totalCash = parseInt(document.getElementById('cfg-total-cash').value) || 50000;
+      var safeCash = totalCash - total;
       document.getElementById('cfg-fixed-cash').value = total;
       document.getElementById('cfg-fixed-cash-display').textContent = '¥' + total.toLocaleString();
+      var safeEl = document.getElementById('cfg-safe-cash-display');
+      if (safeEl) {
+        safeEl.textContent = '¥' + safeCash.toLocaleString();
+        safeEl.style.color = safeCash < 0 ? 'var(--red, #ef4444)' : '';
+      }
     }
 
     function cfgSaveRegiDefaults() {
-      const defaults = { fixedCash: parseInt(document.getElementById('cfg-fixed-cash').value) || 33300 };
+      const defaults = {
+        fixedCash: parseInt(document.getElementById('cfg-fixed-cash').value) || 33300,
+        totalCash: parseInt(document.getElementById('cfg-total-cash').value) || 50000
+      };
       [10000,5000,1000,500,100,50,10,5,1].forEach(v => {
         defaults['d'+v] = parseInt(document.getElementById('cfg-d-'+v).value) || 0;
       });
