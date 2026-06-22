@@ -195,6 +195,7 @@ GAS.addProduct = function(p) {
     name:      p.name      || '',
     name_kana: p.name_kana || '',
     maker:     p.maker     || '',
+    barcode:   p.barcode   || '',
     cat:       p.cat       || 'その他',
     stock:     Number(p.stock)     || 0,
     min:       Number(p.min)       || 5,

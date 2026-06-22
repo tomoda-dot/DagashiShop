@@ -1311,7 +1311,7 @@ function saveAdd(){
   var d=detFormData();
   if(!d.name){toast('商品名を入力してください');return;}
   setSS('sv');
-  run1('addProduct',{name:d.name,cat:d.cat,unit:d.unit,min:d.min,exp:d.exp,price:d.price,stock:0,buy_price:d.buy_price,buy_qty:d.buy_qty})
+  run1('addProduct',{name:d.name,name_kana:d.name_kana,maker:d.maker,cat:d.cat,unit:d.unit,min:d.min,exp:d.exp,price:d.price,sell_price:d.sell_price,stock:0,buy_price:d.buy_price,buy_qty:d.buy_qty})
   .then(function(){closeDet();return loadData();})
   .then(function(){toast('「'+d.name+'」を在庫に追加しました！');})
   .catch(function(e){setSS('er');toast('エラー: '+(e.message||e));});
@@ -1334,19 +1334,38 @@ function saveAddRestock(){
 }
 
 function doSaveAddRestock(d){
+  // タブ表示中の価格・入数・参考価格・販売価格をhidden要素に強制同期
+  var tabPrice = document.getElementById('tab-buy-price');
+  var tabQty   = document.getElementById('tab-buy-qty');
+  var tabRef   = document.getElementById('tab-ref-price');
+  var tabSell  = document.getElementById('tab-sell-price');
+  if(tabPrice && tabPrice.value) document.getElementById('det-bprice').value = tabPrice.value;
+  if(tabQty   && tabQty.value)   document.getElementById('det-bqty').value   = tabQty.value;
+  if(tabRef   && tabRef.value)   document.getElementById('det-price').value  = tabRef.value;
+  if(tabSell  && tabSell.value)  document.getElementById('det-sell-price').value = tabSell.value;
+  d = detFormData();
   setSS('sv');
   var tanka=d.buy_price>0&&d.buy_qty>0?d.buy_price/d.buy_qty:0;
   var today=new Date().toISOString().split('T')[0];
-  run1('addProduct',{name:d.name,cat:d.cat,unit:d.unit,min:d.min,exp:d.exp,price:d.price,stock:0,buy_price:d.buy_price,buy_qty:d.buy_qty,status:'candidate'})
+  run1('addProduct',{name:d.name,name_kana:d.name_kana,maker:d.maker,barcode:d.barcode,cat:d.cat,unit:d.unit,min:d.min,exp:d.exp,price:d.price,sell_price:d.sell_price,stock:0,buy_price:d.buy_price,buy_qty:d.buy_qty,status:'candidate'})
   .then(function(res){
     if(!res||!res.id){throw new Error('商品追加に失敗しました');}
-    return run1('addRestock',{productId:res.id,nm:d.name,iri:d.buy_qty,buy_price:d.buy_price,tanka:tanka,sell:d.price,d:d.exp||today});
+    return run1('addRestock',{productId:res.id,nm:d.name,iri:d.buy_qty,buy_price:d.buy_price,tanka:tanka,sell:d.sell_price||d.price,d:d.exp||today});
   }).then(function(){closeDet();return loadData();})
   .then(function(){toast('「'+d.name+'」を登録し、仕入れ履歴に追加しました！');})
   .catch(function(e){setSS('er');toast('エラー: '+(e.message||e));});
 }
 
 function saveRestock(){
+  // タブ表示中の価格・入数をhidden要素に強制同期
+  var tabPrice = document.getElementById('tab-buy-price');
+  var tabQty   = document.getElementById('tab-buy-qty');
+  var tabRef   = document.getElementById('tab-ref-price');
+  var tabSell  = document.getElementById('tab-sell-price');
+  if(tabPrice && tabPrice.value) document.getElementById('det-bprice').value = tabPrice.value;
+  if(tabQty   && tabQty.value)   document.getElementById('det-bqty').value   = tabQty.value;
+  if(tabRef   && tabRef.value)   document.getElementById('det-price').value  = tabRef.value;
+  if(tabSell  && tabSell.value)  document.getElementById('det-sell-price').value = tabSell.value;
   var d=detFormData();
   if(!d.buy_qty||d.buy_qty<1){toast('入り数を入力してください');return;}
   var pid=detPid;
@@ -1355,7 +1374,7 @@ function saveRestock(){
   setSS('sv');
   var tanka=d.buy_price>0&&d.buy_qty>0?d.buy_price/d.buy_qty:0;
   var today=new Date().toISOString().split('T')[0];
-  var rsData={productId:pid,nm:p.name,iri:d.buy_qty,buy_price:d.buy_price,tanka:tanka,sell:d.price,d:d.exp||today};
+  var rsData={productId:pid,nm:p.name,iri:d.buy_qty,buy_price:d.buy_price,tanka:tanka,sell:d.sell_price||d.price,d:d.exp||today};
   // 商品情報を更新してから仕入れ記録
   d.id=pid; d.name=p.name;
   run1('updateProduct',d).then(function(){
@@ -1370,8 +1389,9 @@ function saveCandidate(){
   if(!d.name){toast('商品名を入力してください');return;}
   setSS('sv');
   run1('addProduct',{
-    name:d.name,cat:d.cat,unit:d.unit,min:d.min,exp:'',
-    price:d.price,stock:0,buy_price:d.buy_price,buy_qty:d.buy_qty,memo:'',status:'candidate'
+    name:d.name,name_kana:d.name_kana,maker:d.maker,barcode:d.barcode,
+    cat:d.cat,unit:d.unit,min:d.min,exp:'',
+    price:d.price,sell_price:d.sell_price,stock:0,buy_price:d.buy_price,buy_qty:d.buy_qty,memo:'',status:'candidate'
   }).then(function(){closeDet();return loadData();})
   .then(function(){renderCandidates();toast('「'+d.name+'」を発注候補に追加しました！');})
   .catch(function(e){setSS('er');toast('エラー: '+(e.message||e));});
