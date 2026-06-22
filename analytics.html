@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📊 売上分析 | 駄菓子屋ひとつぎ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  body { background: #f1f5f9; font-family: 'Hiragino Sans', sans-serif; }
+  .card { background: white; border-radius: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .tab-btn { padding: 8px 20px; font-size: 13px; font-weight: 700; border: none; cursor: pointer;
+    background: none; color: #94a3b8; border-bottom: 2px solid transparent; transition: all .15s; }
+  .tab-btn.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+  .kpi { background: white; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .kpi-label { font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 4px; }
+  .kpi-value { font-size: 24px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .rank-bar { height: 8px; border-radius: 999px; background: #e2e8f0; overflow: hidden; margin-top: 4px; }
+  .rank-bar-fill { height: 100%; border-radius: 999px; transition: width .6s; }
+  select, input[type=date] {
+    border: 2px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;
+    font-size: 13px; font-weight: 600; outline: none; background: white; color: #334155;
+  }
+  select:focus, input[type=date]:focus { border-color: #3b82f6; }
+  .loading { display: flex; align-items: center; justify-content: center; height: 200px;
+    color: #94a3b8; font-size: 14px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header class="bg-slate-800 text-white px-5 py-3 flex items-center gap-4 sticky top-0 z-50">
+  <a href="index.html" class="text-slate-400 hover:text-white transition material-icons text-lg">arrow_back</a>
+  <div class="text-base font-bold">📊 売上分析</div>
+  <div class="ml-auto flex items-center gap-3">
+    <select id="period-type" onchange="onPeriodChange()">
+      <option value="month">月別</option>
+      <option value="week">週別</option>
+      <option value="day">日別</option>
+      <option value="custom">期間指定</option>
+    </select>
+    <div id="month-selector-wrap">
+      <select id="month-selector" onchange="loadAll()">
+      </select>
+    </div>
+    <div id="custom-range-wrap" style="display:none;" class="flex items-center gap-2">
+      <input type="date" id="date-from">
+      <span class="text-slate-400 text-sm">〜</span>
+      <input type="date" id="date-to">
+      <button onclick="loadAll()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition">表示</button>
+    </div>
+    <button onclick="loadAll()" class="bg-slate-600 hover:bg-slate-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition flex items-center gap-1">
+      <span class="material-icons text-sm">refresh</span>
+    </button>
+  </div>
+</header>
+
+<!-- メイン -->
+<main class="max-w-6xl mx-auto p-4 space-y-4">
+
+  <!-- KPIカード -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="kpi-area">
+    <div class="kpi"><div class="kpi-label">売上合計</div><div class="kpi-value text-emerald-600" id="kpi-sales">—</div></div>
+    <div class="kpi"><div class="kpi-label">販売件数</div><div class="kpi-value text-blue-600" id="kpi-orders">—</div></div>
+    <div class="kpi"><div class="kpi-label">1件あたり売上</div><div class="kpi-value text-violet-600" id="kpi-avg">—</div></div>
+    <div class="kpi"><div class="kpi-label">販売商品点数</div><div class="kpi-value text-orange-500" id="kpi-items">—</div></div>
+  </div>
+
+  <!-- タブ -->
+  <div class="card">
+    <div class="border-b border-slate-100 px-4 flex gap-0">
+      <button class="tab-btn active" onclick="switchTab('trend')" id="tab-trend">📈 売上推移</button>
+      <button class="tab-btn" onclick="switchTab('ranking')" id="tab-ranking">🏆 売れ筋ランキング</button>
+      <button class="tab-btn" onclick="switchTab('price')" id="tab-price">💴 値段別構成</button>
+      <button class="tab-btn" onclick="switchTab('hourly')" id="tab-hourly">🕐 時間帯別</button>
+    </div>
+
+    <!-- 売上推移 -->
+    <div id="pane-trend" class="p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-sm font-bold text-slate-600">売上推移</div>
+        <select id="trend-unit" onchange="renderTrend()">
+          <option value="day">日別</option>
+          <option value="week">週別</option>
+          <option value="month">月別</option>
+        </select>
+      </div>
+      <div style="height:280px;"><canvas id="chart-trend"></canvas></div>
+    </div>
+
+    <!-- 売れ筋ランキング -->
+    <div id="pane-ranking" class="p-4 hidden">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-sm font-bold text-slate-600">商品別売れ筋ランキング（TOP20）</div>
+        <select id="ranking-type" onchange="renderRanking()">
+          <option value="qty">個数順</option>
+          <option value="sales">売上金額順</option>
+        </select>
+      </div>
+      <div id="ranking-list" class="space-y-2"></div>
+    </div>
+
+    <!-- 値段別構成 -->
+    <div id="pane-price" class="p-4 hidden">
+      <div class="text-sm font-bold text-slate-600 mb-3">値段別売上構成</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div style="height:260px;"><canvas id="chart-price-donut"></canvas></div>
+        <div id="price-table" class="space-y-2 overflow-auto" style="max-height:260px;"></div>
+      </div>
+    </div>
+
+    <!-- 時間帯別 -->
+    <div id="pane-hourly" class="p-4 hidden">
+      <div class="text-sm font-bold text-slate-600 mb-3">時間帯別販売件数</div>
+      <div style="height:260px;"><canvas id="chart-hourly"></canvas></div>
+    </div>
+  </div>
+
+</main>
+
+<script src="supabase-config.js"></script>
+<script>
+// ── データ ──────────────────────────────────────────
+var g_daily   = [];  // daily_summary rows
+var g_items   = [];  // order_items rows
+var g_loading = false;
+
+// ── 初期化 ─────────────────────────────────────────
+window.onload = function() {
+  initMonthSelector();
+  onPeriodChange();
+  loadAll();
+};
+
+function initMonthSelector() {
+  var sel = document.getElementById('month-selector');
+  var now = new Date();
+  sel.innerHTML = '';
+  for (var i = -11; i <= 0; i++) {
+    var d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    var y = d.getFullYear(), m = d.getMonth() + 1;
+    var val = y + '-' + (m < 10 ? '0' : '') + m;
+    var opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = y + '年' + m + '月';
+    if (i === 0) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function onPeriodChange() {
+  var type = document.getElementById('period-type').value;
+  document.getElementById('month-selector-wrap').style.display = (type === 'custom') ? 'none' : '';
+  document.getElementById('custom-range-wrap').style.display = (type === 'custom') ? 'flex' : 'none';
+  if (type !== 'custom') loadAll();
+}
+
+function getDateRange() {
+  var type = document.getElementById('period-type').value;
+  var now = new Date();
+  var from, to;
+  if (type === 'custom') {
+    from = document.getElementById('date-from').value;
+    to   = document.getElementById('date-to').value;
+    if (!from || !to) return null;
+  } else if (type === 'month') {
+    var ym = document.getElementById('month-selector').value;
+    from = ym + '-01';
+    var d = new Date(parseInt(ym.split('-')[0]), parseInt(ym.split('-')[1]), 0);
+    to = ym + '-' + (d.getDate() < 10 ? '0' : '') + d.getDate();
+  } else if (type === 'week') {
+    var ym2 = document.getElementById('month-selector').value;
+    from = ym2 + '-01';
+    var d2 = new Date(parseInt(ym2.split('-')[0]), parseInt(ym2.split('-')[1]), 0);
+    to = ym2 + '-' + (d2.getDate() < 10 ? '0' : '') + d2.getDate();
+  } else {
+    var ym3 = document.getElementById('month-selector').value;
+    from = ym3 + '-01';
+    var d3 = new Date(parseInt(ym3.split('-')[0]), parseInt(ym3.split('-')[1]), 0);
+    to = ym3 + '-' + (d3.getDate() < 10 ? '0' : '') + d3.getDate();
+  }
+  return { from: from, to: to };
+}
+
+async function fetchAll(from, to) {
+  var headers = { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON };
+  var [dr, ir] = await Promise.all([
+    fetch(SUPABASE_URL + '/rest/v1/daily_summary?date=gte.' + from + '&date=lte.' + to + '&select=date,sales_total,diff&order=date.asc', { headers: headers }).then(r => r.json()),
+    fetchAllItems(from, to, headers)
+  ]);
+  return { daily: dr || [], items: ir || [] };
+}
+
+async function fetchAllItems(from, to, headers) {
+  var all = [], offset = 0, PAGE = 1000;
+  while (true) {
+    var res = await fetch(
+      SUPABASE_URL + '/rest/v1/order_items?ts=gte.' + encodeURIComponent(from + 'T00:00:00') +
+      '&ts=lte.' + encodeURIComponent(to + 'T23:59:59') +
+      '&select=ts,order_code,label,price,qty,subtotal,status&order=ts.asc&limit=' + PAGE + '&offset=' + offset +
+      '&status=neq.無効',
+      { headers: headers }
+    );
+    var rows = await res.json();
+    all = all.concat(rows);
+    if (rows.length < PAGE) break;
+    offset += PAGE;
+  }
+  return all;
+}
+
+async function loadAll() {
+  var range = getDateRange();
+  if (!range) return;
+  setLoading(true);
+  try {
+    var data = await fetchAll(range.from, range.to);
+    g_daily = data.daily;
+    g_items = data.items.filter(function(r){ return r.status !== '無効'; });
+    renderKPI();
+    renderTrend();
+    renderRanking();
+    renderPrice();
+    renderHourly();
+  } catch(e) {
+    console.error(e);
+  }
+  setLoading(false);
+}
+
+function setLoading(v) { g_loading = v; }
+
+// ── KPI ────────────────────────────────────────────
+function renderKPI() {
+  var totalSales = g_daily.reduce(function(s, r){ return s + (Number(r.sales_total)||0); }, 0);
+  // 有効な注文のみ（マイナス行・割引行を除く）
+  var orderCodes = {};
+  g_items.forEach(function(r){ if(r.order_code) orderCodes[r.order_code] = true; });
+  var orderCount = Object.keys(orderCodes).length;
+  var totalQty   = g_items.reduce(function(s, r){ return s + (Number(r.qty)||0); }, 0);
+  var avgSales   = orderCount > 0 ? Math.round(totalSales / orderCount) : 0;
+
+  document.getElementById('kpi-sales').textContent   = '¥' + totalSales.toLocaleString();
+  document.getElementById('kpi-orders').textContent  = orderCount.toLocaleString() + '件';
+  document.getElementById('kpi-avg').textContent     = '¥' + avgSales.toLocaleString();
+  document.getElementById('kpi-items').textContent   = totalQty.toLocaleString() + '個';
+}
+
+// ── 売上推移 ───────────────────────────────────────
+var chartTrend = null;
+function renderTrend() {
+  var unit = document.getElementById('trend-unit').value;
+  var grouped = {};
+
+  g_daily.forEach(function(r) {
+    var key = getGroupKey(r.date, unit);
+    if (!grouped[key]) grouped[key] = 0;
+    grouped[key] += Number(r.sales_total) || 0;
+  });
+
+  var labels = Object.keys(grouped).sort();
+  var values = labels.map(function(k){ return grouped[k]; });
+
+  var ctx = document.getElementById('chart-trend').getContext('2d');
+  if (chartTrend) chartTrend.destroy();
+  chartTrend = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels.map(function(l){ return formatLabel(l, unit); }),
+      datasets: [{
+        label: '売上（円）',
+        data: values,
+        backgroundColor: 'rgba(59,130,246,0.7)',
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { callback: function(v){ return '¥' + v.toLocaleString(); } } }
+      }
+    }
+  });
+}
+
+function getGroupKey(dateStr, unit) {
+  if (!dateStr) return '';
+  var d = new Date(dateStr);
+  if (unit === 'month') return dateStr.substring(0, 7);
+  if (unit === 'week') {
+    var mon = new Date(d);
+    mon.setDate(d.getDate() - d.getDay() + 1);
+    return mon.toISOString().split('T')[0];
+  }
+  return dateStr;
+}
+
+function formatLabel(key, unit) {
+  if (unit === 'month') { var p = key.split('-'); return p[0] + '/' + p[1]; }
+  if (unit === 'week')  return key.substring(5) + '週';
+  return key.substring(5); // MM-DD
+}
+
+// ── 売れ筋ランキング ────────────────────────────────
+function renderRanking() {
+  var type = document.getElementById('ranking-type').value;
+  var map = {};
+  g_items.forEach(function(r) {
+    if (!r.label || r.price < 0) return;
+    if (!map[r.label]) map[r.label] = { qty: 0, sales: 0 };
+    map[r.label].qty   += Number(r.qty) || 0;
+    map[r.label].sales += Number(r.subtotal) || 0;
+  });
+  var arr = Object.keys(map).map(function(k){ return { label: k, qty: map[k].qty, sales: map[k].sales }; });
+  arr.sort(function(a, b){ return b[type] - a[type]; });
+  var top = arr.slice(0, 20);
+  var maxVal = top.length > 0 ? top[0][type] : 1;
+
+  var colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6'];
+  var list = document.getElementById('ranking-list');
+  list.innerHTML = top.map(function(r, i) {
+    var val = type === 'qty' ? r.qty + '個' : '¥' + r.sales.toLocaleString();
+    var pct = Math.round(r[type] / maxVal * 100);
+    return '<div class="flex items-center gap-3 py-1">'
+      + '<div class="text-sm font-black text-slate-400 w-6 text-right">' + (i+1) + '</div>'
+      + '<div class="flex-1 min-w-0">'
+      +   '<div class="text-sm font-bold text-slate-700 truncate">' + r.label + '</div>'
+      +   '<div class="rank-bar"><div class="rank-bar-fill" style="width:' + pct + '%;background:' + (colors[i] || '#94a3b8') + '"></div></div>'
+      + '</div>'
+      + '<div class="text-sm font-black text-right w-24 shrink-0" style="color:' + (colors[i] || '#94a3b8') + '">' + val + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// ── 値段別構成 ─────────────────────────────────────
+var chartPrice = null;
+function renderPrice() {
+  var map = {};
+  g_items.forEach(function(r) {
+    if (r.price < 0) return;
+    var key = r.price + '円';
+    if (!map[key]) map[key] = { qty: 0, sales: 0 };
+    map[key].qty   += Number(r.qty) || 0;
+    map[key].sales += Number(r.subtotal) || 0;
+  });
+
+  var arr = Object.keys(map).map(function(k){ return { label: k, qty: map[k].qty, sales: map[k].sales }; });
+  arr.sort(function(a, b){
+    return parseInt(a.label) - parseInt(b.label);
+  });
+
+  var colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6','#f43f5e','#a855f7','#0ea5e9','#22c55e','#eab308'];
+
+  var ctx = document.getElementById('chart-price-donut').getContext('2d');
+  if (chartPrice) chartPrice.destroy();
+  chartPrice = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: arr.map(function(r){ return r.label; }),
+      datasets: [{
+        data: arr.map(function(r){ return r.sales; }),
+        backgroundColor: arr.map(function(_, i){ return colors[i % colors.length]; }),
+        borderWidth: 2, borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 11, weight: 'bold' }, boxWidth: 12 } },
+        tooltip: { callbacks: { label: function(c){ return c.label + ': ¥' + c.raw.toLocaleString(); } } }
+      }
+    }
+  });
+
+  var totalSales = arr.reduce(function(s, r){ return s + r.sales; }, 0);
+  var table = document.getElementById('price-table');
+  table.innerHTML = '<table class="w-full text-sm">'
+    + '<thead><tr class="text-slate-400 font-bold text-xs border-b">'
+    + '<th class="text-left py-1">値段</th><th class="text-right py-1">個数</th><th class="text-right py-1">売上</th><th class="text-right py-1">構成比</th></tr></thead>'
+    + '<tbody>'
+    + arr.map(function(r, i){
+      var pct = totalSales > 0 ? (r.sales / totalSales * 100).toFixed(1) : 0;
+      return '<tr class="border-b border-slate-50">'
+        + '<td class="py-1 font-bold" style="color:' + colors[i % colors.length] + '">' + r.label + '</td>'
+        + '<td class="py-1 text-right text-slate-600">' + r.qty + '個</td>'
+        + '<td class="py-1 text-right font-bold text-slate-700">¥' + r.sales.toLocaleString() + '</td>'
+        + '<td class="py-1 text-right text-slate-500">' + pct + '%</td>'
+        + '</tr>';
+    }).join('')
+    + '</tbody></table>';
+}
+
+// ── 時間帯別 ───────────────────────────────────────
+var chartHourly = null;
+function renderHourly() {
+  var hours = {};
+  for (var i = 0; i < 24; i++) hours[i] = 0;
+  g_items.forEach(function(r) {
+    if (!r.ts) return;
+    var h = new Date(r.ts).getHours();
+    hours[h] = (hours[h] || 0) + (Number(r.qty) || 0);
+  });
+
+  var labels = Object.keys(hours).sort(function(a,b){ return a-b; }).map(function(h){ return h + '時'; });
+  var values = Object.keys(hours).sort(function(a,b){ return a-b; }).map(function(h){ return hours[h]; });
+
+  var ctx = document.getElementById('chart-hourly').getContext('2d');
+  if (chartHourly) chartHourly.destroy();
+  chartHourly = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '販売個数',
+        data: values,
+        backgroundColor: values.map(function(v){ return v === Math.max.apply(null, values) ? 'rgba(239,68,68,0.8)' : 'rgba(99,102,241,0.6)'; }),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+}
+
+// ── タブ切り替え ────────────────────────────────────
+var PANES = ['trend','ranking','price','hourly'];
+function switchTab(name) {
+  PANES.forEach(function(p) {
+    document.getElementById('pane-' + p).classList.toggle('hidden', p !== name);
+    document.getElementById('tab-' + p).classList.toggle('active', p === name);
+  });
+}
+</script>
+</body>
+</html>
