@@ -1808,8 +1808,8 @@
         const tables = [
           {
             table: 'daily_summary', dateCol: 'date', year,
-            columns: 'date,sales_total,diff,note',
-            header: ['日付', '売上合計', '過不足', 'メモ'],
+            columns: 'date,sales_total,diff',
+            header: ['日付', '売上合計', '過不足'],
             filename: `日計表_${year}.csv`
           },
           {
@@ -1852,24 +1852,83 @@
 
     async function archiveDelete() {
       const year = document.getElementById('archive-year').value;
-      if (!confirm(`${year}年のデータをDBから削除します。\n\n必ずCSVをダウンロード済みであることを確認してください。\n\n本当に削除しますか？`)) return;
+      if (!confirm(`${year}年のデータをDBから削除します。\n\n必ずCSVをダウンロード済みであることを確認してください。\n\n・小口現金・積立金は残高を繰越行として自動挿入します。\n\n本当に削除しますか？`)) return;
       if (!confirm(`最終確認：${year}年のデータを完全削除します。この操作は取り消せません。`)) return;
 
       const status = document.getElementById('archive-status');
-      status.textContent = '削除中...';
-
       const from = `${year}-01-01`;
       const to   = `${year}-12-31`;
-
-      const targets = [
-        { table: 'daily_summary', col: 'date' },
-        { table: 'savings',       col: 'date' },
-        { table: 'order_items',   col: 'created_at' },
-        { table: 'petty_cash',    col: 'date' }
-      ];
+      const nextYear = String(parseInt(year) + 1);
+      const carryDate = `${nextYear}-01-01`;
 
       try {
+        // ── 小口現金の残高を計算して繰越行を挿入 ──
+        status.textContent = '小口現金の残高を計算中...';
+        const pcRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/petty_cash?date=lte.${to}&select=type,amount&order=date.asc`,
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON } }
+        );
+        const pcRows = await pcRes.json();
+        let pcBalance = 0;
+        pcRows.forEach(r => {
+          pcBalance += r.type === '入金' ? Number(r.amount) : -Number(r.amount);
+        });
+        if (pcBalance > 0) {
+          await fetch(`${SUPABASE_URL}/rest/v1/petty_cash`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_ANON,
+              'Authorization': 'Bearer ' + SUPABASE_ANON,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+              date: carryDate, type: '入金', amount: pcBalance,
+              reason: '', memo: `前年繰越（${year}年末残高）`
+            })
+          });
+        }
+
+        // ── 積立金の残高を計算して繰越行をdaily_summaryに挿入 ──
+        status.textContent = '積立金の残高を計算中...';
+        const [dailyRes, savingsRes] = await Promise.all([
+          fetch(`${SUPABASE_URL}/rest/v1/daily_summary?date=lte.${to}&select=sales_total,diff`,
+            { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON } }),
+          fetch(`${SUPABASE_URL}/rest/v1/savings?date=lte.${to}&select=withdrawal`,
+            { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON } })
+        ]);
+        const dailyRows   = await dailyRes.json();
+        const savingsRows = await savingsRes.json();
+        let svBalance = 0;
+        dailyRows.forEach(r => { svBalance += (Number(r.sales_total) || 0) + (Number(r.diff) || 0); });
+        savingsRows.forEach(r => { svBalance -= Number(r.withdrawal) || 0; });
+        if (svBalance > 0) {
+          // daily_summaryに繰越行として追加（sales_total=繰越額、diff=0）
+          await fetch(`${SUPABASE_URL}/rest/v1/daily_summary`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_ANON,
+              'Authorization': 'Bearer ' + SUPABASE_ANON,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+              date: carryDate,
+              sales_total: svBalance,
+              diff: 0
+            })
+          });
+        }
+
+        // ── 各テーブルの対象年データを削除 ──
+        const targets = [
+          { table: 'daily_summary', col: 'date' },
+          { table: 'savings',       col: 'date' },
+          { table: 'order_items',   col: 'created_at' },
+          { table: 'petty_cash',    col: 'date' }
+        ];
         for (const t of targets) {
+          status.textContent = `${t.table} を削除中...`;
           const res = await fetch(
             `${SUPABASE_URL}/rest/v1/${t.table}?${t.col}=gte.${from}&${t.col}=lte.${to}`,
             {
@@ -1883,8 +1942,13 @@
           );
           if (!res.ok) throw new Error(t.table + ' 削除失敗');
         }
-        status.textContent = `✅ ${year}年のデータをDBから削除しました`;
-        showNotify(`${year}年のデータを削除しました`, 'success');
+
+        status.innerHTML = `✅ ${year}年のデータを削除しました<br>`
+          + `・小口現金 繰越残高：¥${pcBalance.toLocaleString()}<br>`
+          + `・積立金 繰越残高：¥${svBalance.toLocaleString()}<br>`
+          + `（${carryDate}付けで繰越行を自動挿入しました）`;
+        showNotify(`${year}年のデータを削除し繰越行を挿入しました`, 'success');
+
       } catch(e) {
         status.textContent = '❌ エラー: ' + e.message;
         showNotify('エラー: ' + e.message, 'error');
