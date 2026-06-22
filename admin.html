@@ -1819,8 +1819,8 @@
             filename: `積立金_${year}.csv`
           },
           {
-            table: 'order_items', dateCol: 'created_at', year,
-            columns: 'created_at,order_id,label,price,qty,subtotal,received,change,status',
+            table: 'order_items', dateCol: 'ts', year,
+            columns: 'ts,order_code,label,price,qty,subtotal,deposit,change,status',
             header: ['日時', '注文ID', '商品名', '単価', '個数', '小計', '預り金', 'おつり', '状態'],
             filename: `明細管理_${year}.csv`,
             fromVal: `${year}-01-01T00:00:00`,
@@ -1926,7 +1926,7 @@
         const targets = [
           { table: 'daily_summary', col: 'date',       from, to },
           { table: 'savings',       col: 'date',       from, to },
-          { table: 'order_items',   col: 'created_at', from: `${year}-01-01T00:00:00`, to: `${year}-12-31T23:59:59` },
+          { table: 'order_items',   col: 'ts',   from: `${year}-01-01T00:00:00`, to: `${year}-12-31T23:59:59` },
           { table: 'petty_cash',    col: 'date',       from, to }
         ];
         for (const t of targets) {
