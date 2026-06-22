@@ -510,7 +510,32 @@
           </div>
           <div>
             <label class="text-xs font-bold text-slate-500 block mb-1">内容（摘要）</label>
-            <textarea id="pettycash-memo" rows="2" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none" placeholder="例：コピー用紙購入、タクシー代など"></textarea>
+            <input type="text" id="pettycash-memo" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="例：コピー用紙購入、タクシー代など">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">支払先</label>
+            <div class="flex gap-2">
+              <select id="pettycash-supplier-select" class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" onchange="onPettyCashSupplierSelect()">
+                <option value="">-- 選択 --</option>
+                <option>やまや（ダイソー）</option>
+                <option>スギ薬局</option>
+                <option>コーナン</option>
+                <option>セブンイレブン</option>
+                <option>業務スーパー</option>
+                <option>Amazon</option>
+                <option>サンディ</option>
+                <option>ダイソー</option>
+                <option>京屋</option>
+                <option>ライフ</option>
+                <option>成城石井</option>
+                <option>その他（直接入力）</option>
+              </select>
+            </div>
+            <input type="text" id="pettycash-supplier" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none mt-1" placeholder="支払先を入力">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">備考（任意）</label>
+            <textarea id="pettycash-note" rows="2" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none" placeholder="その他メモ"></textarea>
           </div>
         </div>
         <div class="flex gap-2 mt-5">
@@ -1304,7 +1329,11 @@
       const currentBalance = lastRow ? lastRow.balance : 0;
       document.getElementById('pettycash-balance-total').textContent = '¥' + currentBalance.toLocaleString();
 
-      const monthRows = g_allPettyCashData.filter(r => r.date && r.date.startsWith(selectedMonth));
+      // 「前月繰越金」はコード側で自動追加するため除外（DB登録分との重複防止）
+      const monthRows = g_allPettyCashData.filter(r =>
+        r.date && r.date.startsWith(selectedMonth) &&
+        !(r.type === '入金' && r.memo && r.memo.includes('前月繰越'))
+      );
 
       let carryover = 0;
       g_allPettyCashData.forEach(r => {
@@ -1365,6 +1394,9 @@
       document.getElementById('pettycash-amount').value = '';
       document.getElementById('pettycash-category').selectedIndex = 0;
       document.getElementById('pettycash-memo').value = '';
+      document.getElementById('pettycash-supplier-select').value = '';
+      document.getElementById('pettycash-supplier').value = '';
+      document.getElementById('pettycash-note').value = '';
       document.getElementById('pettycash-category-wrap').style.display = (type === '入金') ? 'none' : '';
       document.getElementById('pettycash-modal').classList.remove('hidden');
       document.getElementById('pettycash-modal').classList.add('flex');
@@ -1380,18 +1412,32 @@
       const amount    = parseInt(document.getElementById('pettycash-amount').value) || 0;
       const category  = g_pettyCashType === '出金' ? document.getElementById('pettycash-category').value : '';
       const memo      = document.getElementById('pettycash-memo').value.trim();
+      const supplier  = document.getElementById('pettycash-supplier').value.trim();
+      const note      = document.getElementById('pettycash-note').value.trim();
+      // memo列：支払先 / 内容 / 備考 の形式で結合
+      const memoStr = [memo, supplier, note].filter(Boolean).join(' / ');
 
       if (!dateInput) { showNotify('日付を選択してください', 'error'); return; }
       if (amount <= 0) { showNotify('金額を入力してください', 'error'); return; }
       if (g_pettyCashType === '出金' && !category) { showNotify('内訳を選択してください', 'error'); return; }
 
-      GAS.addPettyCashRow({ date: dateInput, type: g_pettyCashType, amount: amount, reason: category, memo: memo }).then(function() {
+      GAS.addPettyCashRow({ date: dateInput, type: g_pettyCashType, amount: amount, reason: category, memo: memoStr }).then(function() {
           showNotify('保存しました', 'success');
           closePettyCashModal();
           loadPettyCashData();
         }).catch(function(e) {
           showNotify('エラー: ' + e, 'error');
         });
+    }
+
+    function onPettyCashSupplierSelect() {
+      const sel = document.getElementById('pettycash-supplier-select').value;
+      if (sel && sel !== 'その他（直接入力）') {
+        document.getElementById('pettycash-supplier').value = sel;
+      } else if (sel === 'その他（直接入力）') {
+        document.getElementById('pettycash-supplier').value = '';
+        document.getElementById('pettycash-supplier').focus();
+      }
     }
 
     function deletePettyCashRow(id) {
