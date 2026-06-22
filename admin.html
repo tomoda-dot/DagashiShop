@@ -583,6 +583,31 @@
     </div>
     <section id="content-config" class="hidden h-full overflow-y-auto p-4 max-w-4xl mx-auto">
 
+      <!-- データアーカイブ -->
+      <div class="card p-5 mb-4">
+        <h3 class="font-bold text-slate-700 text-base mb-2">📦 データアーカイブ</h3>
+        <p class="text-xs text-slate-500 mb-4">指定した年のデータをCSVでダウンロードします。ダウンロード後にDBから削除することもできます。</p>
+        <div class="flex items-center gap-3 mb-4">
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">対象年</label>
+            <select id="archive-year" class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none"></select>
+          </div>
+          <div class="flex flex-col gap-2 mt-4">
+            <button onclick="archiveDownload()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2">
+              <span class="material-icons text-sm">download</span> CSVをダウンロード
+            </button>
+            <button onclick="archiveDelete()" class="bg-red-500 hover:bg-red-400 text-white px-5 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2">
+              <span class="material-icons text-sm">delete</span> DBから削除（要注意）
+            </button>
+          </div>
+        </div>
+        <div id="archive-status" class="text-sm text-slate-500"></div>
+        <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mt-2">
+          <div class="text-xs font-bold text-amber-700">⚠ 削除前に必ずCSVをダウンロードしてください。削除後の復元はできません。</div>
+          <div class="text-xs text-amber-600 mt-1">対象：日計表（daily_summary）・積立金（savings）・明細管理（order_items）・小口現金（petty_cash）</div>
+        </div>
+      </div>
+
       <!-- レジ締め初期値設定 -->
       <div class="card p-5">
         <h3 class="font-bold text-slate-700 text-base mb-4">🧮 レジ締め初期値</h3>
@@ -785,7 +810,7 @@
         if (!document.getElementById('pettycash-month-selector').options.length) initPettyCashMonthSelector();
         loadPettyCashData();
       }
-      if (tab === 'config') loadConfigData();
+      if (tab === 'config') { loadConfigData(); initArchiveYear(); }
     }
 
     // ── 月選択 ───────────────────────────────────
@@ -1733,6 +1758,137 @@
         closeSavingsEditModal();
         loadSavingsData();
       }).catch(e => showNotify('エラー: ' + e, 'error'));
+    }
+
+    // ── アーカイブ ──────────────────────────────────
+    function initArchiveYear() {
+      const sel = document.getElementById('archive-year');
+      const now = new Date();
+      sel.innerHTML = '';
+      for (let y = now.getFullYear(); y >= 2024; y--) {
+        const opt = document.createElement('option');
+        opt.value = y; opt.textContent = y + '年';
+        sel.appendChild(opt);
+      }
+    }
+
+    async function fetchTableAsCSV(table, dateCol, year, columns, header) {
+      const from = `${year}-01-01`;
+      const to   = `${year}-12-31`;
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/${table}?${dateCol}=gte.${from}&${dateCol}=lte.${to}&select=${columns}&order=${dateCol}.asc`,
+        { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON } }
+      );
+      if (!res.ok) throw new Error(table + ' 取得失敗');
+      const rows = await res.json();
+      if (!rows.length) return null;
+      const cols = columns.split(',');
+      const csvHeader = header.map(h => `"${h}"`).join(',');
+      const csvRows = rows.map(r => cols.map(c => {
+        const v = r[c.trim()] ?? '';
+        return `"${String(v).replace(/"/g, '""')}"`;
+      }).join(','));
+      return '\uFEFF' + csvHeader + '\n' + csvRows.join('\n');
+    }
+
+    function downloadBlob(content, filename) {
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function archiveDownload() {
+      const year = document.getElementById('archive-year').value;
+      const status = document.getElementById('archive-status');
+      status.textContent = '取得中...';
+
+      try {
+        const tables = [
+          {
+            table: 'daily_summary', dateCol: 'date', year,
+            columns: 'date,sales_total,diff,note',
+            header: ['日付', '売上合計', '過不足', 'メモ'],
+            filename: `日計表_${year}.csv`
+          },
+          {
+            table: 'savings', dateCol: 'date', year,
+            columns: 'date,partner,content,withdrawal',
+            header: ['日付', '取引先', '内容', '出金額'],
+            filename: `積立金_${year}.csv`
+          },
+          {
+            table: 'order_items', dateCol: 'created_at', year,
+            columns: 'created_at,order_id,label,price,qty,subtotal,received,change,status',
+            header: ['日時', '注文ID', '商品名', '単価', '個数', '小計', '預り金', 'おつり', '状態'],
+            filename: `明細管理_${year}.csv`
+          },
+          {
+            table: 'petty_cash', dateCol: 'date', year,
+            columns: 'date,type,amount,reason,memo',
+            header: ['日付', '種別', '金額', '内訳', '内容'],
+            filename: `小口現金_${year}.csv`
+          }
+        ];
+
+        let count = 0;
+        for (const t of tables) {
+          status.textContent = `${t.table} を取得中...`;
+          const csv = await fetchTableAsCSV(t.table, t.dateCol, t.year, t.columns, t.header);
+          if (csv) {
+            downloadBlob(csv, t.filename);
+            count++;
+            await new Promise(r => setTimeout(r, 300));
+          }
+        }
+        status.textContent = `✅ ${count}ファイルをダウンロードしました（${year}年）`;
+        showNotify(`${count}ファイルをダウンロードしました`, 'success');
+      } catch(e) {
+        status.textContent = '❌ エラー: ' + e.message;
+        showNotify('エラー: ' + e.message, 'error');
+      }
+    }
+
+    async function archiveDelete() {
+      const year = document.getElementById('archive-year').value;
+      if (!confirm(`${year}年のデータをDBから削除します。\n\n必ずCSVをダウンロード済みであることを確認してください。\n\n本当に削除しますか？`)) return;
+      if (!confirm(`最終確認：${year}年のデータを完全削除します。この操作は取り消せません。`)) return;
+
+      const status = document.getElementById('archive-status');
+      status.textContent = '削除中...';
+
+      const from = `${year}-01-01`;
+      const to   = `${year}-12-31`;
+
+      const targets = [
+        { table: 'daily_summary', col: 'date' },
+        { table: 'savings',       col: 'date' },
+        { table: 'order_items',   col: 'created_at' },
+        { table: 'petty_cash',    col: 'date' }
+      ];
+
+      try {
+        for (const t of targets) {
+          const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/${t.table}?${t.col}=gte.${from}&${t.col}=lte.${to}`,
+            {
+              method: 'DELETE',
+              headers: {
+                'apikey': SUPABASE_ANON,
+                'Authorization': 'Bearer ' + SUPABASE_ANON,
+                'Prefer': 'return=minimal'
+              }
+            }
+          );
+          if (!res.ok) throw new Error(t.table + ' 削除失敗');
+        }
+        status.textContent = `✅ ${year}年のデータをDBから削除しました`;
+        showNotify(`${year}年のデータを削除しました`, 'success');
+      } catch(e) {
+        status.textContent = '❌ エラー: ' + e.message;
+        showNotify('エラー: ' + e.message, 'error');
+      }
     }
 
     // ── 設定タブ ──────────────────────────────────
