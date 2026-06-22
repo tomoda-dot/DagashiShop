@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>📊 売上管理システム</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -10,29 +10,64 @@
     body { background-color: #f1f5f9; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
     .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
 
-    /* スマホ：タブを縦並びに */
-    @media (max-width: 600px) {
-      nav.bg-white.flex { flex-direction: column; border-bottom: none; }
+    /* ━━━ スマホ対応 (max-width:640px) ━━━ */
+    @media (max-width: 640px) {
+      /* body・mainを全体スクロール可能に */
+      body {
+        height: auto !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        display: block !important;
+      }
+      main.flex-1.overflow-hidden {
+        overflow: visible !important;
+        height: auto !important;
+        flex: none !important;
+      }
+      /* navをstickyから通常フローに（被りの原因） */
+      nav.bg-white.flex {
+        position: static !important;
+        flex-direction: column;
+        border-bottom: none;
+      }
       nav.bg-white.flex button {
-        text-align: left; padding: 12px 16px;
+        text-align: left;
+        padding: 14px 16px;
         border-bottom: 1px solid #e2e8f0 !important;
-        border-left: 3px solid transparent;
-        font-size: 14px;
+        border-left: 4px solid transparent;
+        border-top: none; border-right: none;
+        font-size: 15px; font-weight: 600;
       }
       nav.bg-white.flex .tab-active {
-        border-bottom-color: #e2e8f0 !important;
-        border-left: 3px solid #3b82f6;
+        border-left: 4px solid #3b82f6 !important;
         background: #eff6ff;
         color: #3b82f6;
       }
+      /* セクションの高さ・overflowをリセット */
+      section {
+        height: auto !important;
+        overflow: visible !important;
+        padding: 12px !important;
+      }
+      /* ボタン行を折り返す */
+      .flex.items-center.gap-3 {
+        flex-wrap: wrap;
+        gap: 6px !important;
+      }
+      .flex.items-center.gap-3 button {
+        font-size: 12px !important;
+        padding: 6px 10px !important;
+        height: auto !important;
+        white-space: normal !important;
+      }
       /* テーブルは横スクロール */
       .detail-table { font-size: 11px; }
-      .overflow-auto { overflow-x: auto; }
-      /* KPI・フォームを縦に */
+      /* グリッドを2列に */
       .grid.grid-cols-3 { grid-template-columns: 1fr 1fr !important; }
       .grid.grid-cols-4 { grid-template-columns: 1fr 1fr !important; }
+      /* レジ入力を縦に */
+      .regi-container { flex-direction: column !important; overflow: visible !important; height: auto !important; }
     }
-    .card { background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .loading-overlay { background: rgba(255,255,255,0.8); display: none; position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
     .regi-container .input-label { font-size: 0.85rem; font-weight: bold; color: #475569; width: 70px; text-align: right; }
     .regi-container .input-box { border: 2px solid #cbd5e1; border-radius: 6px; text-align: right; font-family: monospace; font-size: 0.9rem; width: 75px; padding: 1px 5px; background: #fff; }
