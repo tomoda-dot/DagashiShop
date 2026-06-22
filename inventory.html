@@ -41,6 +41,20 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
 .tabs{display:flex;gap:6px;margin-bottom:1.5rem;border-bottom:1px solid var(--bd);}
 .tab{background:none;border:1px solid transparent;border-bottom:none;cursor:pointer;font-family:inherit;font-size:13px;color:var(--t2);padding:8px 16px;border-radius:var(--r) var(--r) 0 0;margin-bottom:-1px;font-weight:500;}
 .tab:hover{color:var(--tx);}.tab.on{color:var(--tx);background:var(--sf);border-color:var(--bd);font-weight:700;}
+
+/* スマホ：タブを縦並びに */
+@media(max-width:600px){
+  .tabs{flex-direction:column;border-bottom:none;gap:0;margin-bottom:0.75rem;}
+  .tab{border-radius:0;border:none;border-bottom:1px solid var(--bd) !important;border-left:3px solid transparent;padding:12px 16px;font-size:14px;text-align:left;}
+  .tab.on{border-left:3px solid var(--red) !important;border-bottom-color:var(--bd) !important;background:var(--bg);}
+  /* カードを1列に */
+  .grid-view .card-wrap,.pgrid{grid-template-columns:1fr 1fr !important;}
+  /* 検索行を縦に */
+  .srow{flex-wrap:wrap;}
+  .srow select,.srow input{min-width:0;flex:1;}
+  /* モーダルを全画面に */
+  .mb{max-width:100% !important;max-height:100vh !important;border-radius:0 !important;margin:0 !important;}
+}
 .bdg{display:inline-flex;align-items:center;justify-content:center;background:var(--red);color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:999px;padding:0 4px;margin-left:5px;vertical-align:middle;}
 
 /* SEARCH */

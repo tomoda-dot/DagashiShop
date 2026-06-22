@@ -9,6 +9,29 @@
   <style>
     body { background-color: #f1f5f9; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
     .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
+
+    /* スマホ：タブを縦並びに */
+    @media (max-width: 600px) {
+      nav.bg-white.flex { flex-direction: column; border-bottom: none; }
+      nav.bg-white.flex button {
+        text-align: left; padding: 12px 16px;
+        border-bottom: 1px solid #e2e8f0 !important;
+        border-left: 3px solid transparent;
+        font-size: 14px;
+      }
+      nav.bg-white.flex .tab-active {
+        border-bottom-color: #e2e8f0 !important;
+        border-left: 3px solid #3b82f6;
+        background: #eff6ff;
+        color: #3b82f6;
+      }
+      /* テーブルは横スクロール */
+      .detail-table { font-size: 11px; }
+      .overflow-auto { overflow-x: auto; }
+      /* KPI・フォームを縦に */
+      .grid.grid-cols-3 { grid-template-columns: 1fr 1fr !important; }
+      .grid.grid-cols-4 { grid-template-columns: 1fr 1fr !important; }
+    }
     .card { background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .loading-overlay { background: rgba(255,255,255,0.8); display: none; position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
     .regi-container .input-label { font-size: 0.85rem; font-weight: bold; color: #475569; width: 70px; text-align: right; }
@@ -243,6 +266,7 @@
     <button onclick="switchTab('detail')"  id="tab-detail"  class="flex-1 py-3 text-sm text-gray-500">📋 明細管理</button>
     <button onclick="switchTab('savings')" id="tab-savings" class="flex-1 py-3 text-sm text-gray-500">💰 積立金管理</button>
     <button onclick="switchTab('pettycash')" id="tab-pettycash" class="flex-1 py-3 text-sm text-gray-500">💴 小口現金</button>
+    <button onclick="switchTab('analytics')" id="tab-analytics" class="flex-1 py-3 text-sm text-gray-500">📈 分析</button>
     <button onclick="switchTab('config')"  id="tab-config"  class="flex-1 py-3 text-sm text-gray-500">⚙️ 設定</button>
   </nav>
 
