@@ -1775,16 +1775,27 @@
     async function fetchTableAsCSV(t) {
       const from = t.fromVal || `${t.year}-01-01`;
       const to   = t.toVal   || `${t.year}-12-31`;
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/${t.table}?${t.dateCol}=gte.${encodeURIComponent(from)}&${t.dateCol}=lte.${encodeURIComponent(to)}&select=${t.columns}&order=${t.dateCol}.asc`,
-        { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON } }
-      );
-      if (!res.ok) throw new Error(t.table + ' 取得失敗');
-      const rows = await res.json();
-      if (!rows.length) return null;
+      const PAGE = 1000;
+      let allRows = [];
+      let offset = 0;
+
+      // 1000件ずつ全件取得
+      while (true) {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/${t.table}?${t.dateCol}=gte.${encodeURIComponent(from)}&${t.dateCol}=lte.${encodeURIComponent(to)}&select=${t.columns}&order=${t.dateCol}.asc&limit=${PAGE}&offset=${offset}`,
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON, 'Prefer': 'count=none' } }
+        );
+        if (!res.ok) throw new Error(t.table + ' 取得失敗');
+        const rows = await res.json();
+        allRows = allRows.concat(rows);
+        if (rows.length < PAGE) break;
+        offset += PAGE;
+      }
+
+      if (!allRows.length) return null;
       const cols = t.columns.split(',');
       const csvHeader = t.header.map(h => `"${h}"`).join(',');
-      const csvRows = rows.map(r => cols.map(c => {
+      const csvRows = allRows.map(r => cols.map(c => {
         const v = r[c.trim()] ?? '';
         return `"${String(v).replace(/"/g, '""')}"`;
       }).join(','));
