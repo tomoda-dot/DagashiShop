@@ -27,6 +27,7 @@
       /* navをstickyから通常フローに（被りの原因） */
       nav.bg-white.flex {
         position: static !important;
+        z-index: auto !important;
         flex-direction: column;
         border-bottom: none;
       }
@@ -61,7 +62,10 @@
         white-space: normal !important;
       }
       /* テーブルは横スクロール */
-      .detail-table { font-size: 11px; }
+      .detail-table { font-size: 10px !important; }
+      .detail-table th, .detail-table td { padding: 6px 4px !important; white-space: nowrap; }
+      /* テーブルコンテナを横スクロール可能に */
+      .flex-1.overflow-auto { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
       /* グリッドを2列に */
       .grid.grid-cols-3 { grid-template-columns: 1fr 1fr !important; }
       .grid.grid-cols-4 { grid-template-columns: 1fr 1fr !important; }
@@ -295,7 +299,7 @@
     </div>
   </header>
 
-  <nav class="bg-white flex border-b sticky z-40">
+  <nav class="bg-white flex border-b sticky z-40" id="main-nav">
     <button onclick="switchTab('summary')" id="tab-summary" class="flex-1 py-3 text-sm tab-active">📊 日計表</button>
     <button onclick="switchTab('regi')"    id="tab-regi"    class="flex-1 py-3 text-sm text-gray-500">🧮 レジ締め入力</button>
     <button onclick="switchTab('detail')"  id="tab-detail"  class="flex-1 py-3 text-sm text-gray-500">📋 明細管理</button>
@@ -306,6 +310,12 @@
   </nav>
 
   <main class="flex-1 overflow-hidden relative">
+    <!-- スマホ用：タブ一覧に戻るボタン -->
+    <div id="mobile-back-btn" style="display:none;" class="bg-slate-100 border-b border-slate-200 px-4 py-2">
+      <button onclick="showMobileNav()" class="flex items-center gap-2 text-blue-600 font-bold text-sm">
+        <span class="material-icons text-sm">arrow_back</span> タブ一覧に戻る
+      </button>
+    </div>
     <div id="loading" class="loading-overlay">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
     </div>
@@ -863,15 +873,36 @@
       location.href = baseUrl + '?page=menu';
     }
 
-    // ── タブ切り替え ──────────────────────────────
+    var currentTab = 'summary';
     function switchTab(tab) {
-      ['summary','regi','detail','savings','pettycash','config'].forEach(t => {
+      const isMobile = window.innerWidth <= 640;
+      const TABS = ['summary','regi','detail','savings','pettycash','analytics','config'];
+
+      // スマホ：同じタブを再タップしたら閉じる
+      if (isMobile && currentTab === tab) {
+        TABS.forEach(t => {
+          document.getElementById('content-' + t).classList.add('hidden');
+          document.getElementById('tab-' + t).className = 'flex-1 py-3 text-sm text-gray-500';
+        });
+        currentTab = '';
+        return;
+      }
+
+      TABS.forEach(t => {
         document.getElementById('content-' + t).classList.toggle('hidden', t !== tab);
-        const btn = document.getElementById('tab-' + t);
-        btn.className = t === tab
+        document.getElementById('tab-' + t).className = t === tab
           ? 'flex-1 py-3 text-sm tab-active'
           : 'flex-1 py-3 text-sm text-gray-500';
       });
+      currentTab = tab;
+
+      // スマホ：ナビを隠してコンテンツを表示
+      if (isMobile) {
+        document.getElementById('main-nav').style.display = 'none';
+        document.getElementById('mobile-back-btn').style.display = '';
+        window.scrollTo({ top: 0 });
+      }
+
       if (tab === 'detail')  initDetailDate();
       if (tab === 'savings') {
         if (!document.getElementById('savings-month-selector').options.length) initSavingsMonthSelector();
@@ -882,6 +913,18 @@
         loadPettyCashData();
       }
       if (tab === 'config') { loadConfigData(); initArchiveYear(); }
+    }
+
+    function showMobileNav() {
+      const TABS = ['summary','regi','detail','savings','pettycash','analytics','config'];
+      document.getElementById('main-nav').style.display = '';
+      document.getElementById('mobile-back-btn').style.display = 'none';
+      TABS.forEach(t => {
+        document.getElementById('content-' + t).classList.add('hidden');
+        document.getElementById('tab-' + t).className = 'flex-1 py-3 text-sm text-gray-500';
+      });
+      currentTab = '';
+      window.scrollTo({ top: 0 });
     }
 
     // ── 月選択 ───────────────────────────────────
