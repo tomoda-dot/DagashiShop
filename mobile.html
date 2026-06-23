@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📦 在庫管理（スマホ版）</title>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red:   #e07060;
+  --grn:   #5a9a7a;
+  --amb:   #d4a23a;
+  --tx:    #2d2d2d;
+  --t2:    #666;
+  --t3:    #aaa;
+  --bg:    #f5f0eb;
+  --sf:    #faf6f2;
+  --bd:    #e0d8d0;
+  --r:     12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'M PLUS Rounded 1c', sans-serif; background: var(--bg); color: var(--tx); min-height: 100vh; }
+
+/* ヘッダー */
+.header {
+  background: #3d4036; color: white;
+  padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.header h1 { font-size: 16px; font-weight: 800; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #5a9a7a; }
+.sync-dot.loading { background: #d4a23a; animation: pulse .8s infinite; }
+.sync-dot.error { background: #e07060; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+
+/* タブバー */
+.tabbar {
+  display: flex; background: white;
+  border-bottom: 2px solid var(--bd);
+  position: sticky; top: 48px; z-index: 99;
+}
+.tabbtn {
+  flex: 1; padding: 12px 4px; font-size: 12px; font-weight: 700;
+  background: none; border: none; cursor: pointer; color: var(--t2);
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+}
+.tabbtn.on { color: var(--red); border-bottom-color: var(--red); }
+
+/* 検索バー */
+.searchbar {
+  padding: 10px 12px; background: white;
+  border-bottom: 1px solid var(--bd);
+  display: flex; gap: 8px; align-items: center;
+}
+.searchbar input {
+  flex: 1; padding: 8px 12px; border: 1.5px solid var(--bd);
+  border-radius: 20px; font-size: 14px; font-family: inherit; outline: none;
+  background: var(--sf);
+}
+.searchbar input:focus { border-color: var(--red); }
+.filter-wrap { display: flex; gap: 6px; padding: 8px 12px; overflow-x: auto; background: var(--sf); }
+.filter-chip {
+  white-space: nowrap; padding: 4px 12px; border-radius: 999px;
+  border: 1.5px solid var(--bd); background: white; font-size: 12px;
+  font-weight: 700; cursor: pointer; color: var(--t2);
+}
+.filter-chip.on { background: var(--red); color: white; border-color: var(--red); }
+
+/* メインコンテンツ */
+.content { padding: 10px 12px; }
+
+/* 商品カード */
+.prod-card {
+  background: white; border-radius: var(--r); margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow: hidden;
+}
+.prod-card-main { display: flex; align-items: center; gap: 10px; padding: 12px; }
+.prod-img {
+  width: 52px; height: 52px; border-radius: 8px; object-fit: cover;
+  flex-shrink: 0; background: var(--bg);
+}
+.prod-ph {
+  width: 52px; height: 52px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; background: var(--bg);
+}
+.prod-info { flex: 1; min-width: 0; }
+.prod-name { font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prod-maker { font-size: 11px; color: var(--t3); margin-top: 1px; }
+.prod-price { font-size: 13px; font-weight: 700; color: var(--red); }
+.prod-cat { display: inline-block; font-size: 10px; font-weight: 700; background: #f0ebe4; color: var(--t2); padding: 2px 8px; border-radius: 999px; margin-top: 3px; }
+.prod-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.stock-num { font-size: 22px; font-weight: 900; line-height: 1; }
+.stock-num.low { color: var(--red); }
+.stock-num.ok  { color: var(--grn); }
+.stock-ctrl { display: flex; align-items: center; gap: 6px; }
+.sc-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: none;
+  font-size: 18px; font-weight: 800; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+}
+.sc-btn.minus { background: #fde8e4; color: var(--red); }
+.sc-btn.plus  { background: #e4f0ea; color: var(--grn); }
+.sc-btn:active { opacity: .7; transform: scale(.9); }
+
+/* 詳細展開 */
+.prod-detail {
+  display: none; padding: 0 12px 12px;
+  border-top: 1px solid var(--bd); margin-top: 0;
+}
+.prod-detail.open { display: block; }
+.detail-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--bg); font-size: 13px; }
+.detail-row:last-child { border: none; }
+.detail-label { color: var(--t2); }
+.detail-val { font-weight: 700; }
+.det-btns { display: flex; gap: 8px; margin-top: 10px; }
+.det-btn {
+  flex: 1; padding: 9px; border-radius: 8px; border: none;
+  font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit;
+}
+.det-btn.order { background: #fff3cd; color: #856404; }
+.det-btn.recv  { background: #d1fae5; color: #065f46; }
+
+/* 発注カード */
+.order-card {
+  background: white; border-radius: var(--r); margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 14px;
+}
+.order-name { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+.order-meta { font-size: 12px; color: var(--t2); margin-bottom: 8px; }
+.order-ctrl { display: flex; align-items: center; gap: 8px; }
+.order-qty-btn {
+  width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--bd);
+  background: var(--sf); font-size: 18px; font-weight: 800; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.order-qty-val { font-size: 18px; font-weight: 900; min-width: 32px; text-align: center; }
+.order-add-btn {
+  margin-left: auto; padding: 8px 16px; border-radius: 8px; border: none;
+  background: var(--red); color: white; font-size: 13px; font-weight: 800;
+  cursor: pointer; font-family: inherit;
+}
+.order-add-btn.added { background: var(--grn); }
+
+/* 発注済みカード */
+.ordered-card {
+  background: white; border-radius: var(--r); margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 14px;
+  border-left: 4px solid var(--amb);
+}
+.recv-btn {
+  width: 100%; margin-top: 10px; padding: 10px; border-radius: 8px; border: none;
+  background: #d1fae5; color: #065f46; font-size: 13px; font-weight: 800;
+  cursor: pointer; font-family: inherit;
+}
+
+/* 入荷確認モーダル */
+.modal-ov {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200;
+  align-items: flex-end; justify-content: center;
+}
+.modal-ov.open { display: flex; }
+.modal-box {
+  background: white; border-radius: 20px 20px 0 0;
+  padding: 20px 16px; width: 100%; max-height: 90vh; overflow-y: auto;
+}
+.modal-title { font-size: 16px; font-weight: 800; margin-bottom: 14px; }
+.modal-field { margin-bottom: 12px; }
+.modal-field label { font-size: 12px; font-weight: 700; color: var(--t2); display: block; margin-bottom: 4px; }
+.modal-field input {
+  width: 100%; padding: 10px 12px; border: 1.5px solid var(--bd);
+  border-radius: 8px; font-size: 15px; font-family: inherit; outline: none;
+}
+.modal-field input:focus { border-color: var(--red); }
+.modal-ref { background: var(--sf); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: var(--t2); }
+.modal-ref strong { color: var(--tx); }
+.modal-btns { display: flex; gap: 10px; }
+.modal-btn {
+  flex: 1; padding: 12px; border-radius: 10px; border: none;
+  font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit;
+}
+.modal-btn.cancel { background: var(--bg); color: var(--t2); }
+.modal-btn.confirm { background: var(--grn); color: white; }
+
+/* ローディング・空 */
+.loading-msg { text-align: center; padding: 40px 20px; color: var(--t3); font-weight: 700; }
+.empty-msg { text-align: center; padding: 40px 20px; color: var(--t3); }
+
+/* ヘッダーボタン */
+.hdr-btn {
+  padding: 5px 10px; border-radius: 6px; border: none; cursor: pointer;
+  font-size: 11px; font-weight: 700; font-family: inherit;
+  background: rgba(255,255,255,.15); color: white;
+}
+
+/* トースト */
+#toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: #3d4036; color: white; padding: 10px 20px; border-radius: 999px;
+  font-size: 13px; font-weight: 700; opacity: 0; transition: all .3s; z-index: 999;
+  pointer-events: none; white-space: nowrap;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header class="header">
+  <h1>📦 在庫管理</h1>
+  <div class="header-right">
+    <span id="sync-dot" class="sync-dot"></span>
+    <a href="index.html" style="color:white;font-size:13px;font-weight:700;text-decoration:none;">← メニュー</a>
+  </div>
+</header>
+
+<!-- タブバー -->
+<div class="tabbar">
+  <button class="tabbtn on" id="tab-stock" onclick="goTab('stock')">📋 在庫一覧</button>
+  <button class="tabbtn" id="tab-cand"  onclick="goTab('cand')">⚠️ 発注候補</button>
+  <button class="tabbtn" id="tab-order" onclick="goTab('order')">📮 発注済み</button>
+</div>
+
+<!-- 在庫一覧タブ -->
+<div id="pane-stock">
+  <div class="searchbar">
+    <input type="text" id="search-input" placeholder="商品名で検索..." oninput="renderStock()" autocomplete="off" lang="ja">
+  </div>
+  <div class="filter-wrap" id="cat-filter"></div>
+  <div class="content" id="stock-list">
+    <div class="loading-msg">読み込み中...</div>
+  </div>
+</div>
+
+<!-- 発注候補タブ -->
+<div id="pane-cand" style="display:none;">
+  <div class="content" id="cand-list">
+    <div class="loading-msg">読み込み中...</div>
+  </div>
+</div>
+
+<!-- 発注済みタブ -->
+<div id="pane-order" style="display:none;">
+  <div class="content" id="order-list">
+    <div class="loading-msg">読み込み中...</div>
+  </div>
+</div>
+
+<!-- 入荷確認モーダル -->
+<div class="modal-ov" id="recv-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="recv-title">入荷確認</div>
+    <div class="modal-ref" id="recv-ref"></div>
+    <div class="modal-field">
+      <label>入荷ロット数</label>
+      <input type="number" id="recv-lots" min="1" value="1" oninput="recvCalc()">
+    </div>
+    <div class="modal-field">
+      <label>仕入れ価格（円/ロット）</label>
+      <input type="number" id="recv-price" min="0" oninput="recvCalc()">
+    </div>
+    <div class="modal-field">
+      <label>入り数（個/ロット）</label>
+      <input type="number" id="recv-bqty" min="1" oninput="recvCalc()">
+    </div>
+    <div class="modal-field">
+      <label>賞味期限（任意）</label>
+      <input type="date" id="recv-exp">
+    </div>
+    <div class="modal-field">
+      <label>販売価格（円）</label>
+      <input type="number" id="recv-sell" min="0">
+    </div>
+    <div id="recv-calc" style="font-size:12px;color:var(--t2);margin-bottom:12px;"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeRecv()">キャンセル</button>
+      <button class="modal-btn confirm" onclick="confirmRecv()">入荷を確定</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="supabase-config.js"></script>
+<script src="supabase-adapter.js"></script>
+<script>
+var prods = [], orders = [], suppliers = [];
+var catFilter = '';
+var recvItemId = null;
+
+// ── カテゴリ絵文字 ─────────────────────────────
+var CAT_COLOR = {
+  'スナック':'#f49576','チョコ':'#c8a07a','ガム':'#7fbfb4','グミ':'#a07fbf',
+  'ラムネ':'#7faabf','ゼリー':'#7fbf9a','アメ':'#f4c576','ソフトキャンディ':'#bf7f9a',
+  '砂糖菓子':'#d4a0c0','味付け珍味':'#9aaf8a','その他':'#b0a89a','玩具':'#e07060'
+};
+
+// ── 初期化 ──────────────────────────────────────
+setSS('loading');
+Promise.all([
+  GAS.getAllData(),
+  GAS.getOrders(),
+  GAS.getSuppliers()
+]).then(function(res) {
+  var data = res[0];
+  prods     = (data.products || []).filter(function(p){ return p.status !== 'discontinued'; });
+  orders    = res[1] || [];
+  suppliers = res[2] || [];
+  buildCatFilter();
+  renderStock();
+  renderCand();
+  renderOrdered();
+  setSS('ok');
+}).catch(function(e) {
+  setSS('error');
+  toast('読み込みエラー: ' + (e.message || e));
+});
+
+function setSS(s) {
+  var dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot' + (s === 'loading' ? ' loading' : s === 'error' ? ' error' : '');
+}
+
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 2200);
+}
+
+// ── タブ切替 ────────────────────────────────────
+function goTab(name) {
+  ['stock','cand','order'].forEach(function(t) {
+    document.getElementById('pane-' + t).style.display = t === name ? '' : 'none';
+    document.getElementById('tab-' + t).className = 'tabbtn' + (t === name ? ' on' : '');
+  });
+}
+
+// ── カテゴリフィルター ──────────────────────────
+function buildCatFilter() {
+  var cats = [];
+  prods.forEach(function(p){ if(p.cat && cats.indexOf(p.cat) < 0) cats.push(p.cat); });
+  var html = '<button class="filter-chip on" onclick="setCat(\'\')">すべて</button>';
+  cats.forEach(function(c){
+    html += '<button class="filter-chip" onclick="setCat(\'' + c + '\')">' + c + '</button>';
+  });
+  document.getElementById('cat-filter').innerHTML = html;
+}
+
+function setCat(cat) {
+  catFilter = cat;
+  document.querySelectorAll('.filter-chip').forEach(function(el){
+    el.className = 'filter-chip' + (el.textContent === (cat || 'すべて') ? ' on' : '');
+  });
+  renderStock();
+}
+
+// ── 在庫一覧 ────────────────────────────────────
+function renderStock() {
+  var q = (document.getElementById('search-input').value || '').trim();
+  var list = prods.filter(function(p) {
+    if (catFilter && p.cat !== catFilter) return false;
+    if (q && p.name.indexOf(q) < 0 && (p.name_kana||'').indexOf(q) < 0) return false;
+    return true;
+  });
+  if (!list.length) {
+    document.getElementById('stock-list').innerHTML = '<div class="empty-msg">該当商品なし</div>';
+    return;
+  }
+  document.getElementById('stock-list').innerHTML = list.map(function(p) {
+    var isLow = p.stock <= (p.min || 5);
+    var col = CAT_COLOR[p.cat] || '#b0a89a';
+    var imgHtml = p.img_url
+      ? '<img class="prod-img" src="' + p.img_url + '" onerror="this.style.display=\'none\'">'
+      : '<div class="prod-ph" style="background:' + col + '20;">' + (p.cat||'他')[0] + '</div>';
+    var tanka = (p.buy_price && p.buy_qty) ? Math.round(p.buy_price/p.buy_qty*1.08*100)/100 : null;
+    return '<div class="prod-card">'
+      + '<div class="prod-card-main" onclick="toggleDet(' + p.id + ')">'
+      + imgHtml
+      + '<div class="prod-info">'
+      + '<div class="prod-name">' + p.name + '</div>'
+      + (p.maker ? '<div class="prod-maker">' + p.maker + '</div>' : '')
+      + '<div><span class="prod-cat">' + (p.cat||'その他') + '</span></div>'
+      + '<div class="prod-price">¥' + (p.sell_price || p.price || 0) + '</div>'
+      + '</div>'
+      + '<div class="prod-right">'
+      + '<div class="stock-num ' + (isLow?'low':'ok') + '">' + (p.stock||0) + '<span style="font-size:12px;font-weight:700;">個</span></div>'
+      + '<div class="stock-ctrl">'
+      + '<button class="sc-btn minus" onclick="event.stopPropagation();changeStock(' + p.id + ',-1)">－</button>'
+      + '<button class="sc-btn plus"  onclick="event.stopPropagation();changeStock(' + p.id + ',+1)">＋</button>'
+      + '</div>'
+      + '</div>'
+      + '</div>'
+      + '<div class="prod-detail" id="det-' + p.id + '">'
+      + '<div class="detail-row"><span class="detail-label">在庫数</span><span class="detail-val">' + (p.stock||0) + '個</span></div>'
+      + '<div class="detail-row"><span class="detail-label">アラート</span><span class="detail-val">' + (p.min||5) + '個以下</span></div>'
+      + (tanka ? '<div class="detail-row"><span class="detail-label">仕入単価</span><span class="detail-val">¥' + tanka + '/個（税込8%）</span></div>' : '')
+      + (p.exp ? '<div class="detail-row"><span class="detail-label">賞味期限</span><span class="detail-val">' + p.exp + '</span></div>' : '')
+      + (p.barcode ? '<div class="detail-row"><span class="detail-label">バーコード</span><span class="detail-val">' + p.barcode + '</span></div>' : '')
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function toggleDet(id) {
+  var el = document.getElementById('det-' + id);
+  if(el) el.classList.toggle('open');
+}
+
+function changeStock(id, delta) {
+  var p = prods.filter(function(x){ return x.id === id; })[0];
+  if(!p) return;
+  var newStock = Math.max(0, (p.stock||0) + delta);
+  p.stock = newStock;
+  GAS.updateStock(id, newStock).then(function() {
+    toast((delta > 0 ? '＋1個' : '－1個') + ' → ' + newStock + '個');
+    renderStock();
+  }).catch(function(){ toast('更新に失敗しました'); p.stock -= delta; });
+}
+
+// ── 発注候補 ────────────────────────────────────
+function renderCand() {
+  var cands = prods.filter(function(p){
+    return (p.stock||0) <= (p.min||5) && p.status !== 'hidden';
+  });
+  if(!cands.length){
+    document.getElementById('cand-list').innerHTML = '<div class="empty-msg">🎉 在庫不足の商品はありません</div>';
+    return;
+  }
+  document.getElementById('cand-list').innerHTML = cands.map(function(p){
+    var col = CAT_COLOR[p.cat] || '#b0a89a';
+    return '<div class="order-card">'
+      + '<div class="order-name">' + p.name + '</div>'
+      + '<div class="order-meta">在庫: <strong style="color:var(--red)">' + (p.stock||0) + '個</strong>　アラート: ' + (p.min||5) + '個以下'
+      + (p.buy_price ? '　仕入: ¥' + p.buy_price + '/' + (p.buy_qty||1) + '個入' : '') + '</div>'
+      + '<div class="order-ctrl">'
+      + '<button class="order-qty-btn" onclick="candQty(' + p.id + ',-1)">－</button>'
+      + '<span class="order-qty-val" id="cq-' + p.id + '">1</span>'
+      + '<button class="order-qty-btn" onclick="candQty(' + p.id + ',+1)">＋</button>'
+      + '<button class="order-add-btn" id="cadd-' + p.id + '" onclick="addToOrder(' + p.id + ')">発注リストへ</button>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function candQty(id, delta) {
+  var el = document.getElementById('cq-' + id);
+  if(!el) return;
+  var v = Math.max(1, parseInt(el.textContent) + delta);
+  el.textContent = v;
+}
+
+function addToOrder(id) {
+  var p = prods.filter(function(x){ return x.id===id; })[0];
+  if(!p) return;
+  var qty = parseInt(document.getElementById('cq-' + id).textContent) || 1;
+  var btn = document.getElementById('cadd-' + id);
+  btn.textContent = '追加済み ✓';
+  btn.className = 'order-add-btn added';
+  btn.disabled = true;
+  GAS.saveOrder({
+    product_id: p.id,
+    product_name: p.name,
+    order_qty: qty,
+    buy_price: p.buy_price || 0,
+    buy_qty: p.buy_qty || 1,
+    supplier_id: null
+  }).then(function(){
+    toast('「' + p.name + '」を発注リストに追加しました');
+    return GAS.getOrders();
+  }).then(function(rows){
+    orders = rows || [];
+    renderOrdered();
+  }).catch(function(){ toast('追加に失敗しました'); });
+}
+
+// ── 発注済み ────────────────────────────────────
+function renderOrdered() {
+  var pending = (orders || []).filter(function(o){ return o.status === '未入荷'; });
+  if(!pending.length){
+    document.getElementById('order-list').innerHTML = '<div class="empty-msg">発注済みの商品はありません</div>';
+    return;
+  }
+  // 発注日でグループ化
+  var groups = {};
+  pending.forEach(function(o){
+    var d = (o.ordered_at||o.created_at||'').split('T')[0];
+    if(!groups[d]) groups[d] = [];
+    groups[d].push(o);
+  });
+  var html = '';
+  Object.keys(groups).sort().reverse().forEach(function(date){
+    html += '<div style="font-size:12px;font-weight:700;color:var(--t2);margin:12px 0 4px;">' + date + '</div>';
+    groups[date].forEach(function(o){
+      html += '<div class="ordered-card">'
+        + '<div class="order-name">' + (o.product_name||o.label||'—') + '</div>'
+        + '<div class="order-meta">'
+        + (o.supplier_name ? '仕入れ先: ' + o.supplier_name + '　' : '')
+        + '発注数: ' + (o.order_qty||1) + 'ロット'
+        + (o.buy_price ? '　¥' + o.buy_price + '/' + (o.buy_qty||1) + '個入' : '')
+        + '</div>'
+        + '<button class="recv-btn" onclick="openRecv(' + o.id + ')">✅ 入荷確認</button>'
+        + '</div>';
+    });
+  });
+  document.getElementById('order-list').innerHTML = html;
+}
+
+// ── 入荷確認モーダル ─────────────────────────────
+function openRecv(itemId) {
+  var it = (orders||[]).filter(function(x){ return x.id===itemId; })[0];
+  if(!it) return;
+  recvItemId = itemId;
+  document.getElementById('recv-title').textContent = '📦 ' + (it.product_name||'入荷確認');
+  document.getElementById('recv-ref').innerHTML =
+    '<strong>発注情報：</strong>' +
+    (it.order_qty||1) + 'ロット発注' +
+    (it.buy_price ? '　¥' + it.buy_price + '/' + (it.buy_qty||1) + '個入' : '');
+  document.getElementById('recv-lots').value  = it.order_qty || 1;
+  document.getElementById('recv-price').value = it.buy_price || '';
+  document.getElementById('recv-bqty').value  = it.buy_qty   || '';
+  document.getElementById('recv-exp').value   = '';
+  var prod = prods.filter(function(p){ return p.id===it.product_id; })[0];
+  document.getElementById('recv-sell').value  = prod ? (prod.sell_price||prod.price||'') : '';
+  recvCalc();
+  document.getElementById('recv-modal').classList.add('open');
+}
+
+function closeRecv() {
+  document.getElementById('recv-modal').classList.remove('open');
+  recvItemId = null;
+}
+
+function recvCalc() {
+  var price = parseFloat(document.getElementById('recv-price').value)||0;
+  var bqty  = parseInt(document.getElementById('recv-bqty').value)||0;
+  var lots  = parseInt(document.getElementById('recv-lots').value)||0;
+  var sell  = parseFloat(document.getElementById('recv-sell').value)||0;
+  var el    = document.getElementById('recv-calc');
+  if(price && bqty && lots) {
+    var tanka = Math.round(price/bqty*1.08*100)/100;
+    var total = lots*bqty;
+    var margin = sell ? Math.round((sell-tanka)*10)/10 : null;
+    el.textContent = '仕入単価: ¥' + tanka + '/個（税込8%）　入荷合計: ' + total + '個'
+      + (margin !== null ? '　粗利: ' + (margin>=0?'+':'') + margin + '円' : '');
+  } else { el.textContent = ''; }
+}
+
+function confirmRecv() {
+  if(!recvItemId) return;
+  var it    = (orders||[]).filter(function(x){ return x.id===recvItemId; })[0];
+  var lots  = parseInt(document.getElementById('recv-lots').value)||0;
+  var bqty  = parseInt(document.getElementById('recv-bqty').value)||0;
+  var price = parseFloat(document.getElementById('recv-price').value)||0;
+  var exp   = document.getElementById('recv-exp').value || '';
+  var sell  = parseFloat(document.getElementById('recv-sell').value)||0;
+  if(!lots||!bqty){ toast('ロット数と入り数を入力してください'); return; }
+  var btn = document.querySelector('#recv-modal .modal-btn.confirm');
+  btn.textContent = '確定中...'; btn.disabled = true;
+  GAS.receiveOrderItem([recvItemId, {
+    buy_price: price, buy_qty: bqty, order_qty: lots, exp: exp, sell_price: sell
+  }]).then(function(res){
+    toast('「' + (it.product_name||'商品') + '」' + (lots*bqty) + '個を入荷しました');
+    closeRecv();
+    return Promise.all([GAS.getAllData(), GAS.getOrders()]);
+  }).then(function(res){
+    var data = res[0];
+    prods  = (data.products||[]).filter(function(p){ return p.status!=='discontinued'; });
+    orders = res[1] || [];
+    renderStock(); renderCand(); renderOrdered();
+  }).catch(function(e){ toast('エラー: '+(e.message||e)); })
+  .finally(function(){ btn.textContent='入荷を確定'; btn.disabled=false; });
+}
+</script>
+</body>
+</html>
