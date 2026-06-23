@@ -9,7 +9,7 @@
   <style>
     body { background-color: #f1f5f9; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
     .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
-    .loading-overlay { background: rgba(255,255,255,0.8); display: none; position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }    .loading-overlay { background: rgba(255,255,255,0.8); display: none; position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
     .regi-container .input-label { font-size: 0.85rem; font-weight: bold; color: #475569; width: 70px; text-align: right; }
     .regi-container .input-box { border: 2px solid #cbd5e1; border-radius: 6px; text-align: right; font-family: monospace; font-size: 0.9rem; width: 75px; padding: 1px 5px; background: #fff; }
     .regi-container .step-btn { background: #e2e8f0; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: bold; cursor: pointer; color: #64748b; }
@@ -242,7 +242,6 @@
     <button onclick="switchTab('detail')"  id="tab-detail"  class="flex-1 py-3 text-sm text-gray-500">📋 明細管理</button>
     <button onclick="switchTab('savings')" id="tab-savings" class="flex-1 py-3 text-sm text-gray-500">💰 積立金管理</button>
     <button onclick="switchTab('pettycash')" id="tab-pettycash" class="flex-1 py-3 text-sm text-gray-500">💴 小口現金</button>
-    <button onclick="switchTab('analytics')" id="tab-analytics" class="flex-1 py-3 text-sm text-gray-500">📈 分析</button>
     <button onclick="switchTab('config')"  id="tab-config"  class="flex-1 py-3 text-sm text-gray-500">⚙️ 設定</button>
   </nav>
 
@@ -806,7 +805,7 @@
 
     // ── タブ切り替え ──────────────────────────────
     function switchTab(tab) {
-      ['summary','regi','detail','savings','pettycash','analytics','config'].forEach(t => {
+      ['summary','regi','detail','savings','pettycash','config'].forEach(t => {
         document.getElementById('content-' + t).classList.toggle('hidden', t !== tab);
         document.getElementById('tab-' + t).className = t === tab
           ? 'flex-1 py-3 text-sm tab-active'
@@ -2070,6 +2069,8 @@
     window.onload = () => {
       initMonthSelector();
       initSavingsMonthSelector();
+      initPettyCashMonthSelector();
+      initDetailDate();
       initInputs();
       loadData();
       setInterval(updateClock, 1000);
