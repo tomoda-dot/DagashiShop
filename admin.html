@@ -2,76 +2,13 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>📊 売上管理システム</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
     body { background-color: #f1f5f9; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
     .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
-
-    /* ━━━ スマホ対応 (max-width:640px) ━━━ */
-    @media (max-width: 640px) {
-      /* body・mainを全体スクロール可能に */
-      body {
-        height: auto !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        display: block !important;
-      }
-      main.flex-1.overflow-hidden {
-        overflow: visible !important;
-        height: auto !important;
-        flex: none !important;
-      }
-      /* navをstickyから通常フローに（被りの原因） */
-      nav.bg-white.flex {
-        position: static !important;
-        z-index: auto !important;
-        flex-direction: column;
-        border-bottom: none;
-      }
-      nav.bg-white.flex button {
-        text-align: left;
-        padding: 14px 16px;
-        border-bottom: 1px solid #e2e8f0 !important;
-        border-left: 4px solid transparent;
-        border-top: none; border-right: none;
-        font-size: 15px; font-weight: 600;
-      }
-      nav.bg-white.flex .tab-active {
-        border-left: 4px solid #3b82f6 !important;
-        background: #eff6ff;
-        color: #3b82f6;
-      }
-      /* セクションの高さ・overflowをリセット */
-      section {
-        height: auto !important;
-        overflow: visible !important;
-        padding: 12px !important;
-      }
-      /* ボタン行を折り返す */
-      .flex.items-center.gap-3 {
-        flex-wrap: wrap;
-        gap: 6px !important;
-      }
-      .flex.items-center.gap-3 button {
-        font-size: 12px !important;
-        padding: 6px 10px !important;
-        height: auto !important;
-        white-space: normal !important;
-      }
-      /* テーブルは横スクロール */
-      .detail-table { font-size: 10px !important; }
-      .detail-table th, .detail-table td { padding: 6px 4px !important; white-space: nowrap; }
-      /* テーブルコンテナを横スクロール可能に */
-      .flex-1.overflow-auto { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
-      /* グリッドを2列に */
-      .grid.grid-cols-3 { grid-template-columns: 1fr 1fr !important; }
-      .grid.grid-cols-4 { grid-template-columns: 1fr 1fr !important; }
-      /* レジ入力を縦に */
-      .regi-container { flex-direction: column !important; overflow: visible !important; height: auto !important; }
-    }
     .loading-overlay { background: rgba(255,255,255,0.8); display: none; position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
     .regi-container .input-label { font-size: 0.85rem; font-weight: bold; color: #475569; width: 70px; text-align: right; }
     .regi-container .input-box { border: 2px solid #cbd5e1; border-radius: 6px; text-align: right; font-family: monospace; font-size: 0.9rem; width: 75px; padding: 1px 5px; background: #fff; }
@@ -299,7 +236,7 @@
     </div>
   </header>
 
-  <nav class="bg-white flex border-b sticky z-40" id="main-nav">
+  <nav class="bg-white flex border-b sticky z-40">
     <button onclick="switchTab('summary')" id="tab-summary" class="flex-1 py-3 text-sm tab-active">📊 日計表</button>
     <button onclick="switchTab('regi')"    id="tab-regi"    class="flex-1 py-3 text-sm text-gray-500">🧮 レジ締め入力</button>
     <button onclick="switchTab('detail')"  id="tab-detail"  class="flex-1 py-3 text-sm text-gray-500">📋 明細管理</button>
@@ -310,12 +247,6 @@
   </nav>
 
   <main class="flex-1 overflow-hidden relative">
-    <!-- スマホ用：タブ一覧に戻るボタン -->
-    <div id="mobile-back-btn" style="display:none;" class="bg-slate-100 border-b border-slate-200 px-4 py-2">
-      <button onclick="showMobileNav()" class="flex items-center gap-2 text-blue-600 font-bold text-sm">
-        <span class="material-icons text-sm">arrow_back</span> タブ一覧に戻る
-      </button>
-    </div>
     <div id="loading" class="loading-overlay">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
     </div>
@@ -873,36 +804,14 @@
       location.href = baseUrl + '?page=menu';
     }
 
-    var currentTab = 'summary';
+    // ── タブ切り替え ──────────────────────────────
     function switchTab(tab) {
-      const isMobile = window.innerWidth <= 640;
-      const TABS = ['summary','regi','detail','savings','pettycash','analytics','config'];
-
-      // スマホ：同じタブを再タップしたら閉じる
-      if (isMobile && currentTab === tab) {
-        TABS.forEach(t => {
-          document.getElementById('content-' + t).classList.add('hidden');
-          document.getElementById('tab-' + t).className = 'flex-1 py-3 text-sm text-gray-500';
-        });
-        currentTab = '';
-        return;
-      }
-
-      TABS.forEach(t => {
+      ['summary','regi','detail','savings','pettycash','analytics','config'].forEach(t => {
         document.getElementById('content-' + t).classList.toggle('hidden', t !== tab);
         document.getElementById('tab-' + t).className = t === tab
           ? 'flex-1 py-3 text-sm tab-active'
           : 'flex-1 py-3 text-sm text-gray-500';
       });
-      currentTab = tab;
-
-      // スマホ：ナビを隠してコンテンツを表示
-      if (isMobile) {
-        document.getElementById('main-nav').style.display = 'none';
-        document.getElementById('mobile-back-btn').style.display = '';
-        window.scrollTo({ top: 0 });
-      }
-
       if (tab === 'detail')  initDetailDate();
       if (tab === 'savings') {
         if (!document.getElementById('savings-month-selector').options.length) initSavingsMonthSelector();
@@ -913,18 +822,6 @@
         loadPettyCashData();
       }
       if (tab === 'config') { loadConfigData(); initArchiveYear(); }
-    }
-
-    function showMobileNav() {
-      const TABS = ['summary','regi','detail','savings','pettycash','analytics','config'];
-      document.getElementById('main-nav').style.display = '';
-      document.getElementById('mobile-back-btn').style.display = 'none';
-      TABS.forEach(t => {
-        document.getElementById('content-' + t).classList.add('hidden');
-        document.getElementById('tab-' + t).className = 'flex-1 py-3 text-sm text-gray-500';
-      });
-      currentTab = '';
-      window.scrollTo({ top: 0 });
     }
 
     // ── 月選択 ───────────────────────────────────
