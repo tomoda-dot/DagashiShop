@@ -1773,9 +1773,6 @@ function memClear(idx) {
 <!-- ★ 外販専用：設定インライン済み -->
 <script>
 // ─ 外販モード：sendQueueAsyncを手動送信専用に上書き ─
-// （会計時は自動送信せず、帰宅後に手動でまとめて送信）
-function sendQueueAsync() {
-    // 外販モードでは自動送信しない
     gaihanUpdateBadge();
 }
 
@@ -1866,7 +1863,7 @@ function gaihanSend() {
     }
     sendNext();
 }
-
+</script>
 
 <script>
 var SUPABASE_URL  = 'https://wkaijkredavfjvfzunte.supabase.co';
