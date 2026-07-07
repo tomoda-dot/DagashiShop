@@ -1607,13 +1607,8 @@ function closeReceipt() {
 }
 
 function printReceiptWindow() {
-    var html = document.getElementById('receipt-paper').innerHTML;
-    var pw = window.open('', '_blank', 'width=380,height=640');
-    if (!pw) {
-        alert('ポップアップがブロックされました。ブラウザのポップアップ許可設定をご確認ください。');
-        return;
-    }
-    pw.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>レシート</title><style>' +
+    var innerHtml = document.getElementById('receipt-paper').innerHTML;
+    var fullHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>レシート</title><style>' +
         '@page { size: 58mm auto; margin: 2mm; }' +
         'body { width: 58mm; margin: 0 auto; padding: 0; font-family: "Hiragino Maru Gothic ProN","Meiryo",sans-serif; color: #000; }' +
         '.r-logo { text-align: center; margin-bottom: 6px; }' +
@@ -1634,13 +1629,23 @@ function printReceiptWindow() {
         '.close-btn { background: #e0e0e0; color: #333; }' +
         '@media print { .print-actions { display: none; } }' +
         '</style></head><body>' +
-        html +
+        innerHtml +
         '<div class="print-actions">' +
         '<button class="print-btn" onclick="window.print()">🖨 印刷する</button>' +
         '<button class="close-btn" onclick="window.close()">閉じる</button>' +
         '</div>' +
-        '</body></html>');
-    pw.document.close();
+        '</body></html>';
+
+    var blob = new Blob([fullHtml], { type: 'text/html' });
+    var blobUrl = URL.createObjectURL(blob);
+    var pw = window.open(blobUrl, '_blank', 'width=380,height=640');
+    if (!pw) {
+        alert('ポップアップがブロックされました。ブラウザのポップアップ許可設定をご確認ください。');
+        URL.revokeObjectURL(blobUrl);
+        return;
+    }
+    // 新しいウィンドウの読み込みが終わってからURLを解放する
+    setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 60000);
 }
 
 
