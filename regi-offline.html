@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>おかしのレジ</title>
+    <title>おかしのレジ（オフライン対応）</title>
     <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -16,6 +16,28 @@
             --brown:   #3d4036;
             --light:   #faf5ee;
             --white:   #ffffff;
+        }
+
+        /* ── オフラインインジケーター ── */
+        #offline-indicator {
+            display: none;
+            align-items: center; gap: 6px;
+            background: #ef4444; color: white;
+            font-size: 12px; font-weight: 800;
+            padding: 3px 10px; border-radius: 999px;
+            animation: pulse-red 1.5s infinite;
+        }
+        #offline-indicator.show { display: flex; }
+        #queue-badge {
+            display: none;
+            background: #fbbf24; color: #78350f;
+            font-size: 11px; font-weight: 800;
+            padding: 2px 8px; border-radius: 999px;
+        }
+        #queue-badge.show { display: inline-block; }
+        @keyframes pulse-red {
+            0%,100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -659,6 +681,8 @@
     <header class="app-header">
         <h1>🍬 おかしのレジ</h1>
         <div style="display:flex;align-items:center;gap:10px;">
+            <div id="offline-indicator">📵 オフライン</div>
+            <div id="queue-badge"></div>
             <div class="sales-badge" id="sales-badge">本日 0円</div>
             <div class="clock-display" id="clock-display">00:00</div>
             <button class="cfg-gear-btn" id="fullscreen-btn" onclick="toggleFullscreen()" title="全画面表示">⛶</button>
@@ -1024,26 +1048,43 @@ function loadCustomDiscounts() {
     catch(e) { return []; }
 }
 
-// 起動時：Supabaseから設定を取得
+// 起動時：Supabaseから設定を取得（オフライン対応）
 function initSettings() {
+    if (!navigator.onLine) {
+        // オフライン時はlocalStorageのキャッシュをそのまま使う
+        console.log('[offline] ボタン設定はキャッシュを使用');
+        return;
+    }
     GAS.getSettings().then(function(data) {
-                if (!data) return;
-                let updated = false;
-                if (Array.isArray(data.customButtons) && data.customButtons.length > 0) {
-                    customButtons = data.customButtons;
-                    localStorage.setItem('customButtons', JSON.stringify(customButtons));
-                    updated = true;
-                }
-                if (Array.isArray(data.customDiscounts) && data.customDiscounts.length > 0) {
-                    customDiscounts = data.customDiscounts;
-                    localStorage.setItem('customDiscounts', JSON.stringify(customDiscounts));
-                    updated = true;
-                }
-                if (updated) {
-                    renderGrid();
-                    renderDiscountGrid();
-                }
-            }).catch(function() {});
+        if (!data) return;
+        let updated = false;
+
+        if (Array.isArray(data.customButtons) && data.customButtons.length > 0) {
+            const cached = JSON.stringify(customButtons);
+            const fresh  = JSON.stringify(data.customButtons);
+            if (cached !== fresh) {
+                console.log('[settings] ボタン設定に差分あり → 更新');
+                customButtons = data.customButtons;
+                localStorage.setItem('customButtons', JSON.stringify(customButtons));
+                updated = true;
+            }
+        }
+        if (Array.isArray(data.customDiscounts) && data.customDiscounts.length > 0) {
+            const cached = JSON.stringify(customDiscounts);
+            const fresh  = JSON.stringify(data.customDiscounts);
+            if (cached !== fresh) {
+                customDiscounts = data.customDiscounts;
+                localStorage.setItem('customDiscounts', JSON.stringify(customDiscounts));
+                updated = true;
+            }
+        }
+        if (updated) {
+            renderGrid();
+            renderDiscountGrid();
+        }
+    }).catch(function() {
+        console.log('[settings] 取得失敗 → キャッシュ使用');
+    });
 }
 
 // ═══ 割引券定義 ══════════════════════════════════
@@ -1410,16 +1451,34 @@ function enqueue(payload) {
 
 function sendQueueAsync() {
     const q = loadQueue();
+    updateQueueBadge(q.length);
     if (q.length === 0) return;
+    if (!navigator.onLine) {
+        console.log('[offline] キュー送信スキップ（オフライン）: ' + q.length + '件待機中');
+        return;
+    }
     const item = q[0];
     GAS.saveOrderFromRegi(JSON.stringify(item)).then(function() {
             const q2 = loadQueue();
             q2.shift();
             saveQueue(q2);
+            updateQueueBadge(q2.length);
             if (q2.length > 0) sendQueueAsync();
+            else console.log('[sync] 全件送信完了');
         }).catch(function() {
-            // 失敗しても次回起動時に再送
+            console.log('[sync] 送信失敗 → 次回再試行');
         });
+}
+
+function updateQueueBadge(count) {
+    var badge = document.getElementById('queue-badge');
+    if (!badge) return;
+    if (count > 0) {
+        badge.textContent = '未送信 ' + count + '件';
+        badge.classList.add('show');
+    } else {
+        badge.classList.remove('show');
+    }
 }
 
 // ═══ 絵文字ピッカー ═══════════════════════════════
@@ -1790,6 +1849,55 @@ initSettings();
 updateSalesBadge();
 document.getElementById('sales-badge').addEventListener('click', openSalesModal);
 setTimeout(function() { sendQueueAsync(); }, 1000);
+
+// ── オフライン検知 ────────────────────────────────
+function updateOnlineStatus() {
+    var indicator = document.getElementById('offline-indicator');
+    if (!indicator) return;
+    if (navigator.onLine) {
+        indicator.classList.remove('show');
+    } else {
+        indicator.classList.add('show');
+    }
+    updateQueueBadge(loadQueue().length);
+}
+
+window.addEventListener('online', function() {
+    updateOnlineStatus();
+    console.log('[network] オンラインに復帰 → ボタン設定確認・売上データ送信');
+    // ① ボタン設定の差分確認
+    initSettings();
+    // ② 未送信の売上データを送信
+    setTimeout(function() { sendQueueAsync(); }, 500);
+});
+
+window.addEventListener('offline', function() {
+    updateOnlineStatus();
+    console.log('[network] オフラインになりました');
+});
+
+// 初期状態チェック
+updateOnlineStatus();
+
+// ── Service Worker 登録 ──────────────────────────
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then(function(reg) {
+        console.log('[SW] 登録成功:', reg.scope);
+        // 新しいService Workerがあれば即時適用
+        if (reg.waiting) reg.waiting.postMessage('skipWaiting');
+        reg.addEventListener('updatefound', function() {
+            var newWorker = reg.installing;
+            newWorker.addEventListener('statechange', function() {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // 新しいキャッシュが利用可能
+                    console.log('[SW] キャッシュを更新しました');
+                }
+            });
+        });
+    }).catch(function(err) {
+        console.log('[SW] 登録失敗:', err);
+    });
+}
 </script>
 </body>
 </html>

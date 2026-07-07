@@ -635,11 +635,11 @@
             .receipt-paper, .receipt-paper * { visibility: visible !important; }
             .receipt-paper {
                 position: fixed !important; left: 0; top: 0;
-                width: 72mm !important; border: none !important;
+                width: 58mm !important; border: none !important;
                 background: white !important;
             }
             .receipt-overlay { background: none !important; }
-            @page { size: 72mm auto; margin: 2mm; }
+            @page { size: 58mm auto; margin: 2mm; }
         }
 
         /* 絵文字ピッカー */
@@ -1572,7 +1572,40 @@ function closeReceipt() {
 }
 
 function printReceiptWindow() {
-    window.print();
+    var html = document.getElementById('receipt-paper').innerHTML;
+    var pw = window.open('', '_blank', 'width=380,height=640');
+    if (!pw) {
+        alert('ポップアップがブロックされました。ブラウザのポップアップ許可設定をご確認ください。');
+        return;
+    }
+    pw.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>レシート</title><style>' +
+        '@page { size: 58mm auto; margin: 2mm; }' +
+        'body { width: 58mm; margin: 0 auto; padding: 0; font-family: "Hiragino Maru Gothic ProN","Meiryo",sans-serif; color: #000; }' +
+        '.r-logo { text-align: center; margin-bottom: 6px; }' +
+        '.r-logo img { width: 40px; height: 40px; }' +
+        '.r-shop { text-align: center; font-size: 14px; font-weight: 800; margin-bottom: 2px; color: #000; }' +
+        '.r-info { text-align: center; font-size: 8.5px; color: #333; line-height: 1.5; margin-bottom: 8px; }' +
+        '.r-divider { border: none; border-top: 1px dashed #666; margin: 6px 0; }' +
+        '.r-date { display: flex; justify-content: space-between; font-size: 10px; color: #333; margin-bottom: 6px; }' +
+        'table { width: 100%; border-collapse: collapse; font-size: 11px; }' +
+        'th { text-align: left; font-weight: 700; border-bottom: 1px solid #999; padding: 3px 2px; font-size: 9px; color: #333; }' +
+        'td { padding: 3px 2px; color: #000; }' +
+        '.r-total-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 12px; color: #000; }' +
+        '.r-total-big { font-size: 16px; font-weight: 800; border-top: 2px solid #000; border-bottom: 2px solid #000; margin: 4px 0; padding: 4px 0; }' +
+        '.r-thanks { text-align: center; font-size: 11px; font-weight: 700; margin-top: 10px; color: #333; }' +
+        '.print-actions { margin-top: 16px; text-align: center; }' +
+        '.print-actions button { padding: 10px 22px; font-size: 0.9rem; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; margin: 0 4px; }' +
+        '.print-btn { background: #7bbf8c; color: #fff; }' +
+        '.close-btn { background: #e0e0e0; color: #333; }' +
+        '@media print { .print-actions { display: none; } }' +
+        '</style></head><body>' +
+        html +
+        '<div class="print-actions">' +
+        '<button class="print-btn" onclick="window.print()">🖨 印刷する</button>' +
+        '<button class="close-btn" onclick="window.close()">閉じる</button>' +
+        '</div>' +
+        '</body></html>');
+    pw.document.close();
 }
 
 
