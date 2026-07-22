@@ -273,6 +273,7 @@ GAS.applyRestock = function(restockId) {
           var newStock  = (p.stock || 0) + (r.iri || 0);
           var pUpdate   = { stock: newStock };
           if (p.status === 'hidden' || p.status === 'candidate') pUpdate.status = 'active';
+          if (r.d) pUpdate.exp = r.d;
           return sbPatch('products', 'id=eq.' + r.product_id, pUpdate);
         })
         .then(function() {
@@ -467,7 +468,6 @@ GAS.receiveOrderItem = function(arg) {
           var pUpd = {};
           if (buyPrice) pUpd.buy_price = buyPrice;
           if (buyQty)   pUpd.buy_qty   = buyQty;
-          if (exp)      pUpd.exp       = exp;
           return sbGet('products', 'id=eq.' + productId + '&select=status,price')
             .then(function(prows) {
               var p = prows && prows[0];
@@ -487,7 +487,7 @@ GAS.receiveOrderItem = function(arg) {
               buy_price:  buyPrice,
               tanka:      tanka,
               sell:       r.sell || 0,
-              d:          todayJST(),
+              d:          exp || null,
               status:     'pending'
             });
           }
