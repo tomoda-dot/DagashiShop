@@ -2070,12 +2070,13 @@ var SHOP = {
 
 function loadSuppliers(cb){
   GAS.getSuppliers().then(function(list){
-      suppliers = list || [];
-      renderSupSelect();
-      if(cb) cb();
-    })
-    .withFailureHandler(function(){ suppliers = []; })
-    .getSuppliers();
+    suppliers = list || [];
+    renderSupSelect();
+    if(cb) cb();
+  }).catch(function(){
+    suppliers = [];
+    if(cb) cb();
+  });
 }
 
 function renderSupSelect(){
@@ -2407,7 +2408,14 @@ function renderOrdRight(){
 // ══ 発注済み管理 ══
 function loadOrdersData(){
   run1('getOrders',null).then(function(data){
-    orders=data||[];
+    orders=(data||[]).map(function(o){
+      // supplier_name から supplier_id を動的に復元
+      if(!o.supplier_id && o.supplier_name && suppliers.length){
+        var matched = suppliers.filter(function(s){ return s.name === o.supplier_name; })[0];
+        if(matched) o.supplier_id = matched.id;
+      }
+      return o;
+    });
     renderOrders();
     updateOrderBadge();
   }).catch(function(e){toast('発注履歴の読込エラー');});
@@ -3293,7 +3301,10 @@ function buildAndDownloadCsv(selCols, selProds, supplierMap) {
 <script>
 loadData().then(function(){
   showApp();
-  loadOrdersData();
+  // 仕入れ先を先にロードしてから発注履歴をロード（supplier_id の復元に必要）
+  loadSuppliers(function(){
+    loadOrdersData();
+  });
   loadCategories();
 }).catch(function(e){showApp();setSS('er');toast('接続エラー: '+(e.message||e));});
 </script>
