@@ -2409,9 +2409,12 @@ function renderOrdRight(){
 function loadOrdersData(){
   run1('getOrders',null).then(function(data){
     orders=(data||[]).map(function(o){
-      // supplier_name から supplier_id を動的に復元
+      // supplier_name から supplier_id を動的に復元 (FAX番号等の後続文字列があっても前方一致/部分一致でマッチさせる)
       if(!o.supplier_id && o.supplier_name && suppliers.length){
-        var matched = suppliers.filter(function(s){ return s.name === o.supplier_name; })[0];
+        var matched = suppliers.filter(function(s){
+          var cleanName = s.name.trim();
+          return o.supplier_name.indexOf(cleanName) === 0 || o.supplier_name.includes(cleanName);
+        })[0];
         if(matched) o.supplier_id = matched.id;
       }
       return o;
@@ -2495,7 +2498,16 @@ function renderOrders(){
     html+='<span style="font-size:12px;color:var(--t2);transition:transform .2s;display:inline-block;transform:rotate('+(isCollapsed?'0':'90')+'deg);">▶</span>';
     html+='<div style="font-size:14px;font-weight:700;">'+dispDate+'</div>';
     html+=statusBadge;
-    if(sup && sup!=='発注先なし') html+='<span style="font-size:12px;color:var(--t2);">'+sup+'</span>';
+    var displaySup = sup;
+    if(sup && sup!=='発注先なし') {
+      var matchedSup = suppliers.filter(function(s){ 
+        return s.name === sup || sup.indexOf(s.name) === 0; 
+      })[0];
+      if(matchedSup) {
+        displaySup = matchedSup.name + ' 御中' + (matchedSup.fax ? ' (FAX: ' + matchedSup.fax + ')' : '');
+      }
+    }
+    if(sup && sup!=='発注先なし') html+='<span style="font-size:12px;color:var(--t2);">'+displaySup+'</span>';
     html+='</div>';
     html+='<div style="display:flex;align-items:center;gap:8px;">';
     html+='<span style="font-size:14px;font-weight:700;color:var(--red);">¥'+orderTotal.toLocaleString()+'</span>';
@@ -2809,9 +2821,7 @@ function sendFaxDirect(){
     run1('sendFaxEmail', { faxNumber: sup.fax, html: faxData.html }).then(function(res){
       if(res && res.ok){
         toast('FAX送信完了！（'+res.faxNumber+' → 秒速FAX経由）');
-        // 発注データも保存
-        var supSelect = document.getElementById('ord-supplier');
-        var supDisplayName = supSelect.selectedIndex > 0 ? supSelect.options[supSelect.selectedIndex].text : (faxData.supName || '');
+        var supDisplayName = sup ? sup.name : (faxData.supName || '');
         var orderData = {
           date: faxData.today.getFullYear()+'-'+('0'+(faxData.today.getMonth()+1)).slice(-2)+'-'+('0'+faxData.today.getDate()).slice(-2),
           supplier_name: supDisplayName,
@@ -2936,8 +2946,7 @@ function _doOpenFax(){
     }
 
     // 発注データを保存
-    var supSelect = document.getElementById('ord-supplier');
-    var supDisplayName = supSelect.selectedIndex > 0 ? supSelect.options[supSelect.selectedIndex].text : (supName || '');
+    var supDisplayName = supName || '';
     var orderData = {
       date: today.getFullYear()+'-'+('0'+(today.getMonth()+1)).slice(-2)+'-'+('0'+today.getDate()).slice(-2),
       supplier_name: supDisplayName,
