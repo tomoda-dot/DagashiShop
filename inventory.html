@@ -2514,6 +2514,7 @@ function loadPriceListData() {
     if (infoEl) {
       infoEl.textContent = 'エラー: ' + (e.message || e);
     }
+    alert('価格データの取得エラー:\n' + (e.message || e));
     toast('価格データの読込エラー: ' + (e.message || e));
   });
 }
@@ -3500,8 +3501,8 @@ function buildAndDownloadCsv(selCols, selProds, supplierMap) {
 }
 
 </script>
-<script src="supabase-config.js?v=20260723_1"></script>
-<script src="supabase-adapter.js?v=20260723_1"></script>
+<script src="supabase-config.js?v=20260723_2"></script>
+<script src="supabase-adapter.js?v=20260723_2"></script>
 <script>
 loadData().then(function(){
   showApp();
