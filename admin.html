@@ -962,15 +962,35 @@
     // ── レジ締め ─────────────────────────────────
     function initInputs() {
       const container = document.getElementById('denom-container');
-      container.innerHTML = DISPLAY_ORDER.map(v => `
-        <div class="flex items-center justify-between p-1 hover:bg-slate-50 rounded-lg transition">
-          <label class="input-label">${v.toLocaleString()}円</label>
-          <div class="flex items-center gap-2 ml-3">
-            <div class="step-btn" onclick="step(${v}, -1)">−</div>
-            <input type="number" id="in-${v}" class="input-box" value="0" min="0" oninput="calculate()">
-            <div class="step-btn" onclick="step(${v}, 1)">＋</div>
-          </div>
-        </div>`).join('');
+      container.innerHTML = DISPLAY_ORDER.map(v => {
+        const isCoin = v <= 500;
+        const rollSelectHtml = isCoin ? `
+          <select id="roll-${v}" class="border-2 border-slate-200 rounded-lg text-xs font-bold text-slate-500 outline-none px-1 py-0.5 bg-slate-50 hover:bg-slate-100 cursor-pointer w-16" onchange="calculate()">
+            <option value="0">0本</option>
+            <option value="1">1本</option>
+            <option value="2">2本</option>
+            <option value="3">3本</option>
+            <option value="4">4本</option>
+            <option value="5">5本</option>
+            <option value="6">6本</option>
+            <option value="7">7本</option>
+            <option value="8">8本</option>
+            <option value="9">9本</option>
+            <option value="10">10本</option>
+          </select>
+        ` : '<div class="w-16"></div>';
+
+        return `
+          <div class="flex items-center justify-between p-1 hover:bg-slate-50 rounded-lg transition">
+            <label class="input-label">${v.toLocaleString()}円</label>
+            <div class="flex items-center gap-2 ml-3">
+              ${rollSelectHtml}
+              <div class="step-btn" onclick="step(${v}, -1)">−</div>
+              <input type="number" id="in-${v}" class="input-box" value="0" min="0" oninput="calculate()">
+              <div class="step-btn" onclick="step(${v}, 1)">＋</div>
+            </div>
+          </div>`;
+      }).join('');
     }
 
     function step(v, d) {
@@ -984,6 +1004,9 @@
       ALL_DENOMS.forEach(v => {
         const el = document.getElementById(`in-${v}`);
         if (el) sum += v * (parseInt(el.value) || 0);
+
+        const rollEl = document.getElementById(`roll-${v}`);
+        if (rollEl) sum += v * (parseInt(rollEl.value) || 0) * 50;
       });
       document.getElementById('total-actual').innerText = '¥' + sum.toLocaleString();
       const diff = sum - (g_fixed + g_sales);
@@ -2031,9 +2054,11 @@
       [10000, 5000, 1000, 500, 100, 50, 10, 5, 1].forEach(v => {
         const el = document.getElementById('in-' + v);
         if (el) el.value = 0;
+        const rollEl = document.getElementById('roll-' + v);
+        if (rollEl) rollEl.value = 0;
       });
       calculate();
-      showNotify('枚数をクリアしました', 'success');
+      showNotify('枚数と棒金をクリアしました', 'success');
     }
 
     // レジ締め初期値を適用（ボタン押下時）
@@ -2048,6 +2073,8 @@
             [10000,5000,1000,500,100,50,10,5,1].forEach(v => {
               const el = document.getElementById('in-'+v);
               if (el && d['d'+v] !== undefined) el.value = d['d'+v];
+              const rollEl = document.getElementById('roll-' + v);
+              if (rollEl) rollEl.value = 0;
             });
             calculate();
             if (showMsg) showNotify('初期値を読み込みました', 'success');
