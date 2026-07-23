@@ -502,6 +502,7 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
     <button class="tab" id="tb-c" onclick="goTab('c')">発注候補</button>
     <button class="tab" id="tb-o" onclick="goTab('o')">発注</button>
     <button class="tab" id="tb-d" onclick="goTab('d')">発注済み<span class="bdg" id="dbadge" style="display:none;"></span></button>
+    <button class="tab" id="tb-p" onclick="goTab('p')">📋 価格表</button>
     <button class="tab" id="tb-r" onclick="goTab('r')">仕入れ履歴</button>
     <button class="tab" id="tb-cfg" onclick="goTab('cfg')">⚙ 設定</button>
   </div>
@@ -534,6 +535,45 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
   <div id="t-r" style="display:none;">
     <div class="stl">仕入れ履歴（最新20件）</div>
     <div id="rshist"></div>
+  </div>
+
+  <!-- 価格表 -->
+  <div id="t-p" style="display:none;">
+    <div class="srow" style="margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <input class="inp" type="text" id="price-srch" oninput="renderPriceList()" placeholder="商品名・仕入れ先名で検索..." style="flex:1;min-width:140px;" />
+      <select class="inp" id="price-catf" onchange="renderPriceList()">
+        <option value="">全カテゴリ</option>
+        <option>スナック</option><option>チョコ</option><option>ガム</option><option>グミ</option><option>ラムネ</option><option>ゼリー</option><option>アメ</option><option>ソフトキャンディ</option><option>砂糖菓子</option><option>味付け珍味</option><option>その他</option><option>玩具</option>
+      </select>
+      <select class="inp" id="price-supf" onchange="renderPriceList()" style="min-width:140px;">
+        <option value="">全仕入れ先</option>
+      </select>
+      <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;white-space:nowrap;user-select:none;color:var(--tx);margin-left:8px;">
+        <input type="checkbox" id="price-primaryf" onchange="renderPriceList()" />
+        主仕入先のみ表示
+      </label>
+    </div>
+    <div style="overflow-x:auto; background:var(--sf); border:1px solid var(--bd); border-radius:var(--rl); padding:8px;">
+      <table class="tbl" style="width:100%; min-width:800px; border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--bd); height:40px; font-size:12px; color:var(--t2);">
+            <th style="padding:10px;text-align:left;">商品名</th>
+            <th style="padding:10px;text-align:left;width:100px;">カテゴリ</th>
+            <th style="padding:10px;text-align:left;width:180px;">仕入れ先</th>
+            <th style="padding:10px;text-align:right;width:100px;">仕入れ価格</th>
+            <th style="padding:10px;text-align:right;width:80px;">入り数</th>
+            <th style="padding:10px;text-align:right;width:120px;">個単価 (税込)</th>
+            <th style="padding:10px;text-align:center;width:80px;">主仕入先</th>
+            <th style="padding:10px;text-align:right;width:100px;">販売価格</th>
+            <th style="padding:10px;text-align:right;width:120px;">粗利 (粗利率)</th>
+            <th style="padding:10px;text-align:center;width:80px;">操作</th>
+          </tr>
+        </thead>
+        <tbody id="price-list-body" style="font-size:13px;">
+          <!-- JSでレンダリング -->
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- 設定 -->
@@ -1447,7 +1487,7 @@ function toggleShowHidden(){
   renderP();
 }
 function goTab(n){
-  ['s','r','a','o','d','c','cfg'].forEach(function(t){
+  ['s','r','a','o','d','c','cfg','p'].forEach(function(t){
     document.getElementById('t-'+t).style.display=t===n?'':'none';
     document.getElementById('tb-'+t).classList.toggle('on',t===n);
   });
@@ -1457,6 +1497,7 @@ function goTab(n){
   if(n==='d')loadOrdersData();
   if(n==='c')renderCandidates();
   if(n==='cfg')loadCategories();
+  if(n==='p')loadPriceListData();
 }
 
 // ── レンダリング ──
@@ -1475,7 +1516,15 @@ function updateMakerFilter(){
     }).join('');
 }
 
-function renderAll(){renderStats();updateMakerFilter();renderP();}
+function renderAll(){
+  renderStats();
+  updateMakerFilter();
+  renderP();
+  var tbP = document.getElementById('tb-p');
+  if (tbP && tbP.classList.contains('on')) {
+    loadPriceListData();
+  }
+}
 
 function renderStats(){
   var active=prods.filter(function(p){return p.status==='active';});
@@ -2432,6 +2481,134 @@ function updateOrderBadge(){
   var cnt=Object.keys(orderIds).length;
   var b=document.getElementById('dbadge');
   if(b){b.textContent=cnt;b.style.display=cnt>0?'inline-flex':'none';}
+}
+
+var priceListRelations = [];
+
+function loadPriceListData() {
+  // 仕入れ先選択肢を更新
+  var supSel = document.getElementById('price-supf');
+  if (supSel) {
+    var curVal = supSel.value;
+    supSel.innerHTML = '<option value="">全仕入れ先</option>'
+      + suppliers.map(function(s){
+          return '<option value="'+s.id+'">'+s.name+'</option>';
+        }).join('');
+    supSel.value = curVal;
+  }
+
+  setSS('sv');
+  run1('getAllProductSuppliers', null).then(function(rows) {
+    priceListRelations = rows || [];
+    renderPriceList();
+    setSS('ok');
+  }).catch(function(e) {
+    setSS('er');
+    toast('価格データの読込エラー: ' + (e.message || e));
+  });
+}
+
+function renderPriceList() {
+  var tbody = document.getElementById('price-list-body');
+  if (!tbody) return;
+
+  var query = document.getElementById('price-srch').value.toLowerCase().trim();
+  var cat = document.getElementById('price-catf').value;
+  var supId = document.getElementById('price-supf').value;
+  var primaryOnly = document.getElementById('price-primaryf').checked;
+
+  var rowsData = [];
+
+  // 全商品ループ
+  prods.forEach(function(p) {
+    if (p.status === 'discontinued' || p.status === 'hidden') return;
+
+    var relations = priceListRelations.filter(function(r) {
+      return String(r.product_id) === String(p.id);
+    });
+
+    if (relations.length === 0) {
+      rowsData.push({
+        product: p,
+        relationId: null,
+        supplierId: null,
+        supplierName: '(未登録)',
+        buyPrice: p.buy_price || 0,
+        buyQty: p.buy_qty || 1,
+        isPrimary: true
+      });
+    } else {
+      relations.forEach(function(r) {
+        var s = suppliers.filter(function(sup) { return sup.id === Number(r.supplier_id); })[0];
+        rowsData.push({
+          product: p,
+          relationId: r.id,
+          supplierId: r.supplier_id,
+          supplierName: s ? s.name : '不明 (ID: ' + r.supplier_id + ')',
+          buyPrice: r.buy_price || 0,
+          buyQty: r.buy_qty || 1,
+          isPrimary: !!r.is_primary
+        });
+      });
+    }
+  });
+
+  // フィルタリング
+  var filtered = rowsData.filter(function(row) {
+    if (query) {
+      var prodName = row.product.name.toLowerCase();
+      var prodKana = (row.product.name_kana || '').toLowerCase();
+      var supName = row.supplierName.toLowerCase();
+      if (!prodName.includes(query) && !prodKana.includes(query) && !supName.includes(query)) {
+        return false;
+      }
+    }
+    if (cat && row.product.cat !== cat) return false;
+    if (supId && String(row.supplierId) !== String(supId)) return false;
+    if (primaryOnly && !row.isPrimary) return false;
+
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--t3);">条件に該当する価格データはありません</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(function(row) {
+    var p = row.product;
+    var tanka = row.buyQty > 0 ? row.buyPrice / row.buyQty : 0;
+    var taxRate = (p.cat === '玩具') ? 1.10 : 1.08;
+    var tankaWithTax = tanka * taxRate;
+    var sell = p.sell_price || p.price || 0;
+    var margin = sell - tankaWithTax;
+    var marginPercent = sell > 0 ? Math.round(margin / sell * 100) : 0;
+
+    var costDisplay = row.buyPrice > 0 ? row.buyPrice + '円' : '—';
+    var qtyDisplay = row.buyQty + '個';
+    var unitCostDisplay = row.buyPrice > 0 ? (Math.round(tankaWithTax * 100) / 100) + '円' : '—';
+
+    var marginText = (margin >= 0 ? '+' : '') + (margin % 1 === 0 ? margin : margin.toFixed(1)) + '円';
+    var marginDisplay = marginText + ' (' + marginPercent + '%)';
+    var marginColor = margin >= 0 ? 'var(--grn)' : 'var(--red)';
+
+    var primaryBadge = row.isPrimary ? '<span style="color:var(--amb);font-weight:bold;">★ 主</span>' : '—';
+
+    return '<tr style="border-bottom:1px solid var(--bd); height:45px;">'
+      + '<td style="padding:10px;font-weight:bold;"><a href="javascript:void(0)" onclick="openEdit(' + p.id + ')" style="color:inherit;text-decoration:underline;">' + p.name + '</a></td>'
+      + '<td style="padding:10px;color:var(--t2);">' + (p.cat || '—') + '</td>'
+      + '<td style="padding:10px;font-weight:500;">' + row.supplierName + '</td>'
+      + '<td style="padding:10px;text-align:right;">' + costDisplay + '</td>'
+      + '<td style="padding:10px;text-align:right;color:var(--t2);">' + qtyDisplay + '</td>'
+      + '<td style="padding:10px;text-align:right;font-weight:700;">' + unitCostDisplay + '</td>'
+      + '<td style="padding:10px;text-align:center;">' + primaryBadge + '</td>'
+      + '<td style="padding:10px;text-align:right;font-weight:700;color:var(--tx);">' + (sell > 0 ? sell + '円' : '—') + '</td>'
+      + '<td style="padding:10px;text-align:right;font-weight:700;color:' + marginColor + ';">' + marginDisplay + '</td>'
+      + '<td style="padding:10px;text-align:center;">'
+      + '<button class="btns" onclick="openEdit(' + p.id + ')" style="padding:4px 8px;font-size:11px;cursor:pointer;">✏️ 編集</button>'
+      + '</td>'
+      + '</tr>';
+  }).join('');
 }
 
 function toggleOrderCollapse(oid){
