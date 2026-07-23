@@ -2648,8 +2648,8 @@ function confirmReceive(){
     if(res && res.ok){
       toast('「'+(res.nm||it.product_name)+'」を'+(res.iri||'')+'個 入荷しました');
 
-      // 価格・入数に変更があり、かつupdateSupplierがONの場合はproduct_suppliersも更新
-      if(updateSupplier && it.supplier_id && (price !== it.buy_price || bqty !== it.buy_qty)){
+      // updateSupplierがONの場合は常にproduct_suppliersを更新（または新規登録）
+      if(updateSupplier && it.supplier_id){
         return run1('saveProductSupplier', {
           id: recvSupplierRowId, // 既存レコードがあれば更新、なければ新規作成
           product_id: it.product_id,
@@ -2658,7 +2658,7 @@ function confirmReceive(){
           buy_qty: bqty,
           is_primary: recvSupplierRowId ? undefined : true // 新規の場合のみ主仕入れ先扱い
         }).then(function(){
-          toast('仕入れ先の価格情報も更新しました');
+          toast('仕入れ先の価格情報を登録・更新しました');
         }).catch(function(){});
       }
     } else {

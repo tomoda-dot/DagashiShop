@@ -228,7 +228,10 @@ GAS.addRestock = function(r) {
   var pUpdate = {};
   if (r.buy_price) pUpdate.buy_price = Number(r.buy_price);
   if (r.buy_qty)   pUpdate.buy_qty   = Number(r.buy_qty);
-  if (r.sell)      pUpdate.price     = Number(r.sell);
+  if (r.sell) {
+    pUpdate.sell_price = Number(r.sell);
+    pUpdate.price      = Number(r.sell);
+  }
 
   var p1 = Object.keys(pUpdate).length > 0
     ? sbPatch('products', 'id=eq.' + r.productId, pUpdate)
@@ -265,7 +268,7 @@ GAS.applyRestock = function(restockId) {
     .then(function(rows) {
       if (!rows || !rows[0]) throw new Error('仕入れ履歴が見つかりません');
       var r = rows[0];
-      // 在庫加算
+      // 在庫加算・価格情報更新
       return sbGet('products', 'id=eq.' + r.product_id + '&select=stock,status')
         .then(function(prows) {
           var p = prows && prows[0];
@@ -274,6 +277,12 @@ GAS.applyRestock = function(restockId) {
           var pUpdate   = { stock: newStock };
           if (p.status === 'hidden' || p.status === 'candidate') pUpdate.status = 'active';
           if (r.d) pUpdate.exp = r.d;
+          if (r.buy_price) pUpdate.buy_price = Number(r.buy_price);
+          if (r.iri)       pUpdate.buy_qty   = Number(r.iri);
+          if (r.sell) {
+            pUpdate.sell_price = Number(r.sell);
+            pUpdate.price      = Number(r.sell);
+          }
           return sbPatch('products', 'id=eq.' + r.product_id, pUpdate);
         })
         .then(function() {
@@ -479,10 +488,14 @@ GAS.receiveOrderItem = function(arg) {
           if (!productId) return;
           // 1ロットずつ仕入れ履歴に追加（pending状態）
           var rows = [];
+          var restockName = r.product_name;
+          if (r.supplier_name) {
+            restockName += ' (' + r.supplier_name + ')';
+          }
           for (var i = 0; i < orderQty; i++) {
             rows.push({
               product_id: productId,
-              nm:         r.product_name,
+              nm:         restockName,
               iri:        buyQty,
               buy_price:  buyPrice,
               tanka:      tanka,
