@@ -552,12 +552,13 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
         <input type="checkbox" id="price-primaryf" onchange="renderPriceList()" />
         主仕入先のみ表示
       </label>
+      <span id="price-list-db-info" style="font-size:11px;color:var(--t3);margin-left:auto;font-weight:500;padding-right:4px;"></span>
     </div>
     <div style="overflow-x:auto; background:var(--sf); border:1px solid var(--bd); border-radius:var(--rl); padding:8px;">
-      <table class="tbl" style="width:100%; min-width:800px; border-collapse:collapse;">
+      <table class="tbl" style="width:100%; min-width:1200px; border-collapse:collapse;">
         <thead>
           <tr style="border-bottom:2px solid var(--bd); height:40px; font-size:12px; color:var(--t2);">
-            <th style="padding:10px;text-align:left;">商品名</th>
+            <th style="padding:10px;text-align:left;width:240px;min-width:200px;">商品名</th>
             <th style="padding:10px;text-align:left;width:100px;">カテゴリ</th>
             <th style="padding:10px;text-align:left;width:180px;">仕入れ先</th>
             <th style="padding:10px;text-align:right;width:100px;">仕入れ価格</th>
@@ -2500,10 +2501,19 @@ function loadPriceListData() {
   setSS('sv');
   run1('getAllProductSuppliers', null).then(function(rows) {
     priceListRelations = rows || [];
+    var infoEl = document.getElementById('price-list-db-info');
+    if (infoEl) {
+      var activeProds = prods.filter(function(p){ return p.status !== 'discontinued' && p.status !== 'hidden'; });
+      infoEl.textContent = '商品数: ' + activeProds.length + '件 / 登録された仕入れ情報: ' + priceListRelations.length + '件';
+    }
     renderPriceList();
     setSS('ok');
   }).catch(function(e) {
     setSS('er');
+    var infoEl = document.getElementById('price-list-db-info');
+    if (infoEl) {
+      infoEl.textContent = 'エラー: ' + (e.message || e);
+    }
     toast('価格データの読込エラー: ' + (e.message || e));
   });
 }
@@ -2518,6 +2528,14 @@ function renderPriceList() {
   var primaryOnly = document.getElementById('price-primaryf').checked;
 
   var rowsData = [];
+
+  console.log('renderPriceList: prods count =', prods.length, 'relations count =', priceListRelations.length);
+  if (prods.length > 0) {
+    console.log('prods sample:', prods.slice(0, 3).map(function(p){ return {id: p.id, name: p.name}; }));
+  }
+  if (priceListRelations.length > 0) {
+    console.log('relations sample:', priceListRelations.slice(0, 3));
+  }
 
   // 全商品ループ
   prods.forEach(function(p) {
@@ -2595,9 +2613,9 @@ function renderPriceList() {
     var primaryBadge = row.isPrimary ? '<span style="color:var(--amb);font-weight:bold;">★ 主</span>' : '—';
 
     return '<tr style="border-bottom:1px solid var(--bd); height:45px;">'
-      + '<td style="padding:10px;font-weight:bold;"><a href="javascript:void(0)" onclick="openEdit(' + p.id + ')" style="color:inherit;text-decoration:underline;">' + p.name + '</a></td>'
+      + '<td style="padding:10px;font-weight:bold;white-space:normal;word-break:break-all;min-width:200px;"><a href="javascript:void(0)" onclick="openEdit(' + p.id + ')" style="color:var(--tx);text-decoration:none;border-bottom:1.5px dotted var(--t3);padding-bottom:1px;">' + p.name + '</a></td>'
       + '<td style="padding:10px;color:var(--t2);">' + (p.cat || '—') + '</td>'
-      + '<td style="padding:10px;font-weight:500;">' + row.supplierName + '</td>'
+      + '<td style="padding:10px;font-weight:500;white-space:normal;word-break:break-all;">' + row.supplierName + '</td>'
       + '<td style="padding:10px;text-align:right;">' + costDisplay + '</td>'
       + '<td style="padding:10px;text-align:right;color:var(--t2);">' + qtyDisplay + '</td>'
       + '<td style="padding:10px;text-align:right;font-weight:700;">' + unitCostDisplay + '</td>'
@@ -3482,8 +3500,8 @@ function buildAndDownloadCsv(selCols, selProds, supplierMap) {
 }
 
 </script>
-<script src="supabase-config.js"></script>
-<script src="supabase-adapter.js"></script>
+<script src="supabase-config.js?v=20260723_1"></script>
+<script src="supabase-adapter.js?v=20260723_1"></script>
 <script>
 loadData().then(function(){
   showApp();
