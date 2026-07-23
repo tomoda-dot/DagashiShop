@@ -267,6 +267,7 @@
             <input type="date" id="target-date-input" class="text-lg font-bold text-slate-700 border-2 border-blue-300 rounded-lg px-3 py-1 outline-none" onchange="onDateChange()" />
             <h2 id="target-date-display" class="text-lg font-bold text-slate-700 italic hidden"></h2>
             <div class="flex items-center gap-2">
+              <button onclick="clearRegiCounts()" class="bg-rose-100 hover:bg-rose-200 text-rose-600 px-3 py-1 rounded-lg text-xs font-bold transition">🧹 クリア</button>
               <button onclick="applyRegiDefaults(true)" class="bg-slate-200 hover:bg-slate-300 text-slate-600 px-3 py-1 rounded-lg text-xs font-bold transition">📥 初期値</button>
               <select id="in-location" class="bg-blue-50 border-2 border-blue-200 text-blue-700 font-bold px-3 py-1 rounded-xl text-sm outline-none">
                 <option value="事業所" selected>事業所</option>
@@ -2023,6 +2024,16 @@
         defaults['d'+v] = parseInt(document.getElementById('cfg-d-'+v).value) || 0;
       });
       GAS.saveRegiDefaults(JSON.stringify(defaults)).then(function() { showNotify('レジ締め初期値を保存しました', 'success'); }).catch(function(e) { showNotify('エラー: ' + e, 'error'); });
+    }
+
+    // 各金種の入力値を0にクリアする
+    function clearRegiCounts() {
+      [10000, 5000, 1000, 500, 100, 50, 10, 5, 1].forEach(v => {
+        const el = document.getElementById('in-' + v);
+        if (el) el.value = 0;
+      });
+      calculate();
+      showNotify('枚数をクリアしました', 'success');
     }
 
     // レジ締め初期値を適用（ボタン押下時）
