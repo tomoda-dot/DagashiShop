@@ -2118,16 +2118,33 @@ var SHOP = {
   tel: '070-2441-9338'
 };
 
+function updatePriceSupSelect(){
+  var supSel = document.getElementById('price-supf');
+  if (supSel) {
+    var curVal = supSel.value;
+    supSel.innerHTML = '<option value="">全仕入れ先</option>'
+      + suppliers.map(function(s){
+          return '<option value="'+s.id+'">'+s.name+'</option>';
+        }).join('');
+    if (curVal) supSel.value = curVal;
+  }
+}
+
 function loadSuppliers(cb){
   GAS.getSuppliers().then(function(list){
     suppliers = list || [];
     renderSupSelect();
+    updatePriceSupSelect();
+    if (document.getElementById('t-p') && document.getElementById('t-p').style.display !== 'none') {
+      renderPriceList();
+    }
     if(cb) cb();
   }).catch(function(){
     suppliers = [];
     if(cb) cb();
   });
 }
+
 
 function renderSupSelect(){
   var sel = document.getElementById('ord-supplier');
@@ -2487,36 +2504,34 @@ function updateOrderBadge(){
 var priceListRelations = [];
 
 function loadPriceListData() {
-  // 仕入れ先選択肢を更新
-  var supSel = document.getElementById('price-supf');
-  if (supSel) {
-    var curVal = supSel.value;
-    supSel.innerHTML = '<option value="">全仕入れ先</option>'
-      + suppliers.map(function(s){
-          return '<option value="'+s.id+'">'+s.name+'</option>';
-        }).join('');
-    supSel.value = curVal;
+  function proceed() {
+    updatePriceSupSelect();
+    setSS('sv');
+    run1('getAllProductSuppliers', null).then(function(rows) {
+      priceListRelations = rows || [];
+      var infoEl = document.getElementById('price-list-db-info');
+      if (infoEl) {
+        var activeProds = prods.filter(function(p){ return p.status !== 'discontinued' && p.status !== 'hidden'; });
+        infoEl.textContent = '商品数: ' + activeProds.length + '件 / 登録された仕入れ情報: ' + priceListRelations.length + '件';
+      }
+      renderPriceList();
+      setSS('ok');
+    }).catch(function(e) {
+      setSS('er');
+      var infoEl = document.getElementById('price-list-db-info');
+      if (infoEl) {
+        infoEl.textContent = 'エラー: ' + (e.message || e);
+      }
+      alert('価格データの取得エラー:\n' + (e.message || e));
+      toast('価格データの読込エラー: ' + (e.message || e));
+    });
   }
 
-  setSS('sv');
-  run1('getAllProductSuppliers', null).then(function(rows) {
-    priceListRelations = rows || [];
-    var infoEl = document.getElementById('price-list-db-info');
-    if (infoEl) {
-      var activeProds = prods.filter(function(p){ return p.status !== 'discontinued' && p.status !== 'hidden'; });
-      infoEl.textContent = '商品数: ' + activeProds.length + '件 / 登録された仕入れ情報: ' + priceListRelations.length + '件';
-    }
-    renderPriceList();
-    setSS('ok');
-  }).catch(function(e) {
-    setSS('er');
-    var infoEl = document.getElementById('price-list-db-info');
-    if (infoEl) {
-      infoEl.textContent = 'エラー: ' + (e.message || e);
-    }
-    alert('価格データの取得エラー:\n' + (e.message || e));
-    toast('価格データの読込エラー: ' + (e.message || e));
-  });
+  if (!suppliers || suppliers.length === 0) {
+    loadSuppliers(proceed);
+  } else {
+    proceed();
+  }
 }
 
 function renderPriceList() {
@@ -2530,14 +2545,6 @@ function renderPriceList() {
 
   var rowsData = [];
 
-  console.log('renderPriceList: prods count =', prods.length, 'relations count =', priceListRelations.length);
-  if (prods.length > 0) {
-    console.log('prods sample:', prods.slice(0, 3).map(function(p){ return {id: p.id, name: p.name}; }));
-  }
-  if (priceListRelations.length > 0) {
-    console.log('relations sample:', priceListRelations.slice(0, 3));
-  }
-
   // 全商品ループ
   prods.forEach(function(p) {
     if (p.status === 'discontinued' || p.status === 'hidden') return;
@@ -2547,11 +2554,15 @@ function renderPriceList() {
     });
 
     if (relations.length === 0) {
+      // product_suppliersに紐付けデータがない場合のフォールバック（商品にsupplier_idがあれば紐付け）
+      var fallbackSupId = p.supplier_id || null;
+      var fallbackSup = fallbackSupId ? suppliers.filter(function(sup) { return sup.id === Number(fallbackSupId); })[0] : null;
+
       rowsData.push({
         product: p,
         relationId: null,
-        supplierId: null,
-        supplierName: '(未登録)',
+        supplierId: fallbackSupId ? Number(fallbackSupId) : null,
+        supplierName: fallbackSup ? fallbackSup.name : '(未登録)',
         buyPrice: p.buy_price || 0,
         buyQty: p.buy_qty || 1,
         isPrimary: true
@@ -2562,7 +2573,7 @@ function renderPriceList() {
         rowsData.push({
           product: p,
           relationId: r.id,
-          supplierId: r.supplier_id,
+          supplierId: Number(r.supplier_id),
           supplierName: s ? s.name : '不明 (ID: ' + r.supplier_id + ')',
           buyPrice: r.buy_price || 0,
           buyQty: r.buy_qty || 1,
@@ -3506,9 +3517,10 @@ function buildAndDownloadCsv(selCols, selProds, supplierMap) {
 <script>
 loadData().then(function(){
   showApp();
-  // 仕入れ先を先にロードしてから発注履歴をロード（supplier_id の復元に必要）
+  // 仕入れ先を先にロードしてから発注履歴・価格一覧をロード
   loadSuppliers(function(){
     loadOrdersData();
+    loadPriceListData();
   });
   loadCategories();
 }).catch(function(e){showApp();setSS('er');toast('接続エラー: '+(e.message||e));});
