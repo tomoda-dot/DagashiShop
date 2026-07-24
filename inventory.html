@@ -987,6 +987,7 @@ function detProdChange(){
     document.getElementById('det-tanka').textContent='— 円 / 個';
     document.getElementById('det-tanka').style.color='var(--t3)';
     document.getElementById('det-margin').textContent='';
+    document.getElementById('det-exp').value='';
     document.getElementById('det-suppliers-section').style.display='none';
     detProductSuppliers=[];
   } else {
@@ -1465,7 +1466,7 @@ function doSaveAddRestock(d){
   setSS('sv');
   var tanka=d.buy_price>0&&d.buy_qty>0?d.buy_price/d.buy_qty:0;
   var today=new Date().toISOString().split('T')[0];
-  run1('addProduct',{name:d.name,name_kana:d.name_kana,maker:d.maker,barcode:d.barcode,cat:d.cat,unit:d.unit,min:d.min,exp:d.exp,price:d.price,sell_price:d.sell_price,stock:0,buy_price:d.buy_price,buy_qty:d.buy_qty,status:'candidate'})
+  run1('addProduct',{name:d.name,name_kana:d.name_kana,maker:d.maker,barcode:d.barcode,cat:d.cat,unit:d.unit,min:d.min,exp:'',price:d.price,sell_price:d.sell_price,stock:0,buy_price:d.buy_price,buy_qty:d.buy_qty,status:'candidate'})
   .then(function(res){
     if(!res||!res.id){throw new Error('商品追加に失敗しました');}
     return run1('addRestock',{productId:res.id,nm:d.name,iri:d.buy_qty,buy_price:d.buy_price,tanka:tanka,sell:d.sell_price||d.price,d:d.exp||today});
@@ -1496,8 +1497,9 @@ function saveRestock(){
   var tanka=d.buy_price>0&&d.buy_qty>0?d.buy_price/d.buy_qty:0;
   var today=new Date().toISOString().split('T')[0];
   var rsData={productId:pid,nm:p.name,iri:d.buy_qty,buy_price:d.buy_price,tanka:tanka,sell:d.sell_price||d.price,d:d.exp||today};
-  // 商品情報・仕入れ先情報を更新してから仕入れ記録
+  // 商品情報・仕入れ先情報を更新（賞味期限の即時更新は禁止し、仕入れ履歴側にのみ保持）
   d.id=pid; d.name=p.name;
+  delete d.exp;
   run1('updateProduct',d).then(function(){
     return saveProductSuppliers(pid);
   }).then(function(){
