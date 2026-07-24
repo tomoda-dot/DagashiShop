@@ -492,7 +492,6 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <button class="btns" id="rbtn" onclick="reloadData()">↻ 更新</button>
       <button class="btns" onclick="openCsvModal()" style="color:var(--grn);">📊 CSV出力</button>
-      <button class="btn" onclick="openRestock()">＋ 仕入れ・新規追加</button>
     </div>
   </header>
 
@@ -533,7 +532,10 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
 
   <!-- 仕入れ履歴 -->
   <div id="t-r" style="display:none;">
-    <div class="stl">仕入れ履歴（最新20件）</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+      <div class="stl" style="margin:0;">仕入れ履歴</div>
+      <button class="btn" onclick="openRestock()">＋ 仕入れ・新規追加</button>
+    </div>
     <div id="rshist"></div>
   </div>
 
@@ -578,12 +580,24 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
 
   <!-- 設定 -->
   <div id="t-cfg" style="display:none;">
-    <div class="stl">カテゴリ管理</div>
-    <div style="margin-bottom:12px;display:flex;gap:8px;">
-      <input class="fi" type="text" id="cat-new-input" placeholder="新しいカテゴリ名" style="flex:1;max-width:220px;">
-      <button class="btn" onclick="addCategory()" style="padding:8px 16px;font-size:13px;">＋ 追加</button>
+    <div style="margin-bottom:24px;">
+      <div class="stl">カテゴリ管理</div>
+      <div style="margin-bottom:12px;display:flex;gap:8px;">
+        <input class="fi" type="text" id="cat-new-input" placeholder="新しいカテゴリ名" style="flex:1;max-width:220px;">
+        <button class="btn" onclick="addCategory()" style="padding:8px 16px;font-size:13px;">＋ 追加</button>
+      </div>
+      <div id="cat-list" style="max-width:400px;"></div>
     </div>
-    <div id="cat-list" style="max-width:400px;"></div>
+
+    <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--bd);">
+      <div class="stl">在庫データの一括設定</div>
+      <div style="font-size:13px;color:var(--t2);margin-bottom:12px;">
+        登録されている全商品の在庫数を一律「10個」に一括変更します。
+      </div>
+      <button class="btna" id="btn-set-all-10" onclick="setAllStockTo10()" style="padding:10px 20px;background:var(--amb);color:#fff;font-weight:700;">
+        📦 全商品の在庫を「10」にする
+      </button>
+    </div>
   </div>
 
   <!-- アラート -->
@@ -1456,7 +1470,10 @@ function doSaveAddRestock(d){
     if(!res||!res.id){throw new Error('商品追加に失敗しました');}
     return run1('addRestock',{productId:res.id,nm:d.name,iri:d.buy_qty,buy_price:d.buy_price,tanka:tanka,sell:d.sell_price||d.price,d:d.exp||today});
   }).then(function(){closeDet();return loadData();})
-  .then(function(){toast('「'+d.name+'」を登録し、仕入れ履歴に追加しました！');})
+  .then(function(){
+    goTab('r');
+    toast('「'+d.name+'」を登録し、仕入れ履歴に追加しました！');
+  })
   .catch(function(e){setSS('er');toast('エラー: '+(e.message||e));});
 }
 
@@ -1486,7 +1503,10 @@ function saveRestock(){
   }).then(function(){
     return run1('addRestock',rsData);
   }).then(function(){closeDet();return loadData();})
-  .then(function(){toast('「'+p.name+'」を'+d.buy_qty+d.unit+'仕入れました！');})
+  .then(function(){
+    goTab('r');
+    toast('「'+p.name+'」を'+d.buy_qty+d.unit+'仕入れ履歴に追加しました！');
+  })
   .catch(function(e){setSS('er');toast('エラー: '+(e.message||e));});
 }
 
@@ -3333,6 +3353,28 @@ function _doOpenFax(){
   }
 }
 
+
+function setAllStockTo10() {
+  showConfirm('全商品の在庫数を一律「10個」に変更しますか？\n（※この操作は取り消せません）', function() {
+    var btn = document.getElementById('btn-set-all-10');
+    if (btn) { btn.disabled = true; btn.textContent = '一括更新中...'; }
+    setSS('sv');
+    run1('setAllStockToTen', null).then(function(res) {
+      if (res && res.ok) {
+        toast('全商品の在庫数を「10」に設定しました！');
+        return loadData();
+      } else {
+        toast('エラーが発生しました');
+      }
+    }).then(function() {
+      renderP();
+    }).catch(function(e) {
+      setSS('er'); toast('エラー: ' + (e.message || e));
+    }).finally(function() {
+      if (btn) { btn.disabled = false; btn.textContent = '📦 全商品の在庫を「10」にする'; }
+    });
+  });
+}
 
 // ── 画像バックグラウンド取得 ──
 function loadImgsBatch(){

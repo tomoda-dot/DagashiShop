@@ -108,7 +108,7 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'getCategories','saveCategory','deleteCategory',
     'getPettyCashData','addPettyCashRow','deletePettyCashRow',
     'getProductSuppliers','saveProductSupplier','deleteProductSupplier','getAllProductSuppliers',
-    'updateRestock','deleteRestock'
+    'updateRestock','deleteRestock','setAllStockToTen'
   ];
   fns.forEach(function(name) {
     GasProxy.prototype[name] = function(arg1, arg2) {
@@ -240,6 +240,12 @@ GAS.addProduct = function(p) {
 // ─ updateStock ─
 GAS.updateStock = function(id, stock) {
   return sbPatch('products', 'id=eq.' + id, { stock: Number(stock) })
+    .then(function() { return { ok: true }; });
+};
+
+// ─ setAllStockToTen ─
+GAS.setAllStockToTen = function() {
+  return sbPatch('products', 'id=gt.0', { stock: 10 })
     .then(function() { return { ok: true }; });
 };
 
