@@ -107,7 +107,8 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'addSavingsRow','updateSavingsRow','deleteSavingsRow','testConnection','getProductsForBarcode','updateProductBarcode',
     'getCategories','saveCategory','deleteCategory',
     'getPettyCashData','addPettyCashRow','deletePettyCashRow',
-    'getProductSuppliers','saveProductSupplier','deleteProductSupplier','getAllProductSuppliers'
+    'getProductSuppliers','saveProductSupplier','deleteProductSupplier','getAllProductSuppliers',
+    'updateRestock','deleteRestock'
   ];
   fns.forEach(function(name) {
     GasProxy.prototype[name] = function(arg1, arg2) {
@@ -313,6 +314,27 @@ GAS.applyRestock = function(restockId) {
         })
         .then(function() { return { ok: true }; });
     });
+};
+
+// ─ updateRestock ─
+GAS.updateRestock = function(r) {
+  var bp = Number(r.buy_price !== undefined ? r.buy_price : r.price) || 0;
+  var iri = Number(r.iri) || 0;
+  var tanka = (bp > 0 && iri > 0) ? bp / iri : 0;
+  var body = {
+    nm:        r.nm,
+    iri:       iri,
+    buy_price: bp,
+    tanka:     tanka,
+    sell:      Number(r.sell) || 0,
+    d:         r.d || null
+  };
+  return sbPatch('restock', 'id=eq.' + r.id, body).then(function() { return { ok: true }; });
+};
+
+// ─ deleteRestock ─
+GAS.deleteRestock = function(id) {
+  return sbDelete('restock', 'id=eq.' + id).then(function() { return { ok: true }; });
 };
 
 

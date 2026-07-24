@@ -543,7 +543,6 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
       <input class="inp" type="text" id="price-srch" oninput="renderPriceList()" placeholder="商品名・仕入れ先名で検索..." style="flex:1;min-width:140px;" />
       <select class="inp" id="price-catf" onchange="renderPriceList()">
         <option value="">全カテゴリ</option>
-        <option>スナック</option><option>チョコ</option><option>ガム</option><option>グミ</option><option>ラムネ</option><option>ゼリー</option><option>アメ</option><option>ソフトキャンディ</option><option>砂糖菓子</option><option>味付け珍味</option><option>その他</option><option>玩具</option>
       </select>
       <select class="inp" id="price-supf" onchange="renderPriceList()" style="min-width:140px;">
         <option value="">全仕入れ先</option>
@@ -740,6 +739,51 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
   </div>
 </div>
 </div>
+
+<!-- 仕入れ履歴 編集モーダル -->
+<div class="ov" id="rs-edit-modal" style="display:none;">
+  <div class="mb" style="max-width:460px;">
+    <div class="mhead">
+      <div class="mhtl">✏️ 仕入れ履歴の編集</div>
+      <button onclick="closeEditRestock()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--t3);">×</button>
+    </div>
+    <div class="mbody">
+      <input type="hidden" id="rs-edit-id" />
+      <div style="margin-bottom:12px;">
+        <label class="fl">品名・内容</label>
+        <input class="fi" type="text" id="rs-edit-nm" />
+      </div>
+      <div class="fg" style="margin-bottom:12px;">
+        <div>
+          <label class="fl">仕入れ価格（ロット計）</label>
+          <input class="fi" type="number" id="rs-edit-price" min="0" oninput="calcRsEditTanka()" />
+        </div>
+        <div>
+          <label class="fl">入り数（個）</label>
+          <input class="fi" type="number" id="rs-edit-iri" min="1" oninput="calcRsEditTanka()" />
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--t3);text-align:right;margin-bottom:12px;">
+        仕入れ単価 (税抜): <span id="rs-edit-tanka" style="font-weight:700;color:var(--red);">—</span>
+      </div>
+      <div class="fg" style="margin-bottom:12px;">
+        <div>
+          <label class="fl">販売価格</label>
+          <input class="fi" type="number" id="rs-edit-sell" min="0" />
+        </div>
+        <div>
+          <label class="fl">賞味期限</label>
+          <input class="fi" type="date" id="rs-edit-d" />
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn" onclick="closeEditRestock()">キャンセル</button>
+      <button class="btna" id="rs-edit-save-btn" onclick="saveRestockEdit()">更新する</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1748,16 +1792,18 @@ function renderRS(){
     var borderStyle=isPending?'border:2px solid var(--amb);background:var(--abg);':'';
     html+='<div class="rc" style="'+borderStyle+'">'
       +'<div class="rt">'
-      +'<div style="display:flex;align-items:center;gap:8px;">'
-      +'<div class="rn">'+r.nm+'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer;" onclick="openEditRestock('+r.id+')">'
+      +'<div class="rn" style="border-bottom:1px dotted var(--t3);">'+r.nm+'</div>'
       +(isPending?'<span style="font-size:10px;background:var(--amb);color:#fff;padding:2px 7px;border-radius:999px;font-weight:700;">未補充</span>':'<span style="font-size:10px;background:var(--gbg);color:var(--grn);padding:2px 7px;border-radius:999px;font-weight:700;">補充済</span>'+(r.applied_at?'<span style="font-size:10px;color:var(--t3);margin-left:4px;">'+r.applied_at+'</span>':''))
       +'</div>'
-      +'<div style="display:flex;align-items:center;gap:8px;">'
-      +'<div class="ra">'+r.iri+'個</div>'
-      +(isPending?'<button class="btng" onclick="applyRs('+r.id+')" style="font-size:12px;padding:5px 12px;">✅ 在庫に追加する</button>':'')
+      +'<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
+      +'<div class="ra" style="margin-right:4px;">'+r.iri+'個</div>'
+      +(isPending?'<button class="btng" onclick="applyRs('+r.id+')" style="font-size:11px;padding:4px 10px;">✅ 在庫に追加</button>':'')
+      +'<button class="btns" onclick="openEditRestock('+r.id+')" style="font-size:11px;padding:4px 8px;">✏️ 編集</button>'
+      +'<button class="btns" onclick="delRestock('+r.id+')" style="font-size:11px;padding:4px 8px;color:var(--red);">🗑️ 削除</button>'
       +'</div>'
       +'</div>'
-      +'<div class="rm">'
+      +'<div class="rm" style="cursor:pointer;" onclick="openEditRestock('+r.id+')">'
       +'<div class="rce"><div class="rcl">仕入れ価格</div><div class="rcv">'+(r.price>0?r.price+'円':'—')+'</div></div><div class="rdv"></div>'
       +'<div class="rce"><div class="rcl">入り数</div><div class="rcv">'+r.iri+'個</div></div><div class="rdv"></div>'
       +'<div class="rce"><div class="rcl">仕入れ単価</div><div class="rcv" style="font-weight:700;color:var(--red);">'+ts+'</div></div><div class="rdv"></div>'
@@ -1766,6 +1812,95 @@ function renderRS(){
       +'</div></div>';
   }
   el.innerHTML=html;
+}
+
+function openEditRestock(id) {
+  var r = rshist.filter(function(x){ return x.id === id; })[0];
+  if (!r) return;
+  document.getElementById('rs-edit-id').value = r.id;
+  document.getElementById('rs-edit-nm').value = r.nm || '';
+  document.getElementById('rs-edit-price').value = r.price || '';
+  document.getElementById('rs-edit-iri').value = r.iri || '';
+  document.getElementById('rs-edit-sell').value = r.sell || '';
+  document.getElementById('rs-edit-d').value = r.d || '';
+  calcRsEditTanka();
+  document.getElementById('rs-edit-modal').style.display = 'flex';
+}
+
+function closeEditRestock() {
+  document.getElementById('rs-edit-modal').style.display = 'none';
+}
+
+function calcRsEditTanka() {
+  var price = parseFloat(document.getElementById('rs-edit-price').value) || 0;
+  var iri = parseInt(document.getElementById('rs-edit-iri').value) || 0;
+  var el = document.getElementById('rs-edit-tanka');
+  if (price > 0 && iri > 0) {
+    var tanka = Math.round((price / iri) * 100) / 100;
+    el.textContent = tanka + ' 円 / 個';
+  } else {
+    el.textContent = '—';
+  }
+}
+
+function saveRestockEdit() {
+  var id = parseInt(document.getElementById('rs-edit-id').value);
+  var nm = document.getElementById('rs-edit-nm').value.trim();
+  var price = parseFloat(document.getElementById('rs-edit-price').value) || 0;
+  var iri = parseInt(document.getElementById('rs-edit-iri').value) || 0;
+  var sell = parseFloat(document.getElementById('rs-edit-sell').value) || 0;
+  var d = document.getElementById('rs-edit-d').value || '';
+
+  if (!nm) { toast('品名を入力してください'); return; }
+  if (iri <= 0) { toast('入り数を正しく入力してください'); return; }
+
+  var btn = document.getElementById('rs-edit-save-btn');
+  btn.disabled = true; btn.textContent = '保存中...';
+
+  setSS('sv');
+  run1('updateRestock', {
+    id: id,
+    nm: nm,
+    price: price,
+    buy_price: price,
+    iri: iri,
+    sell: sell,
+    d: d
+  }).then(function(res) {
+    if (res && res.ok) {
+      toast('仕入れ履歴を更新しました');
+      closeEditRestock();
+      return loadData();
+    } else {
+      toast('エラーが発生しました');
+    }
+  }).then(function() {
+    renderRS();
+  }).catch(function(e) {
+    setSS('er'); toast('エラー: ' + (e.message || e));
+  }).finally(function() {
+    btn.disabled = false; btn.textContent = '更新する';
+  });
+}
+
+function delRestock(id) {
+  var r = rshist.filter(function(x){ return x.id === id; })[0];
+  if (!r) return;
+  showConfirm('「' + r.nm + '」の仕入れ履歴を削除しますか？', function() {
+    setSS('sv');
+    run1('deleteRestock', id).then(function(res) {
+      if (res && res.ok) {
+        toast('仕入れ履歴を削除しました');
+        return loadData();
+      } else {
+        toast('エラーが発生しました');
+      }
+    }).then(function() {
+      renderRS();
+    }).catch(function(e) {
+      setSS('er'); toast('エラー: ' + (e.message || e));
+    });
+  });
 }
 
 function applyRs(restockId){
@@ -2513,7 +2648,7 @@ function loadPriceListData(forceReload) {
   if (!forceReload && priceListRelations && priceListRelations.length > 0) {
     var infoEl = document.getElementById('price-list-db-info');
     if (infoEl) {
-      var activeProds = prods.filter(function(p){ return p.status !== 'discontinued' && p.status !== 'hidden'; });
+      var activeProds = prods.filter(function(p){ return p.status === 'active'; });
       infoEl.textContent = '商品数: ' + activeProds.length + '件 / 登録された仕入れ情報: ' + priceListRelations.length + '件';
     }
     renderPriceList();
@@ -2530,7 +2665,7 @@ function loadPriceListData(forceReload) {
     priceListRelations = rows || [];
     var infoEl = document.getElementById('price-list-db-info');
     if (infoEl) {
-      var activeProds = prods.filter(function(p){ return p.status !== 'discontinued' && p.status !== 'hidden'; });
+      var activeProds = prods.filter(function(p){ return p.status === 'active'; });
       infoEl.textContent = '商品数: ' + activeProds.length + '件 / 登録された仕入れ情報: ' + priceListRelations.length + '件';
     }
     renderPriceList();
@@ -2558,7 +2693,7 @@ function renderPriceList() {
 
   // 全商品ループ
   prods.forEach(function(p) {
-    if (p.status === 'discontinued' || p.status === 'hidden') return;
+    if (p.status !== 'active') return;
 
     var relations = priceListRelations.filter(function(r) {
       return String(r.product_id) === String(p.id);
@@ -3258,15 +3393,19 @@ function updateCategorySelects() {
       return '<option'+(c.name===cur?' selected':'')+'>'+c.name+'</option>';
     }).join('');
   }
-  // フィルターのカテゴリプルダウンも更新
-  var catf = document.getElementById('catf');
-  if (catf) {
-    var curF = catf.value;
-    catf.innerHTML = '<option value="">全カテゴリ</option>'
-      + categories.map(function(c) {
-        return '<option'+(c.name===curF?' selected':'')+'>'+c.name+'</option>';
-      }).join('');
-  }
+  // フィルター用カテゴリプルダウンの更新（在庫一覧, 価格表, 発注画面）
+  var filterIds = ['catf', 'price-catf', 'ord-catf'];
+  filterIds.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) {
+      var curVal = el.value;
+      el.innerHTML = '<option value="">全カテゴリ</option>'
+        + categories.map(function(c) {
+            return '<option value="'+c.name+'"'+(c.name===curVal?' selected':'')+'>'+c.name+'</option>';
+          }).join('');
+      if (curVal) el.value = curVal;
+    }
+  });
 }
 
 function addCategory() {
