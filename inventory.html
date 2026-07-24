@@ -779,6 +779,10 @@ function loadData(){
   return run1('getAllData',null).then(function(data){
     prods=(data.products||[]).map(function(p){p.imgLoad=false;return p;});
     rshist=data.restock||[];
+    if (data.suppliers && data.suppliers.length > 0) suppliers = data.suppliers;
+    if (data.productSuppliers && data.productSuppliers.length > 0) priceListRelations = data.productSuppliers;
+    renderSupSelect();
+    updatePriceSupSelect();
     renderAll(); setSS('ok'); updateOrderBadge();
     document.getElementById('ssync').textContent='最終更新: '+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
     // 画像をバックグラウンドで分割取得
@@ -2503,35 +2507,42 @@ function updateOrderBadge(){
 
 var priceListRelations = [];
 
-function loadPriceListData() {
-  function proceed() {
-    updatePriceSupSelect();
-    setSS('sv');
-    run1('getAllProductSuppliers', null).then(function(rows) {
-      priceListRelations = rows || [];
-      var infoEl = document.getElementById('price-list-db-info');
-      if (infoEl) {
-        var activeProds = prods.filter(function(p){ return p.status !== 'discontinued' && p.status !== 'hidden'; });
-        infoEl.textContent = '商品数: ' + activeProds.length + '件 / 登録された仕入れ情報: ' + priceListRelations.length + '件';
-      }
-      renderPriceList();
-      setSS('ok');
-    }).catch(function(e) {
-      setSS('er');
-      var infoEl = document.getElementById('price-list-db-info');
-      if (infoEl) {
-        infoEl.textContent = 'エラー: ' + (e.message || e);
-      }
-      alert('価格データの取得エラー:\n' + (e.message || e));
-      toast('価格データの読込エラー: ' + (e.message || e));
-    });
+function loadPriceListData(forceReload) {
+  updatePriceSupSelect();
+
+  if (!forceReload && priceListRelations && priceListRelations.length > 0) {
+    var infoEl = document.getElementById('price-list-db-info');
+    if (infoEl) {
+      var activeProds = prods.filter(function(p){ return p.status !== 'discontinued' && p.status !== 'hidden'; });
+      infoEl.textContent = '商品数: ' + activeProds.length + '件 / 登録された仕入れ情報: ' + priceListRelations.length + '件';
+    }
+    renderPriceList();
+    return;
   }
 
-  if (!suppliers || suppliers.length === 0) {
-    loadSuppliers(proceed);
-  } else {
-    proceed();
+  var tbody = document.getElementById('price-list-body');
+  if (tbody && (!priceListRelations || priceListRelations.length === 0)) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--t2);">⌛ 価格データを読み込み中...</td></tr>';
   }
+
+  setSS('sv');
+  run1('getAllProductSuppliers', null).then(function(rows) {
+    priceListRelations = rows || [];
+    var infoEl = document.getElementById('price-list-db-info');
+    if (infoEl) {
+      var activeProds = prods.filter(function(p){ return p.status !== 'discontinued' && p.status !== 'hidden'; });
+      infoEl.textContent = '商品数: ' + activeProds.length + '件 / 登録された仕入れ情報: ' + priceListRelations.length + '件';
+    }
+    renderPriceList();
+    setSS('ok');
+  }).catch(function(e) {
+    setSS('er');
+    var infoEl = document.getElementById('price-list-db-info');
+    if (infoEl) {
+      infoEl.textContent = 'エラー: ' + (e.message || e);
+    }
+    toast('価格データの読込エラー: ' + (e.message || e));
+  });
 }
 
 function renderPriceList() {

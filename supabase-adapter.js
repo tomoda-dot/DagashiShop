@@ -59,10 +59,24 @@ function nowJST() {
 // そのまま置き換えられるよう同名インターフェースを提供
 
 function run1(fn, a) {
-  return GAS[fn](a);
+  try {
+    if (!GAS || typeof GAS[fn] !== 'function') {
+      return Promise.reject(new Error('GAS.' + fn + ' が定義されていません。ブラウザのキャッシュをクリアして再読み込みしてください。'));
+    }
+    return GAS[fn](a);
+  } catch (e) {
+    return Promise.reject(e);
+  }
 }
 function run2(fn, a, b) {
-  return GAS[fn](a, b);
+  try {
+    if (!GAS || typeof GAS[fn] !== 'function') {
+      return Promise.reject(new Error('GAS.' + fn + ' が定義されていません。ブラウザのキャッシュをクリアして再読み込みしてください。'));
+    }
+    return GAS[fn](a, b);
+  } catch (e) {
+    return Promise.reject(e);
+  }
 }
 
 // google.script.run 互換オブジェクト（admin.html / regi.html用）
@@ -93,7 +107,7 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'addSavingsRow','updateSavingsRow','deleteSavingsRow','testConnection','getProductsForBarcode','updateProductBarcode',
     'getCategories','saveCategory','deleteCategory',
     'getPettyCashData','addPettyCashRow','deletePettyCashRow',
-    'getProductSuppliers','saveProductSupplier','deleteProductSupplier'
+    'getProductSuppliers','saveProductSupplier','deleteProductSupplier','getAllProductSuppliers'
   ];
   fns.forEach(function(name) {
     GasProxy.prototype[name] = function(arg1, arg2) {
@@ -126,7 +140,9 @@ GAS.testConnection = function() {
 GAS.getAllData = function() {
   return Promise.all([
     sbGet('products', 'select=id,name,name_kana,cat,stock,min,price,sell_price,unit,exp,buy_price,buy_qty,memo,status,sort_order,maker,barcode,img_url&order=sort_order.asc,id.asc'),
-    sbGet('restock',  'select=*&order=id.desc')
+    sbGet('restock',  'select=*&order=id.desc'),
+    sbGet('suppliers', 'select=*&order=id.asc'),
+    sbGet('product_suppliers', 'select=*')
   ]).then(function(results) {
     var products = (results[0] || []).map(function(p) {
       return {
@@ -164,7 +180,11 @@ GAS.getAllData = function() {
         applied_at: r.applied_at || ''
       };
     });
-    return { products: products, restock: restock };
+    var suppliers = (results[2] || []).map(function(r) {
+      return { id:r.id, name:r.name||'', fax:r.fax||'', tel:r.tel||'', address:r.address||'', memo:r.memo||'' };
+    });
+    var productSuppliers = results[3] || [];
+    return { products: products, restock: restock, suppliers: suppliers, productSuppliers: productSuppliers };
   });
 };
 
@@ -873,6 +893,13 @@ GAS.getProductSuppliers = function(productId) {
   return sbGet('product_suppliers',
     'select=id,product_id,supplier_id,buy_price,buy_qty,is_primary&product_id=eq.' + productId + '&order=is_primary.desc,id.asc'
   ).then(function(rows) { return rows || []; });
+};
+
+// ─ getAllProductSuppliers ─
+GAS.getAllProductSuppliers = function() {
+  return sbGet('product_suppliers', 'select=*').then(function(rows) {
+    return rows || [];
+  });
 };
 
 // ─ saveProductSupplier ─
