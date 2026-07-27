@@ -199,9 +199,28 @@
             flex: 1;
             background: var(--light); border-radius: 12px;
             padding: 9px; overflow-y: auto; min-height: 0;
+            cursor: pointer;
         }
         .cart-title { font-size: 0.82rem; color: #b0a898; font-weight: 700; margin-bottom: 7px; }
         .cart-empty { color: #ccc; font-size: 1rem; }
+
+        .cart-break-line {
+            border-top: 1.5px dashed var(--mustard);
+            margin: 8px 0 6px 0;
+            position: relative;
+            opacity: 0.85;
+        }
+        .cart-break-line::after {
+            content: '─ 新しい欄 ─';
+            position: absolute;
+            right: 8px;
+            top: -8px;
+            background: var(--light);
+            padding: 0 4px;
+            font-size: 0.68rem;
+            color: #b0a898;
+            font-weight: 700;
+        }
 
         .cart-row {
             display: flex; align-items: center; gap: 5px;
@@ -680,7 +699,7 @@
 
     <!-- 右カラム：カート・合計 -->
     <div class="col-right">
-        <div class="cart-section">
+        <div class="cart-section" onclick="addCartBreak(event)">
             <div class="cart-title">🛒 カートの中身</div>
             <div id="cart-items-wrap">
                 <span class="cart-empty">まだ何も選んでいません</span>
@@ -922,7 +941,7 @@ function updateBadgeAfterSale(saleTotal) {
 function recordSale(total) {
     var today = new Date().toLocaleDateString('ja-JP');
     var time  = new Date().toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'});
-    salesLog.push({ date: today, time: time, total: total, items: [...cart] });
+    salesLog.push({ date: today, time: time, total: total, items: cart.filter(i => !i.isBreak) });
     localStorage.setItem('salesLog', JSON.stringify(salesLog));
     updateBadgeAfterSale(total);
 }
@@ -977,7 +996,7 @@ function renderSalesModalLocal() {
     var itemMap = {};
     todaySales.forEach(function(s) {
         s.items.forEach(function(item) {
-            if (item.isDiscount) return;
+            if (item.isDiscount || item.isBreak) return;
             var key = item.label;
             if (!itemMap[key]) itemMap[key] = { qty: 0, subtotal: 0 };
             itemMap[key].qty     += item.qty || 1;
@@ -1006,7 +1025,7 @@ function closeSalesModal() {
 
 // ═══ ちょうどボタン ══════════════════════════════
 function tenkeyChodo() {
-    const total  = Math.max(0, cart.reduce((s,i) => s + i.price, 0));
+    const total  = Math.max(0, cart.reduce((s,i) => s + (i.isBreak ? 0 : i.price), 0));
     const points = Math.max(0, parseInt(document.getElementById('point-use-input').value) || 0);
     const cash   = Math.max(0, total - points);
     setTenkeyMode('receive');
@@ -1176,25 +1195,58 @@ function addDiscount(amount) {
     updateDisplay();
 }
 
-// ═══ カート表示 ═══════════════════════════════════
+// ═══ カート操作・表示 ═══════════════════════════════
+function addCartBreak(e) {
+    if (e && e.target && e.target.closest('.cart-row')) return;
+    const validItems = cart.filter(i => !i.isBreak);
+    if (validItems.length === 0) return;
+    if (cart.length > 0 && cart[cart.length - 1].isBreak) return;
+    cart.push({ isBreak: true });
+    updateDisplay();
+}
+
 function updateDisplay() {
     const wrap = document.getElementById('cart-items-wrap');
     wrap.innerHTML = '';
-    if (cart.length === 0) {
+    const validCart = cart.filter(item => !item.isBreak);
+    if (validCart.length === 0) {
         wrap.innerHTML = '<span class="cart-empty">まだ何も選んでいません</span>';
     } else {
-        // 連続する同じ商品だけをグループ化
+        // 連続する同じ商品だけをグループ化（区切りマーカー考慮）
         const groups = [];
-        cart.forEach(item => {
+        let forceNew = false;
+        cart.forEach((item, idx) => {
+            if (item.isBreak) {
+                forceNew = true;
+                return;
+            }
             const key = item.label + '|' + item.price;
             const last = groups.length > 0 ? groups[groups.length - 1] : null;
-            if (last && last.key === key) {
+            if (!forceNew && last && last.key === key) {
                 last.qty++;
+                last.indices.push(idx);
             } else {
-                groups.push({ key, gid: groups.length, label:item.label, emoji:item.emoji, price:item.price, qty:1, isDiscount:item.isDiscount, isFree:item.isFree });
+                groups.push({
+                    key,
+                    gid: groups.length,
+                    label: item.label,
+                    emoji: item.emoji,
+                    price: item.price,
+                    qty: 1,
+                    isDiscount: item.isDiscount,
+                    isFree: item.isFree,
+                    hasBreakBefore: forceNew && groups.length > 0,
+                    indices: [idx]
+                });
             }
+            forceNew = false;
         });
         groups.forEach(g => {
+            if (g.hasBreakBefore) {
+                const divider = document.createElement('div');
+                divider.className = 'cart-break-line';
+                wrap.appendChild(divider);
+            }
             const row = document.createElement('div');
             row.className = 'cart-row' + (g.isDiscount?' discount-row':'') + (g.isFree?' free-row':'');
             row.innerHTML = `
@@ -1211,36 +1263,33 @@ function updateDisplay() {
         // グループ情報を保持（±ボタン用）
         window._cartGroups = groups;
     }
-    const total = Math.max(0, cart.reduce((s,i) => s + i.price, 0));
+    const total = Math.max(0, cart.reduce((s,i) => s + (i.isBreak ? 0 : i.price), 0));
     const el = document.getElementById('total-amount');
     el.innerHTML = `${total}<span class="total-yen">円</span>`;
     el.classList.remove('bump');
     void el.offsetWidth;
     el.classList.add('bump');
-    document.getElementById('item-count').textContent = cart.length > 0 ? `${cart.length}点` : '';
+    document.getElementById('item-count').textContent = validCart.length > 0 ? `${validCart.length}点` : '';
 
     // 新しく追加した商品が見えるよう一番下にスクロール
     var cartWrap = document.querySelector('.cart-section');
     if (cartWrap) cartWrap.scrollTop = cartWrap.scrollHeight;
 }
 function decrementGroup(gid) {
-    // グループの位置を特定してカートから1つ削除
     const groups = window._cartGroups;
     if (!groups || !groups[gid]) return;
-    let pos = 0;
-    for (let i = 0; i < gid; i++) pos += groups[i].qty;
-    // このグループの最後の1つを削除
-    cart.splice(pos + groups[gid].qty - 1, 1);
+    const g = groups[gid];
+    const lastIdx = g.indices[g.indices.length - 1];
+    cart.splice(lastIdx, 1);
     updateDisplay();
 }
 function incrementGroup(gid) {
-    // グループの位置を特定してカートに1つ追加
     const groups = window._cartGroups;
     if (!groups || !groups[gid]) return;
-    let pos = 0;
-    for (let i = 0; i < gid; i++) pos += groups[i].qty;
-    const src = cart[pos];
-    if (src) cart.splice(pos + groups[gid].qty, 0, {...src});
+    const g = groups[gid];
+    const lastIdx = g.indices[g.indices.length - 1];
+    const src = cart[lastIdx];
+    if (src) cart.splice(lastIdx + 1, 0, {...src});
     updateDisplay();
 }
 function clearCart() { cancelAtariMode(); cart = []; updateDisplay(); }
@@ -1255,7 +1304,7 @@ function openCheckout() {
     tenkeyMode = 'receive';
     document.getElementById('point-use-input').value = '';
     setTenkeyMode('receive');
-    const total = Math.max(0, cart.reduce((s,i) => s + i.price, 0));
+    const total = Math.max(0, cart.reduce((s,i) => s + (i.isBreak ? 0 : i.price), 0));
     document.getElementById('modal-total').textContent = `${total}円`;
     updateReceiveDisplay();
 
@@ -1320,7 +1369,7 @@ function tenkeyDel() {
 }
 
 function updateReceiveDisplay() {
-    const total    = Math.max(0, cart.reduce((s,i) => s + i.price, 0));
+    const total    = Math.max(0, cart.reduce((s,i) => s + (i.isBreak ? 0 : i.price), 0));
     const points   = Math.max(0, parseInt(document.getElementById('point-use-input').value) || 0);
     const cash     = Math.max(0, total - points);
     const received = parseInt(receiveStr) || 0;
@@ -1359,7 +1408,7 @@ function updateReceiveDisplay() {
 function closeModal() { document.getElementById('modal').classList.remove('show'); }
 
 async function confirmCheckout() {
-    const total    = Math.max(0, cart.reduce((s,i) => s + i.price, 0));
+    const total    = Math.max(0, cart.reduce((s,i) => s + (i.isBreak ? 0 : i.price), 0));
     const points   = Math.max(0, parseInt(document.getElementById('point-use-input').value) || 0);
     const cash     = Math.max(0, total - points);
     const received = parseInt(receiveStr) || 0;
@@ -1379,15 +1428,15 @@ async function confirmCheckout() {
         else acc.push({ label:item.label, price:item.price, qty:1, subtotal:item.price });
         return acc;
     }, []);
-    const orders = summarize(cart.filter(i => !i.isFree && !i.isDiscount));
+    const orders = summarize(cart.filter(i => !i.isFree && !i.isDiscount && !i.isBreak));
     if (points > 0) {
         orders.push({ label: '🪙 マチカネポイント', price: -points, qty: 1, subtotal: -points });
     }
     const payload = {
         timestamp: new Date().toLocaleString('ja-JP'),
         orders,
-        free:      summarize(cart.filter(i => i.isFree)),
-        discounts: summarize(cart.filter(i => i.isDiscount)),
+        free:      summarize(cart.filter(i => i.isFree && !i.isBreak)),
+        discounts: summarize(cart.filter(i => i.isDiscount && !i.isBreak)),
         total, received, change
     };
     enqueue(payload);
@@ -1494,17 +1543,21 @@ function buildReceiptHTML() {
     var now = new Date();
     var dateStr = now.getFullYear() + '/' + String(now.getMonth()+1).padStart(2,'0') + '/' + String(now.getDate()).padStart(2,'0');
     var timeStr = now.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-    var total = Math.max(0, cart.reduce(function(s,i){ return s + i.price; }, 0));
+    var validCart = cart.filter(function(i){ return !i.isBreak; });
+    var total = Math.max(0, validCart.reduce(function(s,i){ return s + i.price; }, 0));
     var received = document.getElementById('receive-display-num').textContent || '';
     var receivedNum = parseInt(received.replace(/[^0-9]/g,'')) || 0;
     var change = receivedNum - total;
 
     var groups = [];
+    var forceNew = false;
     cart.forEach(function(item) {
+        if (item.isBreak) { forceNew = true; return; }
         var key = item.label + '|' + item.price;
         var last = groups.length > 0 ? groups[groups.length - 1] : null;
-        if (last && last.key === key) { last.qty++; }
+        if (!forceNew && last && last.key === key) { last.qty++; }
         else { groups.push({ key:key, label:item.label, price:item.price, qty:1, isDiscount:item.isDiscount, isFree:item.isFree }); }
+        forceNew = false;
     });
 
     var itemsHTML = groups.map(function(g) {
@@ -1531,7 +1584,7 @@ function buildReceiptHTML() {
         '<table><tr><th>商品</th><th style="text-align:center;">数量</th><th style="text-align:right;">金額</th></tr>' +
         itemsHTML + '</table>' +
         '<div style="margin-top:6px;">' +
-        '<div class="r-total-row"><span>小計（' + cart.length + '点）</span><span>¥' + total.toLocaleString() + '</span></div>' +
+        '<div class="r-total-row"><span>小計（' + validCart.length + '点）</span><span>¥' + total.toLocaleString() + '</span></div>' +
         payHTML + '</div>' +
         '<hr class="r-divider">' +
         '<div class="r-thanks">ありがとうございました 🍬</div>';
