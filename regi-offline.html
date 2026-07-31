@@ -18,6 +18,68 @@
             --white:   #ffffff;
         }
 
+        /* ═══════════════════════════
+           画面テーマ切り替え
+        ═══════════════════════════ */
+        [data-theme="dark"] {
+            --cream:   #181a20;
+            --coral:   #ff7a59;
+            --sage:    #40b5a5;
+            --mustard: #e5a93c;
+            --brown:   #f0f2f5;
+            --light:   #222630;
+            --white:   #2c303c;
+        }
+        [data-theme="dark"] .cart-section,
+        [data-theme="dark"] .total-section,
+        [data-theme="dark"] .checkout-left,
+        [data-theme="dark"] .cart-row {
+            background: #252932;
+            color: #f0f2f5;
+            border-color: #383e4d;
+        }
+        [data-theme="dark"] .app-header {
+            background: #232731;
+            border-bottom-color: #ff7a59;
+        }
+        [data-theme="dark"] .cart-row-name,
+        [data-theme="dark"] .memory-title,
+        [data-theme="dark"] .cfg-title {
+            color: #f0f2f5;
+        }
+        [data-theme="dark"] .checkout-receive-display {
+            background: #1c1f26;
+            color: #ffffff;
+            border-color: #383e4d;
+        }
+        [data-theme="dark"] .tenkey-btn {
+            background: #2a2e3b;
+            color: #ffffff;
+        }
+        [data-theme="dark"] .discount-section {
+            background: #232731;
+        }
+
+        [data-theme="vivid"] {
+            --cream:   #fff9f2;
+            --coral:   #ff3838;
+            --sage:    #05c46b;
+            --mustard: #ff9f1a;
+            --brown:   #1e272e;
+            --light:   #f1f2f6;
+            --white:   #ffffff;
+        }
+
+        [data-theme="chic"] {
+            --cream:   #f4f5f7;
+            --coral:   #4b6584;
+            --sage:    #778ca3;
+            --mustard: #a5b1c2;
+            --brown:   #2d3436;
+            --light:   #eef0f3;
+            --white:   #ffffff;
+        }
+
         /* ── オフラインインジケーター ── */
         #offline-indicator {
             display: none;
@@ -847,8 +909,31 @@
 <div class="cfg-modal-overlay" id="cfg-modal-overlay">
     <div class="cfg-modal">
         <div class="cfg-header">
-            <span class="cfg-title">⚙️ ボタンの設定</span>
+            <span class="cfg-title">⚙️ 設定</span>
             <button class="cfg-close" onclick="closeCfgModal()">✕ 閉じる</button>
+        </div>
+
+        <div class="cfg-theme-section" style="background:var(--light);border-radius:14px;padding:14px 16px;margin-bottom:16px;border:2px solid #e0d8cc;">
+            <div style="font-size:0.95rem;font-weight:800;color:var(--brown);margin-bottom:10px;">🎨 テーマ・文字色設定</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                    <label style="font-size:0.75rem;font-weight:700;color:#8a8070;display:block;margin-bottom:4px;">💰 金額・文字の色</label>
+                    <select id="cfg-text-color-select" class="cfg-input" style="width:100%;cursor:pointer;" onchange="changeTextColorMode(this.value)">
+                        <option value="black">⚫ 黒文字（くっきり・おすすめ）</option>
+                        <option value="auto">🌈 カラフル（標準）</option>
+                        <option value="white">⚪ 白文字</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.75rem;font-weight:700;color:#8a8070;display:block;margin-bottom:4px;">🖼 画面テーマ</label>
+                    <select id="cfg-theme-select" class="cfg-input" style="width:100%;cursor:pointer;" onchange="changeUiTheme(this.value)">
+                        <option value="natural">🍡 ナチュラル（標準）</option>
+                        <option value="dark">🌙 ダークモード</option>
+                        <option value="vivid">🎨 ビビッドポップ</option>
+                        <option value="chic">🎬 シック</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
         <div class="cfg-body">
@@ -1184,12 +1269,22 @@ function allButtons() {
 function renderGrid() {
     const grid = document.getElementById('item-grid');
     grid.innerHTML = '';
+    const textColorMode = localStorage.getItem('regi_text_color') || 'black';
+
     allButtons().forEach((btn, idx) => {
         const ci = idx % BTN_COLORS.length;
         const el = document.createElement('button');
         el.className = 'item-btn';
         el.style.background = BTN_COLORS[ci];
-        el.style.color = BTN_TEXT_COLORS[ci];
+
+        if (textColorMode === 'black') {
+            el.style.color = '#1a1a1a';
+        } else if (textColorMode === 'white') {
+            el.style.color = '#ffffff';
+        } else {
+            el.style.color = BTN_TEXT_COLORS[ci];
+        }
+
         el.onclick = () => add(btn.price, btn.name, btn.emoji);
         el.innerHTML = `<div class="btn-inner">
             <span class="btn-emoji">${btn.emoji}</span>
@@ -1703,8 +1798,40 @@ function printReceiptWindow() {
 }
 
 
+// ═══ テーマ・文字色設定 ═════════════════════════════
+function loadThemeSettings() {
+    var textColorMode = localStorage.getItem('regi_text_color') || 'black';
+    var uiTheme = localStorage.getItem('regi_ui_theme') || 'natural';
+
+    applyTextColorMode(textColorMode);
+    applyUiTheme(uiTheme);
+}
+
+function applyTextColorMode(mode) {
+    localStorage.setItem('regi_text_color', mode);
+    var select = document.getElementById('cfg-text-color-select');
+    if (select) select.value = mode;
+    renderGrid();
+}
+
+function applyUiTheme(theme) {
+    localStorage.setItem('regi_ui_theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+    var select = document.getElementById('cfg-theme-select');
+    if (select) select.value = theme;
+}
+
+function changeTextColorMode(val) {
+    applyTextColorMode(val);
+}
+
+function changeUiTheme(val) {
+    applyUiTheme(val);
+}
+
 // ═══ 設定モーダル ═════════════════════════════════
 function openCfgModal() {
+    loadThemeSettings();
     renderCfgBtnList();
     renderCfgDiscList();
     document.getElementById('cfg-btn-error').textContent = '';
@@ -1902,6 +2029,7 @@ function memClear(idx) {
 <script src="supabase-adapter.js"></script>
 <script>
 // Supabase読み込み後に初期化
+loadThemeSettings();
 renderGrid();
 renderDiscountGrid();
 initSettings();
