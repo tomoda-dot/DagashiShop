@@ -1147,7 +1147,7 @@
         orderIds.add(r[0]);
         const label    = String(r[2] || '');
         const subtotal = Number(r[5]) || 0;
-        if (label.includes('割引') || label.includes('ポイント')) totalDisc += Math.abs(subtotal);
+        if (label.includes('割引') || label.includes('ポイント') || subtotal < 0) totalDisc += Math.abs(subtotal);
         else if (label.includes('無料')) freeCount++;
         else totalSales += subtotal;
       });
@@ -1165,8 +1165,9 @@
         const label   = String(r[2] || '');
         const status  = String(r[8] || '');
         const rowNum  = r[9]; // 行番号
+        const subtotal = Number(r[5]);
         const isVoid  = status === '無効';
-        const isDisc  = label.includes('割引');
+        const isDisc  = label.includes('割引') || label.includes('ポイント') || subtotal < 0;
         const isFree  = label.includes('無料');
 
         let rowClass = isVoid ? 'void-row' : (isDisc ? 'disc-row' : (isFree ? 'free-row' : ''));
