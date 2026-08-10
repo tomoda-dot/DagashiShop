@@ -1001,8 +1001,7 @@ function detProdChange(){
     document.getElementById('det-tanka').style.color='var(--t3)';
     document.getElementById('det-margin').textContent='';
     document.getElementById('det-exp').value='';
-    document.getElementById('det-suppliers-section').style.display='none';
-    detProductSuppliers=[];
+    loadProductSuppliers(null);
   } else {
     var pid=parseInt(val);
     var p=prods.filter(function(x){return x.id===pid;})[0];
@@ -1051,6 +1050,7 @@ function openCandidate(){
   document.getElementById('det-margin').textContent='';
   document.getElementById('det-stock-inline-wrap').style.display='none';
   document.getElementById('det-other-row').style.display='none';
+  loadProductSuppliers(null);
   setDetFoot('candidate');
   document.getElementById('det-modal').style.display='flex';
 }
@@ -1108,13 +1108,7 @@ var detActiveSupTab = 0; // 現在表示中のタブインデックス
 
 function loadProductSuppliers(productId) {
   var sec = document.getElementById('det-suppliers-section');
-  if (!productId) {
-    sec.style.display = 'none';
-    detProductSuppliers = [];
-    detActiveSupTab = 0;
-    return;
-  }
-  sec.style.display = '';
+  if (sec) sec.style.display = '';
 
   // suppliersが未ロードなら先に取得
   var suppliersReady = suppliers.length > 0
@@ -1122,6 +1116,7 @@ function loadProductSuppliers(productId) {
     : run1('getSuppliers').then(function(rows) { suppliers = rows || []; return suppliers; });
 
   suppliersReady.then(function() {
+    if (!productId) return Promise.resolve([]);
     return run1('getProductSuppliers', productId);
   }).then(function(rows) {
     detProductSuppliers = rows || [];
@@ -1131,7 +1126,7 @@ function loadProductSuppliers(productId) {
       var defSup = suppliers.length ? suppliers[0].id : null;
       if (defSup) {
         detProductSuppliers = [{
-          id: null, product_id: productId, supplier_id: defSup,
+          id: null, product_id: productId || null, supplier_id: defSup,
           buy_price: bp, buy_qty: bq, is_primary: true
         }];
       }
@@ -1482,7 +1477,9 @@ function doSaveAddRestock(d){
   run1('addProduct',{name:d.name,name_kana:d.name_kana,maker:d.maker,barcode:d.barcode,cat:d.cat,unit:d.unit,min:d.min,exp:'',price:d.price,sell_price:d.sell_price,stock:0,buy_price:d.buy_price,buy_qty:d.buy_qty,status:'candidate'})
   .then(function(res){
     if(!res||!res.id){throw new Error('商品追加に失敗しました');}
-    return run1('addRestock',{productId:res.id,nm:d.name,iri:d.buy_qty,buy_price:d.buy_price,tanka:tanka,sell:d.sell_price||d.price,d:d.exp||today});
+    return saveProductSuppliers(res.id).then(function(){
+      return run1('addRestock',{productId:res.id,nm:d.name,iri:d.buy_qty,buy_price:d.buy_price,tanka:tanka,sell:d.sell_price||d.price,d:d.exp||today});
+    });
   }).then(function(){closeDet();return loadData();})
   .then(function(){
     goTab('r');
@@ -1526,6 +1523,14 @@ function saveRestock(){
 }
 
 function saveCandidate(){
+  var tabPrice = document.getElementById('tab-buy-price');
+  var tabQty   = document.getElementById('tab-buy-qty');
+  var tabRef   = document.getElementById('tab-ref-price');
+  var tabSell  = document.getElementById('tab-sell-price');
+  if(tabPrice && tabPrice.value) document.getElementById('det-bprice').value = tabPrice.value;
+  if(tabQty   && tabQty.value)   document.getElementById('det-bqty').value   = tabQty.value;
+  if(tabRef   && tabRef.value)   document.getElementById('det-price').value  = tabRef.value;
+  if(tabSell  && tabSell.value)  document.getElementById('det-sell-price').value = tabSell.value;
   var d=detFormData();
   if(!d.name){toast('商品名を入力してください');return;}
   setSS('sv');
@@ -1533,6 +1538,10 @@ function saveCandidate(){
     name:d.name,name_kana:d.name_kana,maker:d.maker,barcode:d.barcode,
     cat:d.cat,unit:d.unit,min:d.min,exp:'',
     price:d.price,sell_price:d.sell_price,stock:0,buy_price:d.buy_price,buy_qty:d.buy_qty,memo:'',status:'candidate'
+  }).then(function(res){
+    if(res && res.id) {
+      return saveProductSuppliers(res.id);
+    }
   }).then(function(){closeDet();return loadData();})
   .then(function(){renderCandidates();toast('「'+d.name+'」を発注候補に追加しました！');})
   .catch(function(e){setSS('er');toast('エラー: '+(e.message||e));});
