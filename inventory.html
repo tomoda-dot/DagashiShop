@@ -3510,6 +3510,7 @@ var CSV_COLS = [
   { key:'cat',        label:'カテゴリ',     fn: function(p){ return p.cat||''; } },
   { key:'name_kana',  label:'読み仮名',     fn: function(p){ return p.name_kana||''; } },
   { key:'barcode',    label:'バーコード',   fn: function(p){ return p.barcode||''; } },
+  { key:'sell_price', label:'販売価格',     fn: function(p){ return p.sell_price || p.price || 0; } },
   { key:'stock',      label:'在庫数',       fn: function(p){ return p.stock||0; } },
   { key:'memo',       label:'備考',         fn: function(p){ return p.memo||''; } }
 ];
