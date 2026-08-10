@@ -580,13 +580,26 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
 
   <!-- 設定 -->
   <div id="t-cfg" style="display:none;">
-    <div style="margin-bottom:24px;">
-      <div class="stl">カテゴリ管理</div>
-      <div style="margin-bottom:12px;display:flex;gap:8px;">
-        <input class="fi" type="text" id="cat-new-input" placeholder="新しいカテゴリ名" style="flex:1;max-width:220px;">
-        <button class="btn" onclick="addCategory()" style="padding:8px 16px;font-size:13px;">＋ 追加</button>
+    <div style="display:flex;gap:32px;flex-wrap:wrap;margin-bottom:24px;">
+      <!-- 左側：カテゴリ管理 -->
+      <div style="flex:1;min-width:280px;max-width:440px;">
+        <div class="stl">カテゴリ管理</div>
+        <div style="margin-bottom:12px;display:flex;gap:8px;">
+          <input class="fi" type="text" id="cat-new-input" placeholder="新しいカテゴリ名" style="flex:1;">
+          <button class="btn" onclick="addCategory()" style="padding:8px 16px;font-size:13px;white-space:nowrap;">＋ 追加</button>
+        </div>
+        <div id="cat-list"></div>
       </div>
-      <div id="cat-list" style="max-width:400px;"></div>
+
+      <!-- 右側：メーカー管理 -->
+      <div style="flex:1;min-width:280px;max-width:440px;">
+        <div class="stl">メーカー管理</div>
+        <div style="margin-bottom:12px;display:flex;gap:8px;">
+          <input class="fi" type="text" id="maker-new-input" placeholder="新しいメーカー名" style="flex:1;">
+          <button class="btn" onclick="addMaker()" style="padding:8px 16px;font-size:13px;white-space:nowrap;">＋ 追加</button>
+        </div>
+        <div id="maker-list-admin"></div>
+      </div>
     </div>
 
     <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--bd);">
@@ -1567,7 +1580,7 @@ function goTab(n){
   if(n==='o'){ renderOrdLeft(); loadSuppliers(); }
   if(n==='d')loadOrdersData();
   if(n==='c')renderCandidates();
-  if(n==='cfg')loadCategories();
+  if(n==='cfg'){ loadCategories(); loadMakers(); }
   if(n==='p')loadPriceListData();
 }
 
@@ -1576,13 +1589,15 @@ function updateMakerFilter(){
   var sel=document.getElementById('makerf');
   if(!sel) return;
   var current=sel.value;
-  var makers=[];
+  var listNames = [];
+  if (typeof makers !== 'undefined' && makers && makers.length) {
+    listNames = makers.map(function(m){ return typeof m === 'string' ? m : m.name; }).slice();
+  }
   prods.forEach(function(p){
-    if(p.maker && makers.indexOf(p.maker)<0) makers.push(p.maker);
+    if(p.maker && listNames.indexOf(p.maker)<0) listNames.push(p.maker);
   });
-  makers.sort();
   sel.innerHTML='<option value="">全メーカー</option>'
-    +makers.map(function(m){
+    +listNames.map(function(m){
       return '<option value="'+m+'"'+(m===current?' selected':'')+'>'+m+'</option>';
     }).join('');
 }
@@ -3500,6 +3515,119 @@ function moveCat(i, dir) {
   });
 }
 
+// ══ メーカー管理 ══════════════════════════════════════
+var makers = [];
+
+function loadMakers() {
+  run1('getMakers').then(function(savedMakers) {
+    if (savedMakers && Array.isArray(savedMakers) && savedMakers.length > 0) {
+      makers = savedMakers;
+    } else {
+      var setMap = {};
+      var defaultOptions = document.querySelectorAll('#maker-list option');
+      defaultOptions.forEach(function(opt){ if(opt.value) setMap[opt.value.trim()] = true; });
+      (prods || []).forEach(function(p){ if(p.maker) setMap[p.maker.trim()] = true; });
+      makers = Object.keys(setMap).sort();
+      if (makers.length > 0) {
+        run1('saveMakers', makers).catch(function(){});
+      }
+    }
+    renderMakerList();
+    updateMakerSelects();
+  }).catch(function() {
+    renderMakerList();
+    updateMakerSelects();
+  });
+}
+
+function renderMakerList() {
+  var list = document.getElementById('maker-list-admin');
+  if (!list) return;
+  if (!makers.length) {
+    list.innerHTML = '<div style="color:var(--t3);font-size:13px;">メーカーが登録されていません</div>';
+    return;
+  }
+  list.innerHTML = makers.map(function(m, i) {
+    var name = typeof m === 'string' ? m : (m.name || '');
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--bd);border-radius:10px;margin-bottom:6px;">'
+      + '<div style="display:flex;flex-direction:column;gap:2px;">'
+      + '<button onclick="moveMaker('+i+',-1)" style="border:none;background:none;cursor:pointer;font-size:12px;color:var(--t2);padding:0;line-height:1;" '+(i===0?'disabled style="opacity:0.3;"':'')+'>▲</button>'
+      + '<button onclick="moveMaker('+i+',1)" style="border:none;background:none;cursor:pointer;font-size:12px;color:var(--t2);padding:0;line-height:1;" '+(i===makers.length-1?'disabled style="opacity:0.3;"':'')+'>▼</button>'
+      + '</div>'
+      + '<span style="flex:1;font-size:14px;font-weight:700;">'+name+'</span>'
+      + '<button onclick="editMaker('+i+')" class="btns" style="font-size:11px;padding:3px 10px;">編集</button>'
+      + '<button onclick="deleteMaker('+i+')" class="btns" style="font-size:11px;padding:3px 10px;color:var(--red);">削除</button>'
+      + '</div>';
+  }).join('');
+}
+
+function updateMakerSelects() {
+  var datalist = document.getElementById('maker-list');
+  if (datalist) {
+    var listNames = makers.map(function(m){ return typeof m === 'string' ? m : m.name; }).slice();
+    (prods || []).forEach(function(p){
+      if(p.maker && listNames.indexOf(p.maker) < 0) listNames.push(p.maker);
+    });
+    datalist.innerHTML = listNames.map(function(name){
+      return '<option value="'+name+'">';
+    }).join('');
+  }
+  updateMakerFilter();
+}
+
+function addMaker() {
+  var input = document.getElementById('maker-new-input');
+  var name = (input ? input.value : '').trim();
+  if (!name) { toast('メーカー名を入力してください'); return; }
+  var listNames = makers.map(function(m){ return typeof m === 'string' ? m : m.name; });
+  if (listNames.indexOf(name) >= 0) { toast('同じ名前のメーカーが既にあります'); return; }
+  
+  makers.push(name);
+  run1('saveMakers', makers).then(function() {
+    if (input) input.value = '';
+    toast('追加しました');
+    renderMakerList();
+    updateMakerSelects();
+  }).catch(function(e){ toast('保存エラー: '+(e.message||e)); });
+}
+
+function editMaker(i) {
+  var curName = typeof makers[i] === 'string' ? makers[i] : makers[i].name;
+  var newName = prompt('メーカー名を編集', curName);
+  if (!newName || newName.trim() === '' || newName.trim() === curName) return;
+  
+  makers[i] = newName.trim();
+  run1('saveMakers', makers).then(function() {
+    toast('更新しました');
+    renderMakerList();
+    updateMakerSelects();
+  }).catch(function(e){ toast('保存エラー: '+(e.message||e)); });
+}
+
+function deleteMaker(i) {
+  var curName = typeof makers[i] === 'string' ? makers[i] : makers[i].name;
+  showConfirm('「'+curName+'」を削除しますか？', function() {
+    makers.splice(i, 1);
+    run1('saveMakers', makers).then(function() {
+      toast('削除しました');
+      renderMakerList();
+      updateMakerSelects();
+    }).catch(function(e){ toast('保存エラー: '+(e.message||e)); });
+  });
+}
+
+function moveMaker(i, dir) {
+  var j = i + dir;
+  if (j < 0 || j >= makers.length) return;
+  var tmp = makers[i];
+  makers[i] = makers[j];
+  makers[j] = tmp;
+  run1('saveMakers', makers).then(function() {
+    renderMakerList();
+    updateMakerSelects();
+  }).catch(function(e){ toast('保存エラー: '+(e.message||e)); });
+}
+
 // ── 起動 ──
 function showApp(){document.getElementById('loading').style.display='none';document.getElementById('app').style.display='block';}
 
@@ -3718,6 +3846,7 @@ loadData().then(function(){
     loadPriceListData();
   });
   loadCategories();
+  loadMakers();
 }).catch(function(e){showApp();setSS('er');toast('接続エラー: '+(e.message||e));});
 </script>
 </body>

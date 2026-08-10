@@ -106,6 +106,7 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'invalidateDetailRow','updateDetailRow','getSavingsData',
     'addSavingsRow','updateSavingsRow','deleteSavingsRow','testConnection','getProductsForBarcode','updateProductBarcode',
     'getCategories','saveCategory','deleteCategory',
+    'getMakers','saveMakers',
     'getPettyCashData','addPettyCashRow','deletePettyCashRow',
     'getProductSuppliers','saveProductSupplier','deleteProductSupplier','getAllProductSuppliers',
     'updateRestock','deleteRestock','setAllStockToTen'
@@ -612,6 +613,28 @@ GAS.saveCategory = function(data) {
 GAS.deleteCategory = function(id) {
   return sbDelete('categories', 'id=eq.' + id)
     .then(function() { return { ok: true }; });
+};
+
+// ─ getMakers ─
+GAS.getMakers = function() {
+  return sbGet('settings', 'key=eq.makers&select=value').then(function(rows) {
+    if (rows && rows[0] && rows[0].value) {
+      try {
+        return JSON.parse(rows[0].value);
+      } catch(e) { return null; }
+    }
+    return null;
+  });
+};
+
+// ─ saveMakers ─
+GAS.saveMakers = function(makersArray) {
+  var str = typeof makersArray === 'string' ? makersArray : JSON.stringify(makersArray);
+  return sbFetch('settings', {
+    method: 'POST',
+    body: JSON.stringify({ key: 'makers', value: str }),
+    prefer: 'resolution=merge-duplicates,return=representation'
+  }).then(function() { return { ok: true }; });
 };
 
 // ─ getProductsForBarcode ─
