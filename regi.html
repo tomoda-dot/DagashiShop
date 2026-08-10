@@ -842,7 +842,10 @@
     <div class="sales-modal-inner">
         <div class="sales-modal-header">
             <span>📊 本日の売上</span>
-            <button onclick="closeSalesModal()" style="background:var(--light);border:none;border-radius:8px;padding:6px 14px;font-family:'M PLUS Rounded 1c',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;color:#888;">✕ 閉じる</button>
+            <div style="display:flex;gap:8px;">
+                <button id="sales-refresh-btn" onclick="refreshSalesModal()" style="background:var(--sage);color:white;border:none;border-radius:8px;padding:6px 12px;font-family:'M PLUS Rounded 1c',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;">🔄 最新に更新</button>
+                <button onclick="closeSalesModal()" style="background:var(--light);border:none;border-radius:8px;padding:6px 14px;font-family:'M PLUS Rounded 1c',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;color:#888;">✕ 閉じる</button>
+            </div>
         </div>
         <div class="sales-total-big" id="sales-total-big">0円</div>
         <div class="sales-count" id="sales-count">0件のお会計</div>
@@ -991,11 +994,12 @@ let g_todaySalesData = null;
 let g_localAddedTotal = 0; // GAS取得後にローカルで追加した売上
 
 function updateSalesBadge() {
-    // 初回はGASから取得
+    // 初回・定期的にSupabaseから最新データを取得
     GAS.getTodaySalesData().then(function(data) {
                 if (data) {
                     g_todaySalesData = data;
-                    var displayTotal = data.total + g_localAddedTotal;
+                    g_localAddedTotal = 0;
+                    var displayTotal = data.total;
                     document.getElementById('sales-badge').textContent = '本日 ' + displayTotal.toLocaleString() + '円';
                 }
             }).catch(function(){});
@@ -1032,24 +1036,38 @@ function recordSale(total) {
 }
 
 function openSalesModal() {
-    // GASから最新データを取得して表示
-    GAS.getTodaySalesData().then(function(data) {
-                if (data) {
-                    g_todaySalesData = data;
-                    var displayData = {
-                        total: data.total + g_localAddedTotal,
-                        count: data.count,
-                        items: data.items
-                    };
-                    renderSalesModalFromGas(displayData);
-                    document.getElementById('sales-badge').textContent = '本日 ' + displayData.total.toLocaleString() + '円';
-                } else {
-                    renderSalesModalLocal();
-                }
-            }).catch(function() {
-                renderSalesModalLocal();
-            });
+    refreshSalesModal();
     document.getElementById('sales-modal').classList.add('show');
+}
+
+function refreshSalesModal() {
+    var btn = document.getElementById('sales-refresh-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '🔄 更新中...';
+    }
+    GAS.getTodaySalesData().then(function(data) {
+        if (data) {
+            g_todaySalesData = data;
+            g_localAddedTotal = 0;
+            var displayData = {
+                total: data.total,
+                count: data.count,
+                items: data.items
+            };
+            renderSalesModalFromGas(displayData);
+            document.getElementById('sales-badge').textContent = '本日 ' + displayData.total.toLocaleString() + '円';
+        } else {
+            renderSalesModalLocal();
+        }
+    }).catch(function() {
+        renderSalesModalLocal();
+    }).finally(function() {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '🔄 最新に更新';
+        }
+    });
 }
 
 function renderSalesModalFromGas(data) {
