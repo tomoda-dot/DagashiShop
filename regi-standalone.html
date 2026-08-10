@@ -2695,7 +2695,7 @@ GAS.getTodaySalesData = function() {
   var gte = today + 'T00:00:00+00:00';
   var lte = today + 'T23:59:59+00:00';
   return sbGet('order_items',
-    'select=order_code,label,qty,subtotal,status&ts=gte.' + gte + '&ts=lte.' + lte + '&limit=10000'
+    'select=order_code,label,qty,subtotal,status&ts=gte.' + encodeURIComponent(gte) + '&ts=lte.' + encodeURIComponent(lte) + '&limit=10000'
   ).then(function(rows) {
     var orderIds = {};
     var itemMap  = {};
