@@ -1204,7 +1204,9 @@ function renderSupplierTabs() {
     + '</div>'
     + '<div style="grid-column:1/-1;"><label style="font-size:11px;color:var(--t2);font-weight:700;display:block;margin-bottom:4px;">販売価格（円）</label>'
     + '<input class="fi" type="number" id="tab-sell-price" min="0" value="' + (sellPrice || '') + '" oninput="tabSellPriceChanged()" style="max-width:180px;">'
+    + '<div id="tab-margin-area">'
     + (margin !== null ? '<div style="font-size:10px;color:' + (margin >= 0 ? 'var(--grn)' : 'var(--red)') + ';margin-top:3px;">粗利: ' + (margin >= 0 ? '+' : '') + margin + '円（' + marginPct + '%）</div>' : '')
+    + '</div>'
     + '</div>'
     + '</div>'
     // ⭐主・削除
@@ -1245,6 +1247,28 @@ function tabSupplierChanged() {
   }
 }
 
+function updateTabMarginDisplay() {
+  var marginArea = document.getElementById('tab-margin-area');
+  if (!marginArea) return;
+  var r = detProductSuppliers[detActiveSupTab];
+  var bp = r ? (r.buy_price || 0) : (parseFloat(document.getElementById('det-bprice').value) || 0);
+  var bq = r ? (r.buy_qty || 1) : (parseInt(document.getElementById('det-bqty').value) || 1);
+  var tax = getTaxRate();
+  var tankaWith = (bp && bq) ? Math.round(bp / bq * tax * 100) / 100 : 0;
+
+  var sellEl = document.getElementById('tab-sell-price');
+  var sellPrice = sellEl ? (parseFloat(sellEl.value) || 0) : (parseFloat(document.getElementById('det-sell-price').value) || 0);
+
+  var margin    = (tankaWith && sellPrice) ? Math.round((sellPrice - tankaWith) * 10) / 10 : null;
+  var marginPct = (margin !== null && sellPrice) ? Math.round(margin / sellPrice * 1000) / 10 : null;
+
+  if (margin !== null) {
+    marginArea.innerHTML = '<div style="font-size:10px;color:' + (margin >= 0 ? 'var(--grn)' : 'var(--red)') + ';margin-top:3px;">粗利: ' + (margin >= 0 ? '+' : '') + margin + '円（' + marginPct + '%）</div>';
+  } else {
+    marginArea.innerHTML = '';
+  }
+}
+
 function tabFieldChanged() {
   var row = detProductSuppliers[detActiveSupTab];
   if(!row) return;
@@ -1272,13 +1296,19 @@ function tabFieldChanged() {
       btns[detActiveSupTab].textContent = (row.is_primary?'⭐ ':'')+sname;
     }
   }
+  updateTabMarginDisplay();
 }
 
 function tabRefPriceChanged() {
   var val = parseFloat(document.getElementById('tab-ref-price').value)||0;
   document.getElementById('det-price').value = val;
   syncSellPrice();
-  renderSupplierTabs(); // 粗利再計算のため再描画
+  var sellEl = document.getElementById('tab-sell-price');
+  var spEl = document.getElementById('det-sell-price');
+  if (sellEl && spEl && !spEl.dataset.edited) {
+    sellEl.value = spEl.value;
+  }
+  updateTabMarginDisplay();
 }
 
 function tabSellPriceChanged() {
@@ -1286,7 +1316,7 @@ function tabSellPriceChanged() {
   var spEl = document.getElementById('det-sell-price');
   spEl.value = val;
   spEl.dataset.edited = '1';
-  renderSupplierTabs(); // 粗利再計算のため再描画
+  updateTabMarginDisplay();
 }
 
 function tabPrimaryChanged() {
