@@ -154,7 +154,10 @@
     <div class="plist" id="product-list"></div>
   </div>
 
-  <div class="log-title">読み込んだ商品</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px;">
+    <div class="log-title" style="margin:0;">読み込んだ商品</div>
+    <button onclick="clearAllItems()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--bd);background:#fff;font-size:12px;font-weight:700;color:var(--red);cursor:pointer;">🗑️ リセット (全消去)</button>
+  </div>
   <div id="sent-list"></div>
   <div id="sent-total" style="text-align:right;font-size:16px;font-weight:800;margin-top:6px;"></div>
 
@@ -447,6 +450,18 @@ function renderSentList() {
 }
 renderSentList();
 
+function clearAllItems() {
+  sentCart = [];
+  selectedItem = null;
+  document.getElementById('received-input').value = '';
+  document.getElementById('point-input').value = '';
+  renderSentList();
+  renderSelectedPanel();
+  updateCheckoutAmounts();
+  pushDisplayState(false);
+  showToast('表示をリセットしました', 'ok');
+}
+
 // ── 合計・お釣り表示の更新 ──
 function getCartTotal() {
   return sentCart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
@@ -690,6 +705,7 @@ triggerBtn.addEventListener('pointercancel', triggerPressEnd);
 triggerBtn.addEventListener('pointerleave', triggerPressEnd);
 renderSelectedPanel();
 updateCheckoutAmounts();
+pushDisplayState(false);
 dlog('初期化完了。カメラ起動ボタンを押してください');
 </script>
 </body>
