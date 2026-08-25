@@ -1459,9 +1459,6 @@ function updateDisplay() {
             }
         });
     }
-        // グループ情報を保持（±ボタン用）
-        window._cartGroups = groups;
-    }
     const total = Math.max(0, cart.reduce((s,i) => s + (i.isBreak ? 0 : i.price), 0));
     const el = document.getElementById('total-amount');
     el.innerHTML = `${total}<span class="total-yen">円</span>`;
