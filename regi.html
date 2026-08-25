@@ -266,7 +266,21 @@
         #cart-items-wrap {
             padding-bottom: 50px;
         }
-        .cart-title { font-size: 0.82rem; color: #b0a898; font-weight: 700; margin-bottom: 7px; display: flex; justify-content: space-between; align-items: center; }
+        .cart-title {
+            position: sticky;
+            top: -9px;
+            z-index: 10;
+            background: var(--light);
+            padding: 4px 0 8px 0;
+            margin-bottom: 7px;
+            font-size: 0.82rem;
+            color: #b0a898;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1.5px solid #e8e0d4;
+        }
         .cart-empty { color: #ccc; font-size: 1rem; }
 
         .cart-break-line {
