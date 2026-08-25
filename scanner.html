@@ -67,6 +67,12 @@
   .sent-item .sdel{width:30px;height:30px;border-radius:50%;border:1px solid var(--bd);background:var(--bg);
     font-size:17px;font-weight:800;color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 
+  /* 区切り線 */
+  .sent-divider{background:#fdf6e3;border:2px dashed var(--amb);border-radius:10px;padding:10px 14px;
+    margin:10px 0 6px;font-size:14px;font-weight:800;color:#8a6d3b;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .sent-divider .sname{font-weight:800;flex:1;font-size:14px;color:#8a6d3b;}
+  .sent-divider .ssub{font-size:15px;font-weight:900;color:var(--red);margin-left:auto;}
+
   /* 選択中の商品パネル */
   .sel-name{font-size:19px;font-weight:800;margin-bottom:12px;}
   .sel-ctrl{display:flex;align-items:center;gap:14px;}
@@ -154,9 +160,12 @@
     <div class="plist" id="product-list"></div>
   </div>
 
-  <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px;gap:6px;">
     <div class="log-title" style="margin:0;">読み込んだ商品</div>
-    <button onclick="clearAllItems()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--bd);background:#fff;font-size:12px;font-weight:700;color:var(--red);cursor:pointer;">🗑️ リセット (全消去)</button>
+    <div style="display:flex;gap:6px;">
+      <button onclick="addPersonDivider()" style="padding:5px 11px;border-radius:8px;border:1.5px solid var(--amb);background:#fff9f0;font-size:12px;font-weight:800;color:#856404;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.05);">➕ 人区切り(小計)</button>
+      <button onclick="clearAllItems()" style="padding:5px 11px;border-radius:8px;border:1px solid var(--bd);background:#fff;font-size:12px;font-weight:700;color:var(--red);cursor:pointer;">🗑️ リセット</button>
+    </div>
   </div>
   <div id="sent-list"></div>
   <div id="sent-total" style="text-align:right;font-size:16px;font-weight:800;margin-top:6px;"></div>
@@ -329,9 +338,14 @@ function registerBarcode(productId, productName) {
 
 // ── タブレット表示の更新（display_state） ──
 function pushDisplayState(thanks) {
-  var cart = sentCart.filter(function(it){ return it.qty > 0; })
-    .map(function(it){ return { name: it.name, price: it.price, qty: it.qty }; });
-  var total = sentCart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
+  var cart = sentCart.filter(function(it){ return it.isDivider || (it.qty > 0); })
+    .map(function(it){
+      if (it.isDivider) {
+        return { isDivider: true, name: (it.groupName || '区切り') + ' 小計', subtotal: it.subtotal || 0, count: it.count || 0 };
+      }
+      return { name: it.name, price: it.price, qty: it.qty };
+    });
+  var total = getCartTotal();
   var points = getUsedPoints();
   var cash = Math.max(0, total - points);
   var received = parseInt(document.getElementById('received-input').value) || 0;
@@ -349,9 +363,21 @@ function pushDisplayState(thanks) {
   });
 }
 
+// ── 人区切り（小計）挿入 ──
+function addPersonDivider() {
+  sentCart.unshift({
+    isDivider: true,
+    id: 'div-' + Date.now()
+  });
+  renderSentList();
+  updateCheckoutAmounts();
+  pushDisplayState(false);
+  showToast('➕ 人区切り（小計）を挿入しました', 'ok');
+}
+
 // ── 読み込んだ商品リスト（sentCart） ──
 function addToSentCart(barcode, name, price, qty) {
-  var existing = sentCart.find(function(it){ return it.barcode === barcode; });
+  var existing = sentCart.find(function(it){ return !it.isDivider && it.barcode === barcode; });
   if (existing) {
     existing.qty = Math.max(0, existing.qty + qty);
     selectItem(existing);
@@ -367,6 +393,7 @@ function addToSentCart(barcode, name, price, qty) {
 
 // ── 選択中の商品パネル ──
 function selectItem(it) {
+  if (it && it.isDivider) return;
   selectedItem = it;
   renderSelectedPanel();
   renderSentList(); // 選択ハイライト更新のため再描画
@@ -375,7 +402,7 @@ function selectItem(it) {
 function renderSelectedPanel() {
   var panel = document.getElementById('selected-panel');
   var empty = document.getElementById('selected-empty');
-  if (!selectedItem || mode !== 'regi') {
+  if (!selectedItem || mode !== 'regi' || selectedItem.isDivider) {
     panel.style.display = 'none';
     empty.style.display = (mode === 'regi') ? '' : 'none';
     return;
@@ -388,7 +415,7 @@ function renderSelectedPanel() {
 }
 
 document.getElementById('selected-dec').addEventListener('click', function() {
-  if (!selectedItem) return;
+  if (!selectedItem || selectedItem.isDivider) return;
   if (selectedItem.qty > 0) selectedItem.qty -= 1;
   renderSelectedPanel();
   renderSentList();
@@ -396,7 +423,7 @@ document.getElementById('selected-dec').addEventListener('click', function() {
   pushDisplayState(false);
 });
 document.getElementById('selected-inc').addEventListener('click', function() {
-  if (!selectedItem) return;
+  if (!selectedItem || selectedItem.isDivider) return;
   selectedItem.qty += 1;
   renderSelectedPanel();
   renderSentList();
@@ -412,7 +439,38 @@ function renderSentList() {
     totalEl.textContent = '';
     return;
   }
+
+  // 各区切りの小計・件数計算 (古い順：配列の後ろから前へ)
+  var groupSum = 0;
+  var groupQty = 0;
+  var dividerCount = 0;
+  for (var i = sentCart.length - 1; i >= 0; i--) {
+    if (sentCart[i].isDivider) dividerCount++;
+  }
+  var currentDividerNum = 1;
+  for (var i = sentCart.length - 1; i >= 0; i--) {
+    var it = sentCart[i];
+    if (it.isDivider) {
+      it.subtotal = groupSum;
+      it.count = groupQty;
+      it.groupName = currentDividerNum + '人目';
+      currentDividerNum++;
+      groupSum = 0;
+      groupQty = 0;
+    } else {
+      groupSum += (it.price || 0) * (it.qty || 0);
+      groupQty += (it.qty || 0);
+    }
+  }
+
   list.innerHTML = sentCart.map(function(it, idx) {
+    if (it.isDivider) {
+      return '<div class="sent-divider" data-idx="' + idx + '">'
+        + '<div class="sname">👤 ' + it.groupName + ' 小計 (' + it.count + '点)</div>'
+        + '<div class="ssub">¥' + (it.subtotal || 0).toLocaleString() + '</div>'
+        + '<button class="sdel" data-idx="' + idx + '" data-act="del">×</button>'
+        + '</div>';
+    }
     var sel = (selectedItem === it) ? ' selected' : '';
     return '<div class="sent-item' + sel + '" data-idx="' + idx + '" data-act="select">'
       + '<div class="sname">' + it.name + '</div>'
@@ -421,15 +479,18 @@ function renderSentList() {
       + '<button class="sdel" data-idx="' + idx + '" data-act="del">×</button>'
       + '</div>';
   }).join('');
-  var total = sentCart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
-  var totalQty = sentCart.reduce(function(s, it){ return s + it.qty; }, 0);
+
+  var total = getCartTotal();
+  var totalQty = sentCart.reduce(function(s, it){ return s + (it.isDivider ? 0 : (it.qty || 0)); }, 0);
   totalEl.textContent = '計 ' + totalQty + '点　合計 ¥' + total.toLocaleString();
 
   Array.prototype.forEach.call(list.querySelectorAll('[data-act="select"]'), function(row) {
     row.addEventListener('click', function(e) {
       if (e.target.closest('[data-act="del"]')) return;
       var idx = parseInt(row.getAttribute('data-idx'));
-      selectItem(sentCart[idx]);
+      if (sentCart[idx] && !sentCart[idx].isDivider) {
+        selectItem(sentCart[idx]);
+      }
     });
   });
   Array.prototype.forEach.call(list.querySelectorAll('[data-act="del"]'), function(btn) {
@@ -464,7 +525,7 @@ function clearAllItems() {
 
 // ── 合計・お釣り表示の更新 ──
 function getCartTotal() {
-  return sentCart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
+  return sentCart.reduce(function(s, it){ return s + (it.isDivider ? 0 : (it.price || 0) * (it.qty || 0)); }, 0);
 }
 
 function getUsedPoints() {
@@ -513,7 +574,7 @@ Array.prototype.forEach.call(document.querySelectorAll('.quick-amt-btn'), functi
 
 // ── 会計確定（order_itemsに保存し、タブレットに「ありがとう」表示） ──
 function completeCheckout() {
-  if (!sentCart.length || !sentCart.some(function(it){ return it.qty > 0; })) {
+  if (!sentCart.length || !sentCart.some(function(it){ return !it.isDivider && it.qty > 0; })) {
     showToast('リストは空です', 'warn'); return;
   }
   var total = getCartTotal();
@@ -523,8 +584,8 @@ function completeCheckout() {
   if (received < cash) { showToast('お預かり金額が不足しています', 'warn'); return; }
   var change = received - cash;
 
-  // order_items用：商品行 + ポイント割引行
-  var orders = sentCart.filter(function(it){ return it.qty > 0; }).map(function(it) {
+  // order_items用：商品行 + ポイント割引行（区切り線は除外）
+  var orders = sentCart.filter(function(it){ return !it.isDivider && it.qty > 0; }).map(function(it) {
     return { label: it.name, price: it.price, qty: it.qty, subtotal: it.price * it.qty };
   });
   if (points > 0) {
@@ -534,7 +595,7 @@ function completeCheckout() {
   // receivedは現金のみ、売上合計はポイント含む商品合計
   GAS.saveOrderFromRegi({ orders: orders, received: received, change: change }).then(function() {
     sb.from('display_state').update({
-      cart: sentCart.filter(function(it){ return it.qty > 0; }).map(function(it){ return { name: it.name, price: it.price, qty: it.qty }; }),
+      cart: sentCart.filter(function(it){ return !it.isDivider && it.qty > 0; }).map(function(it){ return { name: it.name, price: it.price, qty: it.qty }; }),
       received: received,
       change: change,
       points: points,

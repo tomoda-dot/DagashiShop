@@ -33,6 +33,12 @@
   .item-row .iname{font-size:18px;font-weight:700;}
   .item-row .iprice{font-size:20px;font-weight:800;color:var(--red);white-space:nowrap;min-width:80px;text-align:right;}
 
+  .divider-row{background:#fff9e6;border:2px dashed var(--amb);border-radius:var(--r);
+    padding:14px 20px;display:flex;justify-content:space-between;align-items:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.04);animation:slideIn .25s ease-out;}
+  .divider-row .dname{font-size:17px;font-weight:800;color:#8a6d3b;}
+  .divider-row .dsub{font-size:20px;font-weight:900;color:var(--red);}
+
   /* 右カラム：金額エリア */
   #right-col{flex:1;display:flex;flex-direction:column;justify-content:center;}
   #amount-area{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);
@@ -137,16 +143,22 @@ function renderState(state) {
       wrap.innerHTML = '<div class="empty-msg" id="empty-msg">スマホでバーコードを<br>読み取ってください</div>';
     } else {
       wrap.innerHTML = cart.map(function(it) {
+        if (it.isDivider) {
+          return '<div class="divider-row">'
+            + '<div class="dname">👤 ' + it.name + ' (' + (it.count || 0) + '点)</div>'
+            + '<div class="dsub">¥' + (it.subtotal || 0).toLocaleString() + '</div>'
+            + '</div>';
+        }
         return '<div class="item-row">'
           + '<div class="iname">' + it.name + (it.qty > 1 ? ' ×' + it.qty : '') + '</div>'
-          + '<div class="iprice">¥' + (it.price * it.qty).toLocaleString() + '</div>'
+          + '<div class="iprice">¥' + ((it.price || 0) * (it.qty || 0)).toLocaleString() + '</div>'
           + '</div>';
       }).join('');
       wrap.scrollTop = wrap.scrollHeight;
     }
     dlog('[6] リスト更新完了');
 
-    var total = cart.reduce(function(s, it){ return s + it.price * it.qty; }, 0);
+    var total = cart.reduce(function(s, it){ return s + (it.isDivider ? 0 : (it.price || 0) * (it.qty || 0)); }, 0);
     dlog('[7] total計算=' + total);
     document.getElementById('total-val').textContent = total.toLocaleString();
     var points = state.points || 0;

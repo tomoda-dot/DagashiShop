@@ -267,21 +267,21 @@
         .cart-empty { color: #ccc; font-size: 1rem; }
 
         .cart-break-line {
-            border-top: 1.5px dashed var(--mustard);
-            margin: 8px 0 6px 0;
+            border-top: 2px dashed var(--mustard);
+            margin: 12px 0 8px 0;
             position: relative;
-            opacity: 0.85;
+            opacity: 0.95;
         }
         .cart-break-line::after {
-            content: '─ 新しい欄 ─';
+            content: attr(data-subtotal);
             position: absolute;
             right: 8px;
-            top: -8px;
+            top: -10px;
             background: var(--light);
-            padding: 0 4px;
-            font-size: 0.68rem;
-            color: #b0a898;
-            font-weight: 700;
+            padding: 0 6px;
+            font-size: 0.78rem;
+            color: #8a6d3b;
+            font-weight: 800;
         }
 
         .cart-row {
@@ -1354,11 +1354,29 @@ function updateDisplay() {
             }
             forceNew = false;
         });
+
+        // 各区切りセクションごとの小計計算
+        const sectionSums = [];
+        let curSum = 0;
+        cart.forEach(item => {
+            if (item.isBreak) {
+                sectionSums.push(curSum);
+                curSum = 0;
+            } else {
+                curSum += item.price;
+            }
+        });
+        sectionSums.push(curSum);
+
+        let breakCount = 0;
         groups.forEach(g => {
             if (g.hasBreakBefore) {
+                const sectionSum = sectionSums[breakCount] || 0;
                 const divider = document.createElement('div');
                 divider.className = 'cart-break-line';
+                divider.setAttribute('data-subtotal', `👤 ${(breakCount + 1)}人目 小計 ${sectionSum.toLocaleString()}円`);
                 wrap.appendChild(divider);
+                breakCount++;
             }
             const row = document.createElement('div');
             row.className = 'cart-row' + (g.isDiscount?' discount-row':'') + (g.isFree?' free-row':'');
