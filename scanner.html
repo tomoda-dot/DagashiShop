@@ -163,7 +163,7 @@
   <div style="position:sticky;top:48px;z-index:40;background:var(--bg);padding:10px 0 8px;margin:8px 0;border-bottom:1.5px solid var(--bd);display:flex;justify-content:space-between;align-items:center;gap:6px;">
     <div class="log-title" style="margin:0;">読み込んだ商品</div>
     <div style="display:flex;gap:6px;">
-      <button onclick="addPersonDivider()" style="padding:5px 11px;border-radius:8px;border:1.5px solid var(--amb);background:#fff9f0;font-size:12px;font-weight:800;color:#856404;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.05);">➕ 人区切り(小計)</button>
+      <button onclick="addPersonDivider()" style="padding:5px 11px;border-radius:8px;border:1.5px solid var(--amb);background:#fff9f0;font-size:12px;font-weight:800;color:#856404;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.05);">➕ 区切り</button>
       <button onclick="clearAllItems()" style="padding:5px 11px;border-radius:8px;border:1px solid var(--bd);background:#fff;font-size:12px;font-weight:700;color:var(--red);cursor:pointer;">🗑️ リセット</button>
     </div>
   </div>
@@ -363,7 +363,7 @@ function pushDisplayState(thanks) {
   });
 }
 
-// ── 人区切り（小計）挿入 ──
+// ── 区切り（小計）挿入 ──
 function addPersonDivider() {
   sentCart.unshift({
     isDivider: true,
@@ -372,7 +372,12 @@ function addPersonDivider() {
   renderSentList();
   updateCheckoutAmounts();
   pushDisplayState(false);
-  showToast('➕ 人区切り（小計）を挿入しました', 'ok');
+  var newDiv = sentCart.find(function(it){ return it.isDivider; });
+  if (newDiv) {
+    showToast('✅ ' + (newDiv.groupName || '1人目') + ' 小計: ¥' + (newDiv.subtotal || 0).toLocaleString(), 'ok');
+  } else {
+    showToast('➕ 区切りを挿入しました', 'ok');
+  }
 }
 
 // ── 読み込んだ商品リスト（sentCart） ──

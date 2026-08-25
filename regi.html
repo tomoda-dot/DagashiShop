@@ -747,6 +747,16 @@
         }
         .emoji-cell:hover { background: var(--light); }
         .emoji-cell.picked { background: #fef2f2; outline: 2px solid var(--coral); }
+
+        /* トースト表示 */
+        .regi-toast {
+            position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-20px);
+            background: rgba(61, 64, 54, 0.94); color: #fff; padding: 10px 24px;
+            border-radius: 999px; font-size: 1rem; font-weight: 800; z-index: 9999;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25); opacity: 0; transition: all 0.3s ease;
+            pointer-events: none; white-space: nowrap;
+        }
+        .regi-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
@@ -781,7 +791,7 @@
         <div class="cart-section" onclick="addCartBreak(event)">
             <div class="cart-title">
                 <span>🛒 カートの中身</span>
-                <button onclick="addCartBreakButton(event)" style="background:#fff9f0;border:1.5.px solid var(--mustard);border:1.5px solid var(--mustard);border-radius:8px;padding:3px 10px;font-size:0.75rem;font-weight:800;color:#8a6d3b;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.05);" title="人ごとの区切り線を挿入">➕ 人区切り</button>
+                <button onclick="addCartBreakButton(event)" style="background:#fff9f0;border:1.5px solid var(--mustard);border-radius:8px;padding:3px 10px;font-size:0.75rem;font-weight:800;color:#8a6d3b;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.05);" title="人ごとの区切り線を挿入">➕ 区切り</button>
             </div>
             <div id="cart-items-wrap">
                 <span class="cart-empty">まだ何も選んでいません</span>
@@ -1328,23 +1338,51 @@ function addDiscount(amount) {
     updateDisplay();
 }
 
+// ═══ トースト通知 ══════════════════════════════════
+function showRegiToast(msg) {
+    let t = document.getElementById('regi-toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'regi-toast';
+        t.className = 'regi-toast';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => { t.classList.remove('show'); }, 2200);
+}
+
 // ═══ カート操作・表示 ═══════════════════════════════
-function addCartBreak(e) {
-    if (e && e.target && e.target.closest('.cart-row')) return;
+function triggerCartBreak() {
     const validItems = cart.filter(i => !i.isBreak);
     if (validItems.length === 0) return;
     if (cart.length > 0 && cart[cart.length - 1].isBreak) return;
+
+    let lastSectionSum = 0;
+    let breakNum = 1;
+    cart.forEach(item => {
+        if (item.isBreak) {
+            lastSectionSum = 0;
+            breakNum++;
+        } else {
+            lastSectionSum += item.price;
+        }
+    });
+
     cart.push({ isBreak: true });
     updateDisplay();
+
+    showRegiToast(`✅ ${breakNum}人目 小計: ${lastSectionSum.toLocaleString()}円`);
+}
+
+function addCartBreak(e) {
+    if (e && e.target && e.target.closest('.cart-row')) return;
+    triggerCartBreak();
 }
 
 function addCartBreakButton(e) {
     if (e) e.stopPropagation();
-    const validItems = cart.filter(i => !i.isBreak);
-    if (validItems.length === 0) return;
-    if (cart.length > 0 && cart[cart.length - 1].isBreak) return;
-    cart.push({ isBreak: true });
-    updateDisplay();
+    triggerCartBreak();
 }
 
 function updateDisplay() {
