@@ -263,7 +263,10 @@
             padding: 9px; overflow-y: auto; min-height: 0;
             cursor: pointer;
         }
-        .cart-title { font-size: 0.82rem; color: #b0a898; font-weight: 700; margin-bottom: 7px; }
+        #cart-items-wrap {
+            padding-bottom: 50px;
+        }
+        .cart-title { font-size: 0.82rem; color: #b0a898; font-weight: 700; margin-bottom: 7px; display: flex; justify-content: space-between; align-items: center; }
         .cart-empty { color: #ccc; font-size: 1rem; }
 
         .cart-break-line {
@@ -762,7 +765,10 @@
     <!-- 右カラム：カート・合計 -->
     <div class="col-right">
         <div class="cart-section" onclick="addCartBreak(event)">
-            <div class="cart-title">🛒 カートの中身</div>
+            <div class="cart-title">
+                <span>🛒 カートの中身</span>
+                <button onclick="addCartBreakButton(event)" style="background:#fff9f0;border:1.5.px solid var(--mustard);border:1.5px solid var(--mustard);border-radius:8px;padding:3px 10px;font-size:0.75rem;font-weight:800;color:#8a6d3b;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.05);" title="人ごとの区切り線を挿入">➕ 人区切り</button>
+            </div>
             <div id="cart-items-wrap">
                 <span class="cart-empty">まだ何も選んでいません</span>
             </div>
@@ -1311,6 +1317,15 @@ function addDiscount(amount) {
 // ═══ カート操作・表示 ═══════════════════════════════
 function addCartBreak(e) {
     if (e && e.target && e.target.closest('.cart-row')) return;
+    const validItems = cart.filter(i => !i.isBreak);
+    if (validItems.length === 0) return;
+    if (cart.length > 0 && cart[cart.length - 1].isBreak) return;
+    cart.push({ isBreak: true });
+    updateDisplay();
+}
+
+function addCartBreakButton(e) {
+    if (e) e.stopPropagation();
     const validItems = cart.filter(i => !i.isBreak);
     if (validItems.length === 0) return;
     if (cart.length > 0 && cart[cart.length - 1].isBreak) return;
