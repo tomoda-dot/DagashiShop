@@ -94,6 +94,17 @@
             grid-template-rows: auto 1fr;
             grid-template-columns: 2fr 1fr;
             height: 100vh;
+            height: 100dvh;
+            max-height: 100vh;
+            max-height: 100dvh;
+            overflow: hidden;
+        }
+        :fullscreen .app, :-webkit-full-screen .app {
+            height: 100vh;
+            height: 100dvh;
+            max-height: 100vh;
+            max-height: 100dvh;
+            overflow: hidden;
         }
 
         /* ヘッダー */
@@ -109,6 +120,16 @@
             font-family: 'Kaisei Decol', serif;
             font-size: 1.3rem; color: var(--brown);
         }
+
+        .header-menu-btn {
+            background: #fff9f0; border: 1.5px solid var(--mustard);
+            color: #8a6d3b; padding: 4px 12px; border-radius: 20px;
+            font-size: 0.82rem; font-weight: 800; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .header-menu-btn:hover { background: #fef0d5; transform: scale(1.03); }
 
         .clock-display {
             font-family: 'M PLUS Rounded 1c', sans-serif;
@@ -152,6 +173,7 @@
             padding: 8px; gap: 7px;
             overflow-y: auto; overflow-x: hidden;
             background: var(--cream);
+            min-height: 0;
         }
 
         .atari-banner {
@@ -255,6 +277,7 @@
             overflow: hidden;
             background: var(--white);
             border-left: 2px solid #f0ebe4;
+            min-height: 0;
         }
 
         .cart-section {
@@ -781,13 +804,14 @@
 </head>
 <body>
 
-<a href="index.html" class="top-back-btn">メニューに戻る</a>
-
 <div class="app">
 
     <!-- ヘッダー -->
     <header class="app-header">
-        <h1>🍬 おかしのレジ</h1>
+        <div style="display:flex;align-items:center;gap:10px;">
+            <h1>🍬 おかしのレジ</h1>
+            <a href="index.html" class="header-menu-btn" title="TOPメニューに戻る">🏠 TOPへ戻る</a>
+        </div>
         <div style="display:flex;align-items:center;gap:10px;">
             <div class="queue-badge" id="queue-badge" style="display:none;"></div>
             <div class="sales-badge" id="sales-badge">本日 0円</div>
