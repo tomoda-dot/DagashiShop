@@ -766,6 +766,17 @@
             display: inline-flex; align-items: center; justify-content: center;
         }
         .top-back-btn:hover { opacity: 1; transform: scale(1.05); }
+        /* 未送信キューバッジ */
+        .queue-badge {
+            font-size: 0.78rem; font-weight: 800; padding: 4px 12px; border-radius: 999px;
+            background: #e2e8f0; color: #475569; display: inline-flex; align-items: center; gap: 4px;
+            transition: all 0.3s ease; white-space: nowrap; cursor: pointer;
+        }
+        .queue-badge.has-queue {
+            background: #fffbebf0; color: #92400e; border: 1.5px solid #f59e0b;
+            animation: pulseQueue 1.5s infinite;
+        }
+        @keyframes pulseQueue { 0%,100%{ opacity: 1; } 50%{ opacity: 0.65; } }
     </style>
 </head>
 <body>
@@ -778,6 +789,7 @@
     <header class="app-header">
         <h1>🍬 おかしのレジ</h1>
         <div style="display:flex;align-items:center;gap:10px;">
+            <div class="queue-badge" id="queue-badge" style="display:none;"></div>
             <div class="sales-badge" id="sales-badge">本日 0円</div>
             <div class="clock-display" id="clock-display">00:00</div>
             <button class="cfg-gear-btn" id="fullscreen-btn" onclick="toggleFullscreen()" title="全画面表示">⛶</button>
@@ -1655,7 +1667,25 @@ function loadQueue() {
     try { return JSON.parse(localStorage.getItem('sendQueue') || '[]'); }
     catch { return []; }
 }
-function saveQueue(q) { localStorage.setItem('sendQueue', JSON.stringify(q)); }
+function saveQueue(q) {
+    localStorage.setItem('sendQueue', JSON.stringify(q));
+    updateQueueBadge();
+}
+
+function updateQueueBadge() {
+    const q = loadQueue();
+    const badge = document.getElementById('queue-badge');
+    if (!badge) return;
+    if (q.length === 0) {
+        badge.className = 'queue-badge';
+        badge.innerHTML = '🟢 未送信 0件';
+        badge.style.display = 'none';
+    } else {
+        badge.className = 'queue-badge has-queue';
+        badge.innerHTML = `⚠️ 未送信 ${q.length}件 (自動送信中...)`;
+        badge.style.display = 'inline-flex';
+    }
+}
 
 function enqueue(payload) {
     const q = loadQueue();
@@ -1666,17 +1696,37 @@ function enqueue(payload) {
 
 function sendQueueAsync() {
     const q = loadQueue();
+    updateQueueBadge();
     if (q.length === 0) return;
     const item = q[0];
     GAS.saveOrderFromRegi(JSON.stringify(item)).then(function() {
             const q2 = loadQueue();
             q2.shift();
             saveQueue(q2);
-            if (q2.length > 0) sendQueueAsync();
+            if (q2.length > 0) {
+                sendQueueAsync();
+            }
         }).catch(function() {
-            // 失敗しても次回起動時に再送
+            updateQueueBadge();
         });
 }
+
+// ネット復帰時・画面閉じる時の安全装置
+window.addEventListener('online', function() {
+    sendQueueAsync();
+    updateQueueBadge();
+});
+window.addEventListener('offline', function() {
+    updateQueueBadge();
+});
+window.addEventListener('beforeunload', function(e) {
+    const q = loadQueue();
+    if (q.length > 0) {
+        e.preventDefault();
+        e.returnValue = '⚠️ 未送信のお会計データが残っています。ネット接続が復帰して送信完了するまで画面を閉じないでください。';
+        return e.returnValue;
+    }
+});
 
 // ═══ 絵文字ピッカー ═══════════════════════════════
 var EMOJI_CATS = {
@@ -2087,6 +2137,7 @@ renderGrid();
 renderDiscountGrid();
 initSettings();
 updateSalesBadge();
+updateQueueBadge();
 document.getElementById('sales-badge').addEventListener('click', openSalesModal);
 setTimeout(function() { sendQueueAsync(); }, 1000);
 </script>
