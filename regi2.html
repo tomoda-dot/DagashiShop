@@ -202,9 +202,17 @@ function initListener() {
       dlog('Realtime UPDATE受信');
       renderState(payload.new);
     })
-    .subscribe(function(status) { dlog('channel status: ' + status); });
-  // Realtimeの取りこぼし対策：定期的に最新状態を取得
-  setInterval(fetchState, 3000);
+    .subscribe(function(status) {
+      dlog('channel status: ' + status);
+      if (status === 'SUBSCRIBED') {
+        fetchState();
+      }
+    });
+  // Realtimeを主軸とし、フォールバックとして60秒周期チェック＆画面表示復帰時に取得
+  setInterval(fetchState, 60000);
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) fetchState();
+  });
 }
 
 initListener();
