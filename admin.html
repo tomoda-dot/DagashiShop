@@ -10,9 +10,37 @@
     body { background-color: #f1f5f9; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
     .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
     .card { background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }    .loading-overlay { background: rgba(255,255,255,0.8); display: none; position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
-    .regi-container .input-label { font-size: 0.85rem; font-weight: bold; color: #475569; width: 70px; text-align: right; }
-    .regi-container .input-box { border: 2px solid #cbd5e1; border-radius: 6px; text-align: right; font-family: monospace; font-size: 0.9rem; width: 75px; padding: 1px 5px; background: #fff; }
-    .regi-container .step-btn { background: #e2e8f0; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: bold; cursor: pointer; color: #64748b; }
+    .regi-container .denom-label { font-size: 0.95rem; font-weight: 800; color: #334155; min-width: 70px; text-align: right; letter-spacing: -0.02em; }
+    .regi-container .input-box { border: 2px solid #cbd5e1; border-radius: 8px; text-align: center; font-family: monospace; font-size: 1rem; font-weight: 800; width: 72px; height: 36px; padding: 0 4px; background: #fff; color: #0f172a; outline: none; transition: border-color 0.15s; }
+    .regi-container .input-box:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+    .regi-container .step-btn { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 900; cursor: pointer; border: none; user-select: none; touch-action: manipulation; transition: background 0.15s, transform 0.1s; }
+    .regi-container .step-btn:active { transform: scale(0.92); }
+    .regi-container .step-btn-minus { color: #dc2626; background: #fee2e2; }
+    .regi-container .step-btn-minus:hover { background: #fca5a5; }
+    .regi-container .step-btn-plus { color: #2563eb; background: #dbeafe; }
+    .regi-container .step-btn-plus:hover { background: #bfdbfe; }
+
+    /* レジ締め タブレット・レスポンシブ最適化 */
+    @media (max-width: 1024px) {
+      #content-regi {
+        flex-direction: column !important;
+        overflow-y: auto !important;
+        padding: 12px !important;
+        gap: 16px !important;
+        height: auto !important;
+        min-height: 100% !important;
+      }
+      #content-regi > div {
+        width: 100% !important;
+        flex: none !important;
+      }
+      #denom-container {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+        max-height: none !important;
+        overflow-y: visible !important;
+        gap: 8px !important;
+      }
+    }
     #notification { display: none; position: fixed; top: 20px; right: 20px; z-index: 1000; min-width: 250px; }
     details summary::-webkit-details-marker { display: none; }
 
@@ -260,22 +288,24 @@
     </section>
 
     <!-- レジ締め入力 -->
-    <section id="content-regi" class="hidden h-full flex p-3 gap-3 overflow-hidden bg-slate-100 regi-container">
-      <div class="flex-[1.2] flex flex-col gap-3 h-full">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex-1 flex flex-col overflow-hidden">
-          <div class="flex justify-between items-center mb-3">
-            <input type="date" id="target-date-input" class="text-lg font-bold text-slate-700 border-2 border-blue-300 rounded-lg px-3 py-1 outline-none" onchange="onDateChange()" />
-            <h2 id="target-date-display" class="text-lg font-bold text-slate-700 italic hidden"></h2>
+    <section id="content-regi" class="hidden h-full flex p-3 gap-3 overflow-y-auto bg-slate-100 regi-container">
+      <div class="flex-[1.2] flex flex-col gap-3">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col">
+          <div class="flex flex-wrap justify-between items-center gap-2 mb-3 pb-2 border-b border-slate-100">
             <div class="flex items-center gap-2">
-              <button onclick="clearRegiCounts()" class="bg-rose-100 hover:bg-rose-200 text-rose-600 px-3 py-1 rounded-lg text-xs font-bold transition">🧹 クリア</button>
-              <button onclick="applyRegiDefaults(true)" class="bg-slate-200 hover:bg-slate-300 text-slate-600 px-3 py-1 rounded-lg text-xs font-bold transition">📥 初期値</button>
-              <select id="in-location" class="bg-blue-50 border-2 border-blue-200 text-blue-700 font-bold px-3 py-1 rounded-xl text-sm outline-none">
+              <input type="date" id="target-date-input" class="text-base md:text-lg font-bold text-slate-700 border-2 border-blue-300 rounded-xl px-3 py-1.5 outline-none shadow-sm focus:border-blue-500" onchange="onDateChange()" />
+              <h2 id="target-date-display" class="text-lg font-bold text-slate-700 italic hidden"></h2>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button onclick="clearRegiCounts()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1 active:scale-95">🧹 クリア</button>
+              <button onclick="applyRegiDefaults(true)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1 active:scale-95">📥 初期値</button>
+              <select id="in-location" class="bg-blue-50 border-2 border-blue-200 text-blue-700 font-bold px-3 py-1.5 rounded-xl text-xs md:text-sm outline-none cursor-pointer">
                 <option value="事業所" selected>事業所</option>
                 <option value="外販">外販</option>
               </select>
             </div>
           </div>
-          <div id="denom-container" class="grid grid-cols-2 gap-x-8 gap-y-1 overflow-y-auto pr-2"></div>
+          <div id="denom-container" class="grid grid-cols-2 gap-x-6 gap-y-2 overflow-y-auto pr-1"></div>
           <div class="pt-3 mt-1 border-t border-slate-100 flex justify-between items-end">
             <div class="text-slate-400 font-bold text-xs tracking-widest uppercase">レジ内現金 合計</div>
             <div id="total-actual" class="text-3xl font-black text-slate-800 font-mono tracking-tighter">¥0</div>
@@ -995,7 +1025,7 @@
       container.innerHTML = DISPLAY_ORDER.map(v => {
         const isCoin = v <= 500;
         const rollSelectHtml = isCoin ? `
-          <select id="roll-${v}" class="border-2 border-slate-200 rounded-lg text-xs font-bold text-slate-500 outline-none px-1 py-0.5 bg-slate-50 hover:bg-slate-100 cursor-pointer w-16" onchange="calculate()">
+          <select id="roll-${v}" class="border-2 border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none px-1 py-1 bg-white hover:bg-slate-50 cursor-pointer w-16 h-9" onchange="calculate()">
             <option value="0">0本</option>
             <option value="1">1本</option>
             <option value="2">2本</option>
@@ -1008,16 +1038,16 @@
             <option value="9">9本</option>
             <option value="10">10本</option>
           </select>
-        ` : '<div class="w-16"></div>';
+        ` : '<div class="w-16 h-9"></div>';
 
         return `
-          <div class="flex items-center justify-between p-1 hover:bg-slate-50 rounded-lg transition">
-            <label class="input-label">${v.toLocaleString()}円</label>
-            <div class="flex items-center gap-2 ml-3">
+          <div class="denom-row flex items-center justify-between p-2 bg-slate-50 hover:bg-blue-50/50 rounded-xl border border-slate-200 transition">
+            <label class="denom-label font-bold text-slate-700 text-sm md:text-base min-w-[70px] text-right font-mono">${v.toLocaleString()}円</label>
+            <div class="flex items-center gap-1.5 md:gap-2 ml-auto">
               ${rollSelectHtml}
-              <div class="step-btn" onclick="step(${v}, -1)">−</div>
-              <input type="number" id="in-${v}" class="input-box" value="0" min="0" oninput="calculate()">
-              <div class="step-btn" onclick="step(${v}, 1)">＋</div>
+              <button type="button" class="step-btn step-btn-minus" onclick="step(${v}, -1)">−</button>
+              <input type="number" id="in-${v}" class="input-box" value="0" min="0" oninput="calculate()" inputmode="numeric" pattern="[0-9]*">
+              <button type="button" class="step-btn step-btn-plus" onclick="step(${v}, 1)">＋</button>
             </div>
           </div>`;
       }).join('');
