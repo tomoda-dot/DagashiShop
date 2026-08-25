@@ -372,12 +372,6 @@ function addPersonDivider() {
   renderSentList();
   updateCheckoutAmounts();
   pushDisplayState(false);
-  var newDiv = sentCart.find(function(it){ return it.isDivider; });
-  if (newDiv) {
-    showToast('✅ ' + (newDiv.groupName || '1人目') + ' 小計: ¥' + (newDiv.subtotal || 0).toLocaleString(), 'ok');
-  } else {
-    showToast('➕ 区切りを挿入しました', 'ok');
-  }
 }
 
 // ── 読み込んだ商品リスト（sentCart） ──

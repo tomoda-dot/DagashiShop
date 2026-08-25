@@ -1358,21 +1358,8 @@ function triggerCartBreak() {
     if (validItems.length === 0) return;
     if (cart.length > 0 && cart[cart.length - 1].isBreak) return;
 
-    let lastSectionSum = 0;
-    let breakNum = 1;
-    cart.forEach(item => {
-        if (item.isBreak) {
-            lastSectionSum = 0;
-            breakNum++;
-        } else {
-            lastSectionSum += item.price;
-        }
-    });
-
     cart.push({ isBreak: true });
     updateDisplay();
-
-    showRegiToast(`✅ ${breakNum}人目 小計: ${lastSectionSum.toLocaleString()}円`);
 }
 
 function addCartBreak(e) {
@@ -1389,40 +1376,10 @@ function updateDisplay() {
     const wrap = document.getElementById('cart-items-wrap');
     wrap.innerHTML = '';
     const validCart = cart.filter(item => !item.isBreak);
-    if (validCart.length === 0) {
+    if (validCart.length === 0 && cart.length === 0) {
         wrap.innerHTML = '<span class="cart-empty">まだ何も選んでいません</span>';
     } else {
-        // 連続する同じ商品だけをグループ化（区切りマーカー考慮）
-        const groups = [];
-        let forceNew = false;
-        cart.forEach((item, idx) => {
-            if (item.isBreak) {
-                forceNew = true;
-                return;
-            }
-            const key = item.label + '|' + item.price;
-            const last = groups.length > 0 ? groups[groups.length - 1] : null;
-            if (!forceNew && last && last.key === key) {
-                last.qty++;
-                last.indices.push(idx);
-            } else {
-                groups.push({
-                    key,
-                    gid: groups.length,
-                    label: item.label,
-                    emoji: item.emoji,
-                    price: item.price,
-                    qty: 1,
-                    isDiscount: item.isDiscount,
-                    isFree: item.isFree,
-                    hasBreakBefore: forceNew && groups.length > 0,
-                    indices: [idx]
-                });
-            }
-            forceNew = false;
-        });
-
-        // 各区切りセクションごとの小計計算
+        // セクションごとの小計計算
         const sectionSums = [];
         let curSum = 0;
         cart.forEach(item => {
@@ -1435,29 +1392,73 @@ function updateDisplay() {
         });
         sectionSums.push(curSum);
 
-        let breakCount = 0;
-        groups.forEach(g => {
-            if (g.hasBreakBefore) {
-                const sectionSum = sectionSums[breakCount] || 0;
+        // カート要素のグループ化（商品行と区切り行を1つのリストに順番通り並べる）
+        const displayList = [];
+        let curGroup = null;
+        let breakIdx = 0;
+
+        cart.forEach((item, idx) => {
+            if (item.isBreak) {
+                if (curGroup) {
+                    displayList.push(curGroup);
+                    curGroup = null;
+                }
+                const sum = sectionSums[breakIdx] || 0;
+                displayList.push({
+                    type: 'break',
+                    breakNum: breakIdx + 1,
+                    subtotal: sum
+                });
+                breakIdx++;
+            } else {
+                const key = item.label + '|' + item.price;
+                if (curGroup && curGroup.key === key) {
+                    curGroup.qty++;
+                    curGroup.indices.push(idx);
+                } else {
+                    if (curGroup) displayList.push(curGroup);
+                    curGroup = {
+                        type: 'product',
+                        key,
+                        label: item.label,
+                        emoji: item.emoji,
+                        price: item.price,
+                        qty: 1,
+                        isDiscount: item.isDiscount,
+                        isFree: item.isFree,
+                        indices: [idx]
+                    };
+                }
+            }
+        });
+        if (curGroup) displayList.push(curGroup);
+
+        window._cartGroups = {};
+
+        displayList.forEach((entry, gIdx) => {
+            if (entry.type === 'break') {
                 const divider = document.createElement('div');
                 divider.className = 'cart-break-line';
-                divider.setAttribute('data-subtotal', `👤 ${(breakCount + 1)}人目 小計 ${sectionSum.toLocaleString()}円`);
+                divider.setAttribute('data-subtotal', `👤 ${entry.breakNum}人目 小計 ${entry.subtotal.toLocaleString()}円`);
                 wrap.appendChild(divider);
-                breakCount++;
+            } else {
+                entry.gid = gIdx;
+                window._cartGroups[gIdx] = entry;
+                const row = document.createElement('div');
+                row.className = 'cart-row' + (entry.isDiscount ? ' discount-row' : '') + (entry.isFree ? ' free-row' : '');
+                row.innerHTML = `
+                    <span class="cart-row-emoji">${entry.emoji}</span>
+                    <span class="cart-row-name">${entry.label}</span>
+                    <span class="cart-row-ctrl">
+                        <button class="qty-btn" onclick="decrementGroup(${gIdx})">－</button>
+                        <span class="cart-row-qty">×${entry.qty}</span>
+                        <button class="qty-btn" onclick="incrementGroup(${gIdx})">＋</button>
+                    </span>
+                    <span class="cart-row-sub">${(entry.price * entry.qty).toLocaleString()}円</span>`;
+                wrap.appendChild(row);
             }
-            const row = document.createElement('div');
-            row.className = 'cart-row' + (g.isDiscount?' discount-row':'') + (g.isFree?' free-row':'');
-            row.innerHTML = `
-                <span class="cart-row-emoji">${g.emoji}</span>
-                <span class="cart-row-name">${g.label}</span>
-                <span class="cart-row-ctrl">
-                    <button class="qty-btn" onclick="decrementGroup(${g.gid})">－</button>
-                    <span class="cart-row-qty">×${g.qty}</span>
-                    <button class="qty-btn" onclick="incrementGroup(${g.gid})">＋</button>
-                </span>
-                <span class="cart-row-sub">${g.price*g.qty}円</span>`;
-            wrap.appendChild(row);
         });
+    }
         // グループ情報を保持（±ボタン用）
         window._cartGroups = groups;
     }
