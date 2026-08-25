@@ -175,51 +175,10 @@
         </div>
     </div>
 
-    <div id="appViewer">
-        <iframe id="targetFrame" src=""></iframe>
-        <button class="back-btn" onclick="closeApp()">メニューに戻る</button>
-    </div>
-
-    <script>
-        var wasFullscreen = false;
-
-        // 全画面復帰
-        function restoreFS() {
-            document.getElementById('fsOverlay').classList.remove('show');
-            document.documentElement.requestFullscreen().catch(function(){});
-        }
-
-        // 全画面が解除されたらオーバーレイを表示
-        document.addEventListener('fullscreenchange', function() {
-            if (document.fullscreenElement) {
-                wasFullscreen = true;
-                document.getElementById('fsOverlay').classList.remove('show');
-            } else if (wasFullscreen) {
-                document.getElementById('fsOverlay').classList.add('show');
-            }
-        });
-
-        // フルスクリーン化
-        document.addEventListener('click', function() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(function(err) {
-                    console.warn('フルスクリーン失敗: ' + err.message);
-                });
-            }
-        }, false);
-
         function openApp(url) {
             if(event) event.stopPropagation();
-            document.getElementById('targetFrame').src = url;
-            document.getElementById('appViewer').style.display = 'block';
+            location.href = url;
         }
-
-        function closeApp() {
-            if(event) event.stopPropagation();
-            document.getElementById('targetFrame').src = "";
-            document.getElementById('appViewer').style.display = 'none';
-        }
-
     </script>
 </body>
 </html>

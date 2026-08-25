@@ -184,9 +184,19 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
   #fax-area,#fax-area *{visibility:visible;}
   #fax-area{position:fixed;top:0;left:0;width:100%;background:#fff;padding:20px;}
 }
+.top-back-btn {
+  position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+  background: #f49576; color: white; border: none;
+  padding: 14px 24px; border-radius: 50px; font-weight: bold;
+  font-size: 14px; text-decoration: none; font-family: sans-serif;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3); opacity: 0.85; transition: 0.3s;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.top-back-btn:hover { opacity: 1; transform: scale(1.05); }
 </style>
 </head>
 <body>
+<a href="index.html" class="top-back-btn">メニューに戻る</a>
 
 <div id="loading"><div class="spin"></div><div style="color:var(--t2);font-size:13px;">データを読み込んでいます...</div></div>
 

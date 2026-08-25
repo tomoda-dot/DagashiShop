@@ -25,9 +25,19 @@
   select:focus, input[type=date]:focus { border-color: #3b82f6; }
   .loading { display: flex; align-items: center; justify-content: center; height: 200px;
     color: #94a3b8; font-size: 14px; font-weight: 700; }
+  .top-back-btn {
+    position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+    background: #f49576; color: white; border: none;
+    padding: 14px 24px; border-radius: 50px; font-weight: bold;
+    font-size: 14px; text-decoration: none; font-family: sans-serif;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3); opacity: 0.85; transition: 0.3s;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .top-back-btn:hover { opacity: 1; transform: scale(1.05); }
 </style>
 </head>
 <body>
+<a href="index.html" class="top-back-btn">メニューに戻る</a>
 
 <!-- ヘッダー -->
 <header class="bg-slate-800 text-white px-5 py-3 flex items-center gap-4 sticky top-0 z-50">

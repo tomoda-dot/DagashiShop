@@ -60,9 +60,19 @@
   @keyframes pop{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
   #thanks-screen h2{font-size:32px;font-weight:900;color:var(--tx);letter-spacing:2px;}
   #thanks-screen p{font-size:15px;color:var(--t3);margin-top:10px;}
+  .top-back-btn {
+    position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+    background: #f49576; color: white; border: none;
+    padding: 14px 24px; border-radius: 50px; font-weight: bold;
+    font-size: 14px; text-decoration: none; font-family: sans-serif;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3); opacity: 0.85; transition: 0.3s;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .top-back-btn:hover { opacity: 1; transform: scale(1.05); }
 </style>
 </head>
 <body>
+<a href="index.html" class="top-back-btn">メニューに戻る</a>
 
 <header>
   <h1>🍬 駄菓子屋 ひとつぎ</h1>
