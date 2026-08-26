@@ -7,13 +7,13 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
-    body { background-color: #f1f5f9; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    body { background-color: #f1f5f9; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; touch-action: manipulation; }
     .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
     .card { background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }    .loading-overlay { background: rgba(255,255,255,0.8); display: none; position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
     .regi-container .denom-label { font-size: 0.95rem; font-weight: 800; color: #334155; min-width: 70px; text-align: right; letter-spacing: -0.02em; }
-    .regi-container .input-box { border: 2px solid #cbd5e1; border-radius: 8px; text-align: center; font-family: monospace; font-size: 1rem; font-weight: 800; width: 72px; height: 36px; padding: 0 4px; background: #fff; color: #0f172a; outline: none; transition: border-color 0.15s; }
+    .regi-container .input-box { border: 2px solid #cbd5e1; border-radius: 8px; text-align: center; font-family: monospace; font-size: 1.1rem; font-weight: 800; width: 80px; height: 44px; padding: 0 4px; background: #fff; color: #0f172a; outline: none; transition: border-color 0.15s; touch-action: manipulation; }
     .regi-container .input-box:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
-    .regi-container .step-btn { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 900; cursor: pointer; border: none; user-select: none; touch-action: manipulation; transition: background 0.15s, transform 0.1s; }
+    .regi-container .step-btn { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 900; cursor: pointer; border: none; user-select: none; -webkit-user-select: none; touch-action: manipulation; transition: background 0.15s, transform 0.1s; }
     .regi-container .step-btn:active { transform: scale(0.92); }
     .regi-container .step-btn-minus { color: #dc2626; background: #fee2e2; }
     .regi-container .step-btn-minus:hover { background: #fca5a5; }
@@ -1056,13 +1056,40 @@
             <label class="denom-label font-bold text-slate-700 text-sm md:text-base min-w-[70px] text-right font-mono">${v.toLocaleString()}円</label>
             <div class="flex items-center gap-1.5 md:gap-2 ml-auto">
               ${rollSelectHtml}
-              <button type="button" class="step-btn step-btn-minus" onclick="step(${v}, -1)">−</button>
+              <button type="button" class="step-btn step-btn-minus" onpointerdown="startStepRepeat(${v}, -1, event)" onpointerup="stopStepRepeat()" onpointerleave="stopStepRepeat()" onclick="if(!window.PointerEvent) step(${v}, -1)">−</button>
               <input type="number" id="in-${v}" class="input-box" value="0" min="0" oninput="calculate()" inputmode="numeric" pattern="[0-9]*">
-              <button type="button" class="step-btn step-btn-plus" onclick="step(${v}, 1)">＋</button>
+              <button type="button" class="step-btn step-btn-plus" onpointerdown="startStepRepeat(${v}, 1, event)" onpointerup="stopStepRepeat()" onpointerleave="stopStepRepeat()" onclick="if(!window.PointerEvent) step(${v}, 1)">＋</button>
             </div>
           </div>`;
       }).join('');
     }
+
+    let g_stepTimer = null;
+    let g_stepInterval = null;
+
+    function startStepRepeat(v, d, e) {
+      if (e) {
+        if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
+      }
+      step(v, d);
+      stopStepRepeat();
+
+      g_stepTimer = setTimeout(function() {
+        g_stepInterval = setInterval(function() {
+          step(v, d);
+        }, 90);
+      }, 280);
+    }
+
+    function stopStepRepeat() {
+      if (g_stepTimer) { clearTimeout(g_stepTimer); g_stepTimer = null; }
+      if (g_stepInterval) { clearInterval(g_stepInterval); g_stepInterval = null; }
+    }
+
+    document.addEventListener('mouseup', stopStepRepeat);
+    document.addEventListener('touchend', stopStepRepeat);
+    document.addEventListener('touchcancel', stopStepRepeat);
 
     function step(v, d) {
       const el = document.getElementById(`in-${v}`);

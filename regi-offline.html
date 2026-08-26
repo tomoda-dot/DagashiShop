@@ -2111,18 +2111,13 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// 単価ボタン連打時のダブルタップズーム防止（iPad/タブレット対策）
+// 単価ボタン連打時のダブルタップズーム防止（タップの取りこぼし・押しミスを防止）
 (function(){
-  var lastTouchEnd = 0;
-  document.addEventListener('touchend', function(e) {
-    var now = new Date().getTime();
-    if (now - lastTouchEnd <= 300) {
-      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) {
-        return;
-      }
-      e.preventDefault();
+  document.addEventListener('dblclick', function(e) {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) {
+      return;
     }
-    lastTouchEnd = now;
+    e.preventDefault();
   }, { passive: false });
   document.addEventListener('gesturestart', function(e) {
     e.preventDefault();
