@@ -1225,6 +1225,29 @@ function allDiscounts() {
     return [...new Set([...FIXED_DISCOUNTS, ...customDiscounts])].sort((a,b) => a - b);
 }
 
+// ── 高速タップバインド（タブレットでの連打押しミス・ズーム・タップ取りこぼしを完全排除） ──
+function bindFastTap(el, actionFn) {
+    if (!el) return;
+    var isHandled = false;
+
+    el.addEventListener('pointerdown', function(e) {
+        if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+            if (e.cancelable) e.preventDefault();
+            isHandled = true;
+            actionFn(e);
+            setTimeout(function() { isHandled = false; }, 150);
+        }
+    }, { passive: false });
+
+    el.addEventListener('click', function(e) {
+        if (isHandled) {
+            isHandled = false;
+            return;
+        }
+        actionFn(e);
+    });
+}
+
 function renderDiscountGrid() {
     const grid = document.getElementById('discount-grid');
     grid.innerHTML = '';
@@ -1236,7 +1259,7 @@ function renderDiscountGrid() {
     discounts.forEach(amount => {
         const btn = document.createElement('button');
         btn.className = 'discount-btn';
-        btn.onclick = () => addDiscount(amount);
+        bindFastTap(btn, () => addDiscount(amount));
         btn.innerHTML = `<div class="discount-btn-inner">
             <span class="discount-btn-emoji">🎟</span>
             <span class="discount-btn-amount">-${amount}円</span>
@@ -1249,7 +1272,7 @@ function renderDiscountGrid() {
     const freeBtn = document.createElement('button');
     freeBtn.className = 'discount-btn btn-free';
     freeBtn.id = 'btn-free';
-    freeBtn.onclick = setAtariMode;
+    bindFastTap(freeBtn, setAtariMode);
     freeBtn.innerHTML = `<div class="discount-btn-inner">
         <span class="discount-btn-emoji">🎀</span>
         <span class="discount-btn-amount" id="free-btn-label">当たり券</span>
@@ -1310,7 +1333,7 @@ function renderGrid() {
             el.style.color = BTN_TEXT_COLORS[ci];
         }
 
-        el.onclick = () => add(btn.price, btn.name, btn.emoji);
+        bindFastTap(el, () => add(btn.price, btn.name, btn.emoji));
         el.innerHTML = `<div class="btn-inner">
             <span class="btn-emoji">${btn.emoji}</span>
             <span class="btn-price">${btn.price}円</span>
@@ -1410,15 +1433,29 @@ function updateDisplay() {
             }
             const row = document.createElement('div');
             row.className = 'cart-row' + (g.isDiscount?' discount-row':'') + (g.isFree?' free-row':'');
+            const decBtn = document.createElement('button');
+            decBtn.className = 'qty-btn';
+            decBtn.textContent = '－';
+            bindFastTap(decBtn, () => decrementGroup(g.gid));
+
+            const incBtn = document.createElement('button');
+            incBtn.className = 'qty-btn';
+            incBtn.textContent = '＋';
+            bindFastTap(incBtn, () => incrementGroup(g.gid));
+
             row.innerHTML = `
                 <span class="cart-row-emoji">${g.emoji}</span>
                 <span class="cart-row-name">${g.label}</span>
                 <span class="cart-row-ctrl">
-                    <button class="qty-btn" onclick="decrementGroup(${g.gid})">－</button>
-                    <span class="cart-row-qty">×${g.qty}</span>
-                    <button class="qty-btn" onclick="incrementGroup(${g.gid})">＋</button>
                 </span>
                 <span class="cart-row-sub">${g.price*g.qty}円</span>`;
+            const ctrl = row.querySelector('.cart-row-ctrl');
+            const qtySpan = document.createElement('span');
+            qtySpan.className = 'cart-row-qty';
+            qtySpan.textContent = `×${g.qty}`;
+            ctrl.appendChild(decBtn);
+            ctrl.appendChild(qtySpan);
+            ctrl.appendChild(incBtn);
             wrap.appendChild(row);
         });
         // グループ情報を保持（±ボタン用）
