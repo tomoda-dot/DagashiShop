@@ -20,7 +20,12 @@
     .regi-container .step-btn-plus { color: #2563eb; background: #dbeafe; }
     .regi-container .step-btn-plus:hover { background: #bfdbfe; }
 
-    /* レジ締め タブレット・レスポンシブ最適化 */
+    /* レジ締め PC・タブレット レスポンシブ最適化 */
+    #denom-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 8px;
+    }
     @media (max-width: 1024px) {
       #content-regi {
         flex-direction: column !important;
@@ -35,7 +40,7 @@
         flex: none !important;
       }
       #denom-container {
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)) !important;
         max-height: none !important;
         overflow-y: visible !important;
         gap: 8px !important;
@@ -316,7 +321,7 @@
               </select>
             </div>
           </div>
-          <div id="denom-container" class="grid grid-cols-2 gap-x-6 gap-y-2 overflow-y-auto pr-1"></div>
+          <div id="denom-container" class="overflow-y-auto pr-1"></div>
           <div class="pt-3 mt-1 border-t border-slate-100 flex justify-between items-end">
             <div class="text-slate-400 font-bold text-xs tracking-widest uppercase">レジ内現金 合計</div>
             <div id="total-actual" class="text-3xl font-black text-slate-800 font-mono tracking-tighter">¥0</div>
