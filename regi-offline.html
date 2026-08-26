@@ -102,13 +102,20 @@
             50% { opacity: 0.6; }
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
 
         html, body {
             width: 100%; height: 100%;
             overflow: hidden;
             font-family: 'M PLUS Rounded 1c', sans-serif;
             background: var(--cream);
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        button, input, select, textarea, .item-btn, .discount-btn, .tenkey-btn, .action-btn, .qty-btn {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .app {
@@ -2103,6 +2110,24 @@ if ('serviceWorker' in navigator) {
         console.log('[SW] 登録失敗:', err);
     });
 }
+
+// 単価ボタン連打時のダブルタップズーム防止（iPad/タブレット対策）
+(function(){
+  var lastTouchEnd = 0;
+  document.addEventListener('touchend', function(e) {
+    var now = new Date().getTime();
+    if (now - lastTouchEnd <= 300) {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) {
+        return;
+      }
+      e.preventDefault();
+    }
+    lastTouchEnd = now;
+  }, { passive: false });
+  document.addEventListener('gesturestart', function(e) {
+    e.preventDefault();
+  }, { passive: false });
+})();
 </script>
 </body>
 </html>
