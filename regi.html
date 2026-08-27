@@ -977,8 +977,8 @@
         </div>
 
         <div class="cfg-theme-section" style="background:var(--light);border-radius:14px;padding:14px 16px;margin-bottom:16px;border:2px solid #e0d8cc;">
-            <div style="font-size:0.95rem;font-weight:800;color:var(--brown);margin-bottom:10px;">🎨 テーマ・文字色設定</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="font-size:0.95rem;font-weight:800;color:var(--brown);margin-bottom:10px;">🎨 テーマ・アイコン・文字色設定</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
                 <div>
                     <label style="font-size:0.75rem;font-weight:700;color:#8a8070;display:block;margin-bottom:4px;">💰 金額・文字の色</label>
                     <select id="cfg-text-color-select" class="cfg-input" style="width:100%;cursor:pointer;" onchange="changeTextColorMode(this.value)">
@@ -994,6 +994,13 @@
                         <option value="dark">🌙 ダークモード</option>
                         <option value="vivid">🎨 ビビッドポップ</option>
                         <option value="chic">🎬 シック</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.75rem;font-weight:700;color:#8a8070;display:block;margin-bottom:4px;">😀 商品アイコン</label>
+                    <select id="cfg-icon-select" class="cfg-input" style="width:100%;cursor:pointer;" onchange="changeIconDisplayMode(this.value)">
+                        <option value="true">⭕ 表示する（標準）</option>
+                        <option value="false">❌ 非表示（文字・金額のみ）</option>
                     </select>
                 </div>
             </div>
@@ -1354,6 +1361,7 @@ function renderGrid() {
     const grid = document.getElementById('item-grid');
     grid.innerHTML = '';
     const textColorMode = localStorage.getItem('regi_text_color') || 'black';
+    const showIcon = localStorage.getItem('regi_show_icon') !== 'false';
 
     allButtons().forEach((btn, idx) => {
         const ci = idx % BTN_COLORS.length;
@@ -1370,8 +1378,9 @@ function renderGrid() {
         }
 
         bindFastTap(el, () => add(btn.price, btn.name, btn.emoji));
+        const emojiHtml = showIcon ? `<span class="btn-emoji">${btn.emoji}</span>` : '';
         el.innerHTML = `<div class="btn-inner">
-            <span class="btn-emoji">${btn.emoji}</span>
+            ${emojiHtml}
             <span class="btn-price">${btn.price}円</span>
             <span class="btn-label">${btn.name}</span>
         </div>`;
@@ -1969,13 +1978,15 @@ function printReceiptWindow() {
 }
 
 
-// ═══ テーマ・文字色設定 ═════════════════════════════
+// ═══ テーマ・アイコン・文字色設定 ═════════════════════════════
 function loadThemeSettings() {
     var textColorMode = localStorage.getItem('regi_text_color') || 'black';
     var uiTheme = localStorage.getItem('regi_ui_theme') || 'natural';
+    var showIcon = localStorage.getItem('regi_show_icon') || 'true';
 
     applyTextColorMode(textColorMode);
     applyUiTheme(uiTheme);
+    applyIconDisplayMode(showIcon);
 }
 
 function applyTextColorMode(mode) {
@@ -1992,12 +2003,23 @@ function applyUiTheme(theme) {
     if (select) select.value = theme;
 }
 
+function applyIconDisplayMode(showIconStr) {
+    localStorage.setItem('regi_show_icon', showIconStr);
+    var select = document.getElementById('cfg-icon-select');
+    if (select) select.value = showIconStr;
+    renderGrid();
+}
+
 function changeTextColorMode(val) {
     applyTextColorMode(val);
 }
 
 function changeUiTheme(val) {
     applyUiTheme(val);
+}
+
+function changeIconDisplayMode(val) {
+    applyIconDisplayMode(val);
 }
 
 // ═══ 設定モーダル ═════════════════════════════════
