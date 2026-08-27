@@ -207,9 +207,11 @@
             box-shadow: 0 3px 10px rgba(61,64,54,0.1);
             transition: transform 0.1s;
             -webkit-tap-highlight-color: transparent;
-            min-height: clamp(64px, 11vh, 96px);
+            height: clamp(82px, 13vh, 98px);
+            min-height: 82px;
             position: relative;
             overflow: hidden;
+            display: flex; flex-direction: column;
         }
         .item-btn::before {
             content: ''; position: absolute; inset: 0;
@@ -220,8 +222,8 @@
         .btn-inner {
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            flex: 1; height: 100%; min-height: clamp(64px, 11vh, 96px);
-            padding: clamp(6px, 1.2vh, 12px) 6px; gap: 2px;
+            height: 100%; width: 100%; flex: 1;
+            padding: 6px; gap: 2px;
             position: relative; z-index: 1; box-sizing: border-box;
         }
         .btn-emoji { font-size: clamp(1.2rem, 3vw, 1.7rem); line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
