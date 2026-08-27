@@ -220,8 +220,9 @@
         .btn-inner {
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
+            flex: 1; height: 100%; min-height: clamp(64px, 11vh, 96px);
             padding: clamp(6px, 1.2vh, 12px) 6px; gap: 2px;
-            position: relative; z-index: 1;
+            position: relative; z-index: 1; box-sizing: border-box;
         }
         .btn-emoji { font-size: clamp(1.2rem, 3vw, 1.7rem); line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
         .btn-price {
@@ -997,10 +998,11 @@
                     </select>
                 </div>
                 <div>
-                    <label style="font-size:0.75rem;font-weight:700;color:#8a8070;display:block;margin-bottom:4px;">😀 商品アイコン</label>
-                    <select id="cfg-icon-select" class="cfg-input" style="width:100%;cursor:pointer;" onchange="changeIconDisplayMode(this.value)">
-                        <option value="true">⭕ 表示する（標準）</option>
-                        <option value="false">❌ 非表示（文字・金額のみ）</option>
+                    <label style="font-size:0.75rem;font-weight:700;color:#8a8070;display:block;margin-bottom:4px;">🔘 ボタン表示スタイル</label>
+                    <select id="cfg-btn-style-select" class="cfg-input" style="width:100%;cursor:pointer;" onchange="changeBtnStyleMode(this.value)">
+                        <option value="all">⭕ 全部表示（アイコン・金額・名）</option>
+                        <option value="no_icon">🏷️ 金額＋商品名（アイコンなし）</option>
+                        <option value="price_only">💰 金額のみ（アイコン＆名なし）</option>
                     </select>
                 </div>
             </div>
@@ -1361,7 +1363,12 @@ function renderGrid() {
     const grid = document.getElementById('item-grid');
     grid.innerHTML = '';
     const textColorMode = localStorage.getItem('regi_text_color') || 'black';
-    const showIcon = localStorage.getItem('regi_show_icon') !== 'false';
+    let btnStyleMode = localStorage.getItem('regi_btn_style_mode');
+    if (!btnStyleMode) {
+        // 旧互換チェック
+        var legacyShowIcon = localStorage.getItem('regi_show_icon');
+        btnStyleMode = (legacyShowIcon === 'false') ? 'no_icon' : 'all';
+    }
 
     allButtons().forEach((btn, idx) => {
         const ci = idx % BTN_COLORS.length;
@@ -1378,12 +1385,20 @@ function renderGrid() {
         }
 
         bindFastTap(el, () => add(btn.price, btn.name, btn.emoji));
-        const emojiHtml = showIcon ? `<span class="btn-emoji">${btn.emoji}</span>` : '';
-        el.innerHTML = `<div class="btn-inner">
-            ${emojiHtml}
-            <span class="btn-price">${btn.price}円</span>
-            <span class="btn-label">${btn.name}</span>
-        </div>`;
+
+        let innerHtml = '';
+        if (btnStyleMode === 'price_only') {
+            innerHtml = `<span class="btn-price" style="font-size: clamp(1.4rem, 3.2vw, 2.1rem);">${btn.price}円</span>`;
+        } else if (btnStyleMode === 'no_icon') {
+            innerHtml = `<span class="btn-price">${btn.price}円</span>
+                         <span class="btn-label">${btn.name}</span>`;
+        } else {
+            innerHtml = `<span class="btn-emoji">${btn.emoji}</span>
+                         <span class="btn-price">${btn.price}円</span>
+                         <span class="btn-label">${btn.name}</span>`;
+        }
+
+        el.innerHTML = `<div class="btn-inner">${innerHtml}</div>`;
         grid.appendChild(el);
     });
 }
@@ -1982,11 +1997,15 @@ function printReceiptWindow() {
 function loadThemeSettings() {
     var textColorMode = localStorage.getItem('regi_text_color') || 'black';
     var uiTheme = localStorage.getItem('regi_ui_theme') || 'natural';
-    var showIcon = localStorage.getItem('regi_show_icon') || 'true';
+    var btnStyleMode = localStorage.getItem('regi_btn_style_mode');
+    if (!btnStyleMode) {
+        var legacyShowIcon = localStorage.getItem('regi_show_icon');
+        btnStyleMode = (legacyShowIcon === 'false') ? 'no_icon' : 'all';
+    }
 
     applyTextColorMode(textColorMode);
     applyUiTheme(uiTheme);
-    applyIconDisplayMode(showIcon);
+    applyBtnStyleMode(btnStyleMode);
 }
 
 function applyTextColorMode(mode) {
@@ -2003,10 +2022,10 @@ function applyUiTheme(theme) {
     if (select) select.value = theme;
 }
 
-function applyIconDisplayMode(showIconStr) {
-    localStorage.setItem('regi_show_icon', showIconStr);
-    var select = document.getElementById('cfg-icon-select');
-    if (select) select.value = showIconStr;
+function applyBtnStyleMode(mode) {
+    localStorage.setItem('regi_btn_style_mode', mode);
+    var select = document.getElementById('cfg-btn-style-select');
+    if (select) select.value = mode;
     renderGrid();
 }
 
@@ -2018,8 +2037,8 @@ function changeUiTheme(val) {
     applyUiTheme(val);
 }
 
-function changeIconDisplayMode(val) {
-    applyIconDisplayMode(val);
+function changeBtnStyleMode(val) {
+    applyBtnStyleMode(val);
 }
 
 // ═══ 設定モーダル ═════════════════════════════════
