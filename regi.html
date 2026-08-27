@@ -207,8 +207,8 @@
             box-shadow: 0 3px 10px rgba(61,64,54,0.1);
             transition: transform 0.1s;
             -webkit-tap-highlight-color: transparent;
-            height: clamp(82px, 13vh, 98px);
-            min-height: 82px;
+            height: clamp(96px, 15vh, 120px);
+            min-height: 96px;
             position: relative;
             overflow: hidden;
             display: flex; flex-direction: column;
@@ -223,19 +223,21 @@
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             height: 100%; width: 100%; flex: 1;
-            padding: 6px; gap: 2px;
+            padding: 6px; gap: 3px;
             position: relative; z-index: 1; box-sizing: border-box;
         }
         .btn-emoji { font-size: clamp(1.2rem, 3vw, 1.7rem); line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
         .btn-price {
-            font-size: clamp(1.1rem, 2.6vw, 1.6rem); font-weight: 800;
+            font-size: clamp(0.95rem, 2.1vw, 1.35rem); font-weight: 800;
             text-shadow: 0 1px 3px rgba(0,0,0,0.1);
             letter-spacing: 0.02em;
+            white-space: nowrap; word-break: keep-all;
         }
         .btn-label {
-            font-size: clamp(0.55rem, 1.3vw, 0.7rem); opacity: 0.8; font-weight: 700;
-            background: rgba(0,0,0,0.06); padding: 1px 8px;
-            border-radius: 8px;
+            font-size: clamp(0.52rem, 1.1vw, 0.65rem); opacity: 0.85; font-weight: 700;
+            background: rgba(0,0,0,0.06); padding: 2px 8px;
+            border-radius: 8px; white-space: nowrap; word-break: keep-all;
+            max-width: 95%; overflow: hidden; text-overflow: ellipsis;
         }
 
         .btn-free {
@@ -1390,7 +1392,7 @@ function renderGrid() {
 
         let innerHtml = '';
         if (btnStyleMode === 'price_only') {
-            innerHtml = `<span class="btn-price" style="font-size: clamp(1.4rem, 3.2vw, 2.1rem);">${btn.price}円</span>`;
+            innerHtml = `<span class="btn-price" style="font-size: clamp(1.2rem, 2.6vw, 1.7rem); white-space: nowrap;">${btn.price}円</span>`;
         } else if (btnStyleMode === 'no_icon') {
             innerHtml = `<span class="btn-price">${btn.price}円</span>
                          <span class="btn-label">${btn.name}</span>`;
