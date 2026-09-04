@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HITOTSUGI モバイル TOP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --text-main: #3d4036;
+            --text-sub: #696b60;
+            --card-bg: rgba(255, 255, 255, 0.94);
+            --card-hover-bg: #ffffff;
+            --accent-orange: #f49576;
+            --accent-green: #5a9a7a;
+            --accent-blue: #5b92e5;
+            --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.08);
+            --shadow-active: 0 4px 15px rgba(0, 0, 0, 0.12);
+            --font-family: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Meiryo', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-image: url('Gemini_Generated_Image_b52deb52deb52deb.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            background-color: #fcf8f2;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 24px 16px 40px;
+            overflow-y: auto;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 440px;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* ヘッダーエリア */
+        header {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 20px 24px;
+            text-align: center;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f49576, #ff7e5f);
+            color: white;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 14px;
+            border-radius: 20px;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 8px rgba(244, 149, 118, 0.4);
+        }
+
+        .logo {
+            color: var(--text-main);
+        }
+
+        .logo .brand-name {
+            display: block;
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            line-height: 1.1;
+        }
+
+        .logo .sub-name {
+            display: block;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-sub);
+            margin-top: 4px;
+            letter-spacing: 1px;
+        }
+
+        /* メニューカードリスト */
+        .menu-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .menu-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 28px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.2s ease, background-color 0.2s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-card:active {
+            transform: scale(0.97);
+            box-shadow: var(--shadow-active);
+            background-color: var(--card-hover-bg);
+        }
+
+        /* アイコンラップ */
+        .icon-wrap {
+            width: 80px;
+            height: 80px;
+            min-width: 80px;
+            border-radius: 22px;
+            background: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .icon-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .icon-wrap img.rounded {
+            border-radius: 12px;
+        }
+
+        /* カード本文 */
+        .card-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 4px;
+            line-height: 1.25;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: var(--text-sub);
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        /* 矢印アイコン */
+        .arrow-icon {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border-radius: 50%;
+            background: rgba(61, 64, 54, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-main);
+            font-size: 18px;
+            font-weight: 900;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .menu-card:active .arrow-icon {
+            background: var(--accent-orange);
+            color: white;
+            transform: translateX(3px);
+        }
+
+        /* フッター・切替リンク */
+        footer {
+            margin-top: 10px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .pc-switch-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: var(--text-main);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 800;
+            padding: 12px 22px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            transition: all 0.2s ease;
+        }
+
+        .pc-switch-btn:active {
+            transform: scale(0.95);
+            background: #ffffff;
+        }
+
+        .copyright {
+            font-size: 11px;
+            color: rgba(61, 64, 54, 0.6);
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- ヘッダー -->
+        <header>
+            <span class="badge">MOBILE MENU</span>
+            <div class="logo">
+                <span class="brand-name">HITOTSUGI</span>
+                <span class="sub-name">モバイル トップページ</span>
+            </div>
+        </header>
+
+        <!-- メニューカードリスト -->
+        <div class="menu-list">
+            <!-- 1. マイページ -->
+            <div class="menu-card" onclick="openApp('../Porte/mypage.html')">
+                <div class="icon-wrap">
+                    <img src="kuma.png" alt="マイページ">
+                </div>
+                <div class="card-content">
+                    <div class="card-title">マイページ</div>
+                    <div class="card-desc">個人情報確認・変更<br>各種設定マイページ</div>
+                </div>
+                <div class="arrow-icon">➔</div>
+            </div>
+
+            <!-- 2. タブレット入力 -->
+            <div class="menu-card" onclick="openApp('../Porte/tablet.html')">
+                <div class="icon-wrap">
+                    <img src="kiroku.jpg" alt="タブレット入力" class="rounded">
+                </div>
+                <div class="card-content">
+                    <div class="card-title">タブレット入力</div>
+                    <div class="card-desc">作業日誌・出欠記録<br>データ入力画面</div>
+                </div>
+                <div class="arrow-icon">➔</div>
+            </div>
+
+            <!-- 3. バーコードスキャナー -->
+            <div class="menu-card" onclick="openApp('scanner.html')">
+                <div class="icon-wrap">
+                    <img src="icon-pos2.png" alt="バーコードスキャナー">
+                </div>
+                <div class="card-content">
+                    <div class="card-title">バーコードスキャナー</div>
+                    <div class="card-desc">スマホカメラで<br>バーコード読み込み</div>
+                </div>
+                <div class="arrow-icon">➔</div>
+            </div>
+        </div>
+
+        <!-- フッター -->
+        <footer>
+            <a href="index.html" class="pc-switch-btn">
+                <span>🖥️</span> PC用メニューに戻る
+            </a>
+            <div class="copyright">© HITOTSUGI SYSTEM</div>
+        </footer>
+    </div>
+
+    <script>
+        function openApp(url) {
+            if(window.event) window.event.stopPropagation();
+            location.href = url;
+        }
+    </script>
+</body>
+</html>
