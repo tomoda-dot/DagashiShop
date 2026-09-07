@@ -807,6 +807,7 @@
             <button class="action-btn btn-checkout" onclick="openCheckout()">💴 お会計</button>
             <button class="action-btn btn-clear"    onclick="clearCart()">🗑 クリア</button>
             <button class="action-btn" style="background:#64c8d6;" onclick="openMemoryModal()">📌 メモリー</button>
+            <button class="action-btn" style="background:#8c7ae6;" onclick="openPurchaseHistoryModal()">🧾 購入履歴</button>
         </div>
     </div>
 
@@ -880,7 +881,44 @@
         </div>
         <div class="sales-total-big" id="sales-total-big">0円</div>
         <div class="sales-count" id="sales-count">0件のお会計</div>
-        <div class="sales-breakdown" id="sales-breakdown"></div>
+<!-- 購入履歴モーダル -->
+<div class="modal-overlay" id="purchase-history-modal">
+    <div class="sales-modal-inner" style="max-width: 580px; width: 92vw; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="sales-modal-header" style="margin-bottom: 12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:1.3rem;">🧾</span>
+                <span style="font-weight:800;font-size:1.1rem;color:var(--brown);">購入履歴（会計明細）</span>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;">
+                <button id="ph-refresh-btn" onclick="refreshPurchaseHistoryModal()" style="background:var(--sage);color:white;border:none;border-radius:8px;padding:6px 12px;font-family:'M PLUS Rounded 1c',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;">🔄 更新</button>
+                <button onclick="closePurchaseHistoryModal()" style="background:var(--light);border:none;border-radius:8px;padding:6px 14px;font-family:'M PLUS Rounded 1c',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;color:#888;">✕ 閉じる</button>
+            </div>
+        </div>
+
+        <!-- 検索・日付選択・クイック移動コントロールバー -->
+        <div style="display:flex;gap:6px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
+            <div style="flex:1;min-width:140px;display:flex;align-items:center;gap:6px;background:var(--light);border:2px solid #e0d8cc;border-radius:10px;padding:4px 10px;">
+                <span style="font-size:0.9rem;">🔍</span>
+                <input type="text" id="ph-search-input" placeholder="商品名や注文番号で検索..." oninput="filterPurchaseHistory()" style="border:none;background:none;outline:none;font-size:0.85rem;font-weight:700;width:100%;font-family:inherit;color:var(--brown);">
+            </div>
+            <div style="display:flex;gap:4px;align-items:center;">
+                <button onclick="shiftPhDate(-1)" style="background:white;border:1.5px solid #e0d8cc;border-radius:8px;padding:5px 8px;font-size:0.8rem;font-weight:800;cursor:pointer;color:var(--brown);" title="前日へ">◀ 前日</button>
+                <input type="date" id="ph-date-input" onchange="loadPurchaseHistoryForDate()" style="border:2px solid #e0d8cc;border-radius:10px;padding:4px 8px;font-size:0.85rem;font-weight:700;outline:none;font-family:inherit;color:var(--brown);background:white;">
+                <button onclick="shiftPhDate(1)" style="background:white;border:1.5px solid #e0d8cc;border-radius:8px;padding:5px 8px;font-size:0.8rem;font-weight:800;cursor:pointer;color:var(--brown);" title="翌日へ">翌日 ▶</button>
+                <button onclick="setPhToday()" style="background:#eef7f4;border:1.5px solid var(--sage);border-radius:8px;padding:5px 8px;font-size:0.8rem;font-weight:800;cursor:pointer;color:var(--sage);">本日</button>
+            </div>
+        </div>
+
+        <!-- 集計サマリーバー -->
+        <div id="ph-summary-bar" style="background:#fdf6e3;border:1.5px solid var(--mustard);border-radius:12px;padding:8px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;font-weight:700;color:#8a6d3b;">
+            <span>有効件数: <strong id="ph-total-count">0</strong>件</span>
+            <span>売上合計: <strong id="ph-total-sales" style="font-size:1rem;color:var(--coral);">¥0</strong></span>
+        </div>
+
+        <!-- 会計履歴リスト表示領域 -->
+        <div id="ph-list-container" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:2px;">
+            <div style="text-align:center;padding:30px;color:#aaa;font-weight:700;">読み込み中...</div>
+        </div>
     </div>
 </div>
 
@@ -1155,6 +1193,272 @@ function renderSalesModalLocal() {
 
 function closeSalesModal() {
     document.getElementById('sales-modal').classList.remove('show');
+}
+
+// ═══ 購入履歴モーダル ══════════════════════════════
+var g_phAllOrders = [];
+
+function openPurchaseHistoryModal() {
+    var dateInput = document.getElementById('ph-date-input');
+    if (dateInput) {
+        var today = todayJST();
+        dateInput.value = today;
+    }
+    document.getElementById('purchase-history-modal').classList.add('show');
+    loadPurchaseHistoryForDate();
+}
+
+function closePurchaseHistoryModal() {
+    document.getElementById('purchase-history-modal').classList.remove('show');
+}
+
+function refreshPurchaseHistoryModal() {
+    loadPurchaseHistoryForDate();
+}
+
+function setPhToday() {
+    var dateInput = document.getElementById('ph-date-input');
+    if (dateInput) {
+        dateInput.value = todayJST();
+        loadPurchaseHistoryForDate();
+    }
+}
+
+function shiftPhDate(deltaDays) {
+    var dateInput = document.getElementById('ph-date-input');
+    if (!dateInput || !dateInput.value) return;
+    var d = new Date(dateInput.value + 'T00:00:00');
+    d.setDate(d.getDate() + deltaDays);
+    var yyyy = d.getFullYear();
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    dateInput.value = yyyy + '-' + mm + '-' + dd;
+    loadPurchaseHistoryForDate();
+}
+
+function loadPurchaseHistoryForDate() {
+    var dateInput = document.getElementById('ph-date-input');
+    var dateStr = dateInput ? dateInput.value : todayJST();
+    var container = document.getElementById('ph-list-container');
+    if (container) {
+        container.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa;font-weight:700;">読み込み中...</div>';
+    }
+
+    GAS.getDetailByDate(dateStr).then(function(rows) {
+        processAndRenderPurchaseHistory(rows || []);
+    }).catch(function(e) {
+        console.error('getDetailByDate error, falling back to local salesLog:', e);
+        renderPurchaseHistoryLocal(dateStr);
+    });
+}
+
+function processAndRenderPurchaseHistory(rows) {
+    var map = {};
+    var orderSequence = [];
+
+    rows.forEach(function(r) {
+        // r = [order_code, ts, label, price, qty, subtotal, deposit, change, status, id]
+        var code = r[0] || '不明';
+        if (!map[code]) {
+            map[code] = {
+                orderCode: code,
+                ts: r[1] || '',
+                deposit: r[6],
+                change: r[7],
+                status: r[8] || '有効',
+                items: [],
+                totalSales: 0,
+                totalQty: 0
+            };
+            orderSequence.push(code);
+        }
+        var subtotal = Number(r[5]) || 0;
+        var qty = Number(r[4]) || 1;
+        var label = r[2] || '';
+        map[code].items.push({
+            id: r[9],
+            label: label,
+            price: Number(r[3]) || 0,
+            qty: qty,
+            subtotal: subtotal
+        });
+        if (map[code].status === '有効') {
+            if (!label.includes('無料') && !label.includes('当')) {
+                map[code].totalSales += subtotal;
+            }
+            map[code].totalQty += qty;
+        }
+    });
+
+    orderSequence.reverse();
+    g_phAllOrders = orderSequence.map(function(code){ return map[code]; });
+    filterPurchaseHistory();
+}
+
+function filterPurchaseHistory() {
+    var searchInput = document.getElementById('ph-search-input');
+    var query = searchInput ? (searchInput.value || '').toLowerCase().trim() : '';
+
+    var filtered = g_phAllOrders.filter(function(o) {
+        if (!query) return true;
+        if (o.orderCode.toLowerCase().includes(query)) return true;
+        return o.items.some(function(item) {
+            return item.label.toLowerCase().includes(query);
+        });
+    });
+
+    renderPurchaseHistoryCards(filtered);
+}
+
+function renderPurchaseHistoryCards(orders) {
+    var container = document.getElementById('ph-list-container');
+    var countEl = document.getElementById('ph-total-count');
+    var salesEl = document.getElementById('ph-total-sales');
+
+    var validOrders = orders.filter(function(o){ return o.status === '有効'; });
+    var sumSales = validOrders.reduce(function(acc, o){ return acc + o.totalSales; }, 0);
+
+    if (countEl) countEl.textContent = validOrders.length;
+    if (salesEl) salesEl.textContent = '¥' + sumSales.toLocaleString();
+
+    if (!orders.length) {
+        container.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa;font-weight:700;">該当する会計履歴はありません</div>';
+        return;
+    }
+
+    container.innerHTML = orders.map(function(o) {
+        var isVoid = o.status === '無効';
+        var timeStr = o.ts ? o.ts.replace('T', ' ').replace(/\+00:00$/, '').substring(11, 16) : '--:--';
+        var shortCode = o.orderCode.replace('ID:', '');
+        if (shortCode.length > 18) shortCode = shortCode.slice(-10);
+
+        var itemsHtml = o.items.map(function(it) {
+            var isDisc = it.label.includes('割引') || it.label.includes('ポイント') || it.subtotal < 0;
+            var isFree = it.label.includes('無料') || it.label.includes('当');
+            var badgeClass = isDisc ? 'background:#fef3c7;color:#d97706;' : isFree ? 'background:#dcfce7;color:#15803d;' : 'background:#f1f5f9;color:#475569;';
+            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dashed #eee;font-size:0.83rem;">' +
+                '<span style="font-weight:700;color:var(--brown);">' +
+                    '<span style="display:inline-block;font-size:0.65rem;font-weight:800;padding:1px 5px;border-radius:4px;margin-right:5px;' + badgeClass + '">' + (isDisc?'割引':isFree?'無料':'通常') + '</span>' +
+                    it.label +
+                '</span>' +
+                '<span style="font-weight:800;color:#666;">×' + it.qty + '　<span style="color:var(--brown);min-width:55px;text-align:right;display:inline-block;">¥' + it.subtotal.toLocaleString() + '</span></span>' +
+            '</div>';
+        }).join('');
+
+        var depositInfo = (o.deposit !== undefined && o.deposit !== null && o.deposit !== '')
+            ? '<div style="font-size:0.75rem;color:#888;margin-top:6px;text-align:right;">お預り: ¥' + Number(o.deposit).toLocaleString() + (o.change !== undefined && o.change !== '' ? ' / おつり: ¥' + Number(o.change).toLocaleString() : '') + '</div>'
+            : '';
+
+        var voidBtnHtml = isVoid
+            ? '<span style="font-size:0.75rem;font-weight:800;color:#ef4444;background:#fee2e2;padding:3px 8px;border-radius:6px;">🚫 無効化済み</span>'
+            : '<button onclick="voidOrderCode(\'' + o.orderCode + '\', ' + o.totalSales + ')" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:4px 10px;font-size:0.75rem;font-weight:800;cursor:pointer;font-family:inherit;">🚫 会計を取り消す</button>';
+
+        var printBtnHtml = '<button onclick="printHistoryReceipt(\'' + o.orderCode + '\')" style="background:#e0f2fe;color:#0284c7;border:1px solid #7dd3fc;border-radius:8px;padding:4px 10px;font-size:0.75rem;font-weight:800;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:4px;">🖨 レシート発行</button>';
+
+        return '<div style="background:white;border-radius:14px;border:2px solid ' + (isVoid ? '#e2e8f0' : '#e0d8cc') + ';padding:10px 12px;opacity:' + (isVoid ? '0.6' : '1') + ';">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid #f0ebe4;">' +
+                '<div>' +
+                    '<span style="font-size:1rem;font-weight:800;color:var(--brown);margin-right:8px;">🕒 ' + timeStr + '</span>' +
+                    '<span style="font-size:0.72rem;font-family:monospace;color:#999;">#' + shortCode + '</span>' +
+                '</div>' +
+                '<div style="text-align:right;">' +
+                    '<span style="font-size:1.1rem;font-weight:900;color:' + (isVoid ? '#94a3b8' : 'var(--coral)') + ';">¥' + o.totalSales.toLocaleString() + '</span>' +
+                    '<span style="font-size:0.75rem;color:#888;margin-left:4px;">(' + o.totalQty + '点)</span>' +
+                '</div>' +
+            '</div>' +
+            '<div style="background:var(--light);border-radius:8px;padding:8px;margin-bottom:8px;">' +
+                itemsHtml +
+                depositInfo +
+            '</div>' +
+            '<div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;">' +
+                printBtnHtml +
+                voidBtnHtml +
+            '</div>' +
+        '</div>';
+    }).join('');
+}
+
+function printHistoryReceipt(orderCode) {
+    var order = g_phAllOrders.find(function(o){ return o.orderCode === orderCode; });
+    if (!order) return;
+
+    var dateStr = order.ts ? order.ts.split('T')[0].replace(/-/g, '/') : todayJST().replace(/-/g, '/');
+    var timeStr = order.ts ? order.ts.replace('T', ' ').replace(/\+00:00$/, '').substring(11, 16) : '';
+    
+    var validItems = order.items || [];
+    var itemsHTML = validItems.map(function(item) {
+        var label = item.label || '商品';
+        var qty = item.qty || 1;
+        var subtotal = item.subtotal !== undefined ? item.subtotal : (item.price * qty);
+        return '<tr><td>' + label + '</td><td style="text-align:center;">' + qty + '</td><td style="text-align:right;">¥' + subtotal.toLocaleString() + '</td></tr>';
+    }).join('');
+
+    var total = order.totalSales || 0;
+    var deposit = Number(order.deposit) || 0;
+    var change = Number(order.change) || 0;
+
+    var payHTML = '';
+    if (deposit > 0) {
+        payHTML = '<div class="r-total-row r-total-big"><span>合計</span><span>¥' + total.toLocaleString() + '</span></div>' +
+            '<div class="r-total-row"><span>お預り</span><span>¥' + deposit.toLocaleString() + '</span></div>' +
+            '<div class="r-total-row"><span>おつり</span><span>¥' + change.toLocaleString() + '</span></div>';
+    } else {
+        payHTML = '<div class="r-total-row r-total-big"><span>合計</span><span>¥' + total.toLocaleString() + '</span></div>';
+    }
+
+    var html = '<div class="r-logo"><img src="' + RECEIPT_LOGO + '"></div>' +
+        '<div class="r-shop">駄菓子屋 ひとつぎ</div>' +
+        '<div class="r-info">〒561-0803 大阪府豊中市小曽根1丁目10-23<br>TEL 070-2441-9338</div>' +
+        '<hr class="r-divider">' +
+        '<div class="r-date"><span>' + dateStr + '</span><span>' + timeStr + '（再発行）</span></div>' +
+        '<table><tr><th>商品</th><th style="text-align:center;">数量</th><th style="text-align:right;">金額</th></tr>' +
+        itemsHTML + '</table>' +
+        '<div style="margin-top:6px;">' +
+        '<div class="r-total-row"><span>小計（' + validItems.length + '点）</span><span>¥' + total.toLocaleString() + '</span></div>' +
+        payHTML + '</div>' +
+        '<hr class="r-divider">' +
+        '<div class="r-thanks">ありがとうございました 🍬</div>';
+
+    document.getElementById('receipt-paper').innerHTML = html;
+    document.getElementById('receipt-overlay').classList.add('show');
+}
+
+function renderPurchaseHistoryLocal(dateStr) {
+    var today = new Date().toLocaleDateString('ja-JP');
+    var targetDateFormatted = dateStr.replace(/-/g, '/');
+    var todaySales = salesLog.filter(function(s){ return s.date === today || s.date === targetDateFormatted; });
+
+    g_phAllOrders = todaySales.map(function(s, idx) {
+        var totalSales = s.total || 0;
+        var totalQty = (s.items || []).reduce(function(acc, it){ return acc + (it.qty || 1); }, 0);
+        return {
+            orderCode: 'LOCAL_' + idx,
+            ts: s.time || '',
+            deposit: '',
+            change: '',
+            status: '有効',
+            items: (s.items || []).map(function(it){
+                return { label: it.label || '商品', price: it.price || 0, qty: it.qty || 1, subtotal: (it.price || 0) * (it.qty || 1) };
+            }),
+            totalSales: totalSales,
+            totalQty: totalQty
+        };
+    }).reverse();
+
+    filterPurchaseHistory();
+}
+
+function voidOrderCode(orderCode, amount) {
+    if (!confirm('この会計（¥' + amount.toLocaleString() + '）を無効（取り消し）にしますか？\n※売上から除外されます。')) return;
+
+    GAS.invalidateOrderCode(orderCode).then(function(msg) {
+        if (typeof toast === 'function') toast('会計を取り消しました');
+        else alert('会計を取り消しました');
+        loadPurchaseHistoryForDate();
+        if (typeof updateSalesBadge === 'function') updateSalesBadge();
+    }).catch(function(e) {
+        alert('エラー: ' + (e.message || e));
+    });
 }
 
 // ═══ ちょうどボタン ══════════════════════════════
@@ -2244,7 +2548,7 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'receiveOrderItem','revertOrderItem','sendFaxEmail','getSettings','saveSettings',
     'saveRegiDefaults','getTodaySalesData','saveOrderFromRegi',
     'getSummaryData','saveClosingData','getDetailByDate','getLatestOrderDate',
-    'invalidateDetailRow','updateDetailRow','getSavingsData',
+    'invalidateDetailRow','invalidateOrderCode','updateDetailRow','getSavingsData',
     'addSavingsRow','updateSavingsRow','deleteSavingsRow','testConnection','getProductsForBarcode','updateProductBarcode',
     'getCategories','saveCategory','deleteCategory',
     'getPettyCashData','addPettyCashRow','deletePettyCashRow',
@@ -2882,6 +3186,12 @@ GAS.getDetailByDate = function(searchDate) {
 GAS.invalidateDetailRow = function(rowNumber) {
   return sbPatch('order_items', 'id=eq.' + rowNumber, { status:'無効' })
     .then(function() { return '無効にしました（id:' + rowNumber + '）'; });
+};
+
+// ─ invalidateOrderCode ─
+GAS.invalidateOrderCode = function(orderCode) {
+  return sbPatch('order_items', 'order_code=eq.' + encodeURIComponent(orderCode), { status:'無効' })
+    .then(function() { return '会計を無効にしました（' + orderCode + '）'; });
 };
 
 // ─ updateDetailRow ─

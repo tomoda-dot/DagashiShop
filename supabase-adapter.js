@@ -103,7 +103,7 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'receiveOrderItem','revertOrderItem','sendFaxEmail','getSettings','saveSettings',
     'saveRegiDefaults','getTodaySalesData','saveOrderFromRegi',
     'getSummaryData','saveClosingData','getDetailByDate','getLatestOrderDate',
-    'invalidateDetailRow','updateDetailRow','getSavingsData',
+    'invalidateDetailRow','invalidateOrderCode','updateDetailRow','getSavingsData',
     'addSavingsRow','updateSavingsRow','deleteSavingsRow','testConnection','getProductsForBarcode','updateProductBarcode',
     'getCategories','saveCategory','deleteCategory',
     'getMakers','saveMakers',
@@ -798,6 +798,12 @@ GAS.getDetailByDate = function(searchDate) {
 GAS.invalidateDetailRow = function(rowNumber) {
   return sbPatch('order_items', 'id=eq.' + rowNumber, { status:'無効' })
     .then(function() { return '無効にしました（id:' + rowNumber + '）'; });
+};
+
+// ─ invalidateOrderCode ─
+GAS.invalidateOrderCode = function(orderCode) {
+  return sbPatch('order_items', 'order_code=eq.' + encodeURIComponent(orderCode), { status:'無効' })
+    .then(function() { return '会計を無効にしました（' + orderCode + '）'; });
 };
 
 // ─ updateDetailRow ─
