@@ -1374,7 +1374,7 @@ function renderPurchaseHistoryCards(orders) {
 
         var voidBtnHtml = isVoid
             ? '<span style="font-size:0.75rem;font-weight:800;color:#ef4444;background:#fee2e2;padding:3px 8px;border-radius:6px;">🚫 無効化済み</span>'
-            : '<button onclick="voidOrderCode(\'' + o.orderCode + '\', ' + o.totalSales + ')" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:4px 10px;font-size:0.75rem;font-weight:800;cursor:pointer;font-family:inherit;">🚫 会計を取り消す</button>';
+            : '';
 
         var printBtnHtml = '<button onclick="printHistoryReceipt(\'' + o.orderCode + '\')" style="background:#e0f2fe;color:#0284c7;border:1px solid #7dd3fc;border-radius:8px;padding:4px 10px;font-size:0.75rem;font-weight:800;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:4px;">🖨 レシート発行</button>';
 
