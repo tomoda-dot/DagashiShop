@@ -865,7 +865,7 @@
             <button class="action-btn btn-checkout" onclick="openCheckout()">💴 お会計</button>
             <button class="action-btn btn-clear"    onclick="clearCart()">🗑 クリア</button>
             <button class="action-btn" style="background:#64c8d6;" onclick="openMemoryModal()">📌 メモリー</button>
-            <button class="action-btn" style="background:#8c7ae6;" onclick="openPurchaseHistoryModal()">🧾 購入履歴</button>
+            <button id="btn-purchase-history" class="action-btn" style="background:#8c7ae6;" onclick="openPurchaseHistoryModal()">🧾 購入履歴</button>
         </div>
     </div>
 
@@ -1261,21 +1261,33 @@ function closeSalesModal() {
     document.getElementById('sales-modal').classList.remove('show');
 }
 
+function getTodayJSTDate() {
+    if (typeof todayJST === 'function') {
+        try { return todayJST(); } catch(e) {}
+    }
+    var d = new Date();
+    var jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+    return jst.toISOString().split('T')[0];
+}
+
 // ═══ 購入履歴モーダル ══════════════════════════════
 var g_phAllOrders = [];
 
 function openPurchaseHistoryModal() {
+    var modal = document.getElementById('purchase-history-modal');
+    if (!modal) return;
+    modal.classList.add('show');
+
     var dateInput = document.getElementById('ph-date-input');
     if (dateInput) {
-        var today = todayJST();
-        dateInput.value = today;
+        dateInput.value = getTodayJSTDate();
     }
-    document.getElementById('purchase-history-modal').classList.add('show');
     loadPurchaseHistoryForDate();
 }
 
 function closePurchaseHistoryModal() {
-    document.getElementById('purchase-history-modal').classList.remove('show');
+    var modal = document.getElementById('purchase-history-modal');
+    if (modal) modal.classList.remove('show');
 }
 
 function refreshPurchaseHistoryModal() {
@@ -1285,7 +1297,7 @@ function refreshPurchaseHistoryModal() {
 function setPhToday() {
     var dateInput = document.getElementById('ph-date-input');
     if (dateInput) {
-        dateInput.value = todayJST();
+        dateInput.value = getTodayJSTDate();
         loadPurchaseHistoryForDate();
     }
 }
@@ -1304,18 +1316,22 @@ function shiftPhDate(deltaDays) {
 
 function loadPurchaseHistoryForDate() {
     var dateInput = document.getElementById('ph-date-input');
-    var dateStr = dateInput ? dateInput.value : todayJST();
+    var dateStr = dateInput ? dateInput.value : getTodayJSTDate();
     var container = document.getElementById('ph-list-container');
     if (container) {
         container.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa;font-weight:700;">読み込み中...</div>';
     }
 
-    GAS.getDetailByDate(dateStr).then(function(rows) {
-        processAndRenderPurchaseHistory(rows || []);
-    }).catch(function(e) {
-        console.error('getDetailByDate error, falling back to local salesLog:', e);
+    if (typeof GAS !== 'undefined' && typeof GAS.getDetailByDate === 'function') {
+        GAS.getDetailByDate(dateStr).then(function(rows) {
+            processAndRenderPurchaseHistory(rows || []);
+        }).catch(function(e) {
+            console.error('getDetailByDate error, falling back to local salesLog:', e);
+            renderPurchaseHistoryLocal(dateStr);
+        });
+    } else {
         renderPurchaseHistoryLocal(dateStr);
-    });
+    }
 }
 
 function processAndRenderPurchaseHistory(rows) {
@@ -1388,7 +1404,11 @@ function renderPurchaseHistoryCards(orders) {
     if (salesEl) salesEl.textContent = '¥' + sumSales.toLocaleString();
 
     if (!orders.length) {
-        container.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa;font-weight:700;">該当する会計履歴はありません</div>';
+        container.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#8a8070;font-weight:700;">' +
+            '<div style="font-size:1.6rem;margin-bottom:8px;">📜</div>' +
+            '選択した日付の会計履歴はありません' +
+            '<div style="margin-top:12px;"><button onclick="shiftPhDate(-1)" style="background:#eef7f4;color:var(--sage);border:1.5px solid var(--sage);border-radius:10px;padding:8px 16px;font-size:0.85rem;font-weight:800;cursor:pointer;">◀ 前日（過去）の履歴を見る</button></div>' +
+        '</div>';
         return;
     }
 
@@ -1448,7 +1468,7 @@ function printHistoryReceipt(orderCode) {
     var order = g_phAllOrders.find(function(o){ return o.orderCode === orderCode; });
     if (!order) return;
 
-    var dateStr = order.ts ? order.ts.split('T')[0].replace(/-/g, '/') : todayJST().replace(/-/g, '/');
+    var dateStr = order.ts ? order.ts.split('T')[0].replace(/-/g, '/') : getTodayJSTDate().replace(/-/g, '/');
     var timeStr = order.ts ? order.ts.replace('T', ' ').replace(/\+00:00$/, '').substring(11, 16) : '';
     
     var validItems = order.items || [];
@@ -1472,7 +1492,8 @@ function printHistoryReceipt(orderCode) {
         payHTML = '<div class="r-total-row r-total-big"><span>合計</span><span>¥' + total.toLocaleString() + '</span></div>';
     }
 
-    var html = '<div class="r-logo"><img src="' + RECEIPT_LOGO + '"></div>' +
+    var logoSrc = typeof RECEIPT_LOGO !== 'undefined' ? RECEIPT_LOGO : '';
+    var html = '<div class="r-logo"><img src="' + logoSrc + '"></div>' +
         '<div class="r-shop">駄菓子屋 ひとつぎ</div>' +
         '<div class="r-info">〒561-0803 大阪府豊中市小曽根1丁目10-23<br>TEL 070-2441-9338</div>' +
         '<hr class="r-divider">' +
@@ -1485,14 +1506,18 @@ function printHistoryReceipt(orderCode) {
         '<hr class="r-divider">' +
         '<div class="r-thanks">ありがとうございました 🍬</div>';
 
-    document.getElementById('receipt-paper').innerHTML = html;
-    document.getElementById('receipt-overlay').classList.add('show');
+    var receiptPaper = document.getElementById('receipt-paper');
+    var receiptOverlay = document.getElementById('receipt-overlay');
+    if (receiptPaper && receiptOverlay) {
+        receiptPaper.innerHTML = html;
+        receiptOverlay.classList.add('show');
+    }
 }
 
 function renderPurchaseHistoryLocal(dateStr) {
     var today = new Date().toLocaleDateString('ja-JP');
     var targetDateFormatted = dateStr.replace(/-/g, '/');
-    var todaySales = salesLog.filter(function(s){ return s.date === today || s.date === targetDateFormatted; });
+    var todaySales = (typeof salesLog !== 'undefined' ? salesLog : []).filter(function(s){ return s.date === today || s.date === targetDateFormatted; });
 
     g_phAllOrders = todaySales.map(function(s, idx) {
         var totalSales = s.total || 0;
@@ -1517,14 +1542,16 @@ function renderPurchaseHistoryLocal(dateStr) {
 function voidOrderCode(orderCode, amount) {
     if (!confirm('この会計（¥' + amount.toLocaleString() + '）を無効（取り消し）にしますか？\n※売上から除外されます。')) return;
 
-    GAS.invalidateOrderCode(orderCode).then(function(msg) {
-        if (typeof toast === 'function') toast('会計を取り消しました');
-        else alert('会計を取り消しました');
-        loadPurchaseHistoryForDate();
-        if (typeof updateSalesBadge === 'function') updateSalesBadge();
-    }).catch(function(e) {
-        alert('エラー: ' + (e.message || e));
-    });
+    if (typeof GAS !== 'undefined' && typeof GAS.invalidateOrderCode === 'function') {
+        GAS.invalidateOrderCode(orderCode).then(function(msg) {
+            if (typeof toast === 'function') toast('会計を取り消しました');
+            else alert('会計を取り消しました');
+            loadPurchaseHistoryForDate();
+            if (typeof updateSalesBadge === 'function') updateSalesBadge();
+        }).catch(function(e) {
+            alert('エラー: ' + (e.message || e));
+        });
+    }
 }
 
 // ═══ ちょうどボタン ══════════════════════════════
