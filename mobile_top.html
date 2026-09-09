@@ -307,6 +307,51 @@
             if(window.event) window.event.stopPropagation();
             location.href = url;
         }
+
+        // 🥚 PokéTama Secret Easter Egg Trigger (5 Taps on Header)
+        (function() {
+            let tapCount = 0;
+            let tapTimer = null;
+
+            document.addEventListener('DOMContentLoaded', function() {
+                let header = document.querySelector('header');
+                if (header) {
+                    header.style.cursor = 'pointer';
+                    header.addEventListener('click', function(e) {
+                        tapCount++;
+                        if (tapTimer) clearTimeout(tapTimer);
+
+                        if (tapCount >= 5) {
+                            tapCount = 0;
+                            try {
+                                let ctx = new (window.AudioContext || window.webkitAudioContext)();
+                                let osc = ctx.createOscillator();
+                                let gain = ctx.createGain();
+                                osc.type = 'triangle';
+                                osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+                                osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+                                osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2);
+                                osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.3);
+                                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+                                osc.connect(gain);
+                                gain.connect(ctx.destination);
+                                osc.start();
+                                osc.stop(ctx.currentTime + 0.5);
+                            } catch(err) {}
+
+                            alert('🥚 隠し要素解放！\n育成＆バトルゲーム「ポケタマ (PokéTama)」を起動します！');
+                            location.href = '../Porte/poketama/index.html';
+                        } else {
+                            tapTimer = setTimeout(function() {
+                                tapCount = 0;
+                            }, 1800);
+                        }
+                    });
+                }
+            });
+        })();
     </script>
 </body>
 </html>
+
