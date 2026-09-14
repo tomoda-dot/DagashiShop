@@ -19,10 +19,14 @@
   .rank-bar { height: 8px; border-radius: 999px; background: #e2e8f0; overflow: hidden; margin-top: 4px; }
   .rank-bar-fill { height: 100%; border-radius: 999px; transition: width .6s; }
   select, input[type=date] {
-    border: 2px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;
-    font-size: 13px; font-weight: 600; outline: none; background: white; color: #334155;
+    border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 10px;
+    font-size: 13px; font-weight: 700; outline: none;
+    background-color: #ffffff !important; color: #1e293b !important;
   }
-  select:focus, input[type=date]:focus { border-color: #3b82f6; }
+  select option {
+    background-color: #ffffff !important; color: #1e293b !important;
+  }
+  select:focus, input[type=date]:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
   .loading { display: flex; align-items: center; justify-content: center; height: 200px;
     color: #94a3b8; font-size: 14px; font-weight: 700; }
   .top-back-btn {
@@ -44,20 +48,20 @@
   <a href="index.html" class="text-slate-400 hover:text-white transition material-icons text-lg">arrow_back</a>
   <div class="text-base font-bold">📊 売上分析</div>
   <div class="ml-auto flex items-center gap-3">
-    <select id="period-type" onchange="onPeriodChange()">
+    <select id="period-type" onchange="onPeriodChange()" class="text-slate-800 bg-white">
       <option value="month">月別</option>
       <option value="week">週別</option>
       <option value="day">日別</option>
       <option value="custom">期間指定</option>
     </select>
     <div id="month-selector-wrap">
-      <select id="month-selector" onchange="loadAll()">
+      <select id="month-selector" onchange="loadAll()" class="text-slate-800 bg-white">
       </select>
     </div>
     <div id="custom-range-wrap" style="display:none;" class="flex items-center gap-2">
-      <input type="date" id="date-from">
+      <input type="date" id="date-from" class="text-slate-800 bg-white">
       <span class="text-slate-400 text-sm">〜</span>
-      <input type="date" id="date-to">
+      <input type="date" id="date-to" class="text-slate-800 bg-white">
       <button onclick="loadAll()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition">表示</button>
     </div>
     <button onclick="loadAll()" class="bg-slate-600 hover:bg-slate-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition flex items-center gap-1">
