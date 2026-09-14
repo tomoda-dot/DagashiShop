@@ -410,8 +410,16 @@ function renderHourly() {
   for (var i = 0; i < 24; i++) hours[i] = 0;
   g_items.forEach(function(r) {
     if (!r.ts) return;
-    var h = new Date(r.ts).getHours();
-    hours[h] = (hours[h] || 0) + (Number(r.qty) || 0);
+    var h;
+    var m = String(r.ts).match(/[T\s](\d{2}):/);
+    if (m) {
+      h = parseInt(m[1], 10);
+    } else {
+      h = new Date(r.ts).getHours();
+    }
+    if (!isNaN(h) && h >= 0 && h < 24) {
+      hours[h] = (hours[h] || 0) + (Number(r.qty) || 0);
+    }
   });
 
   var labels = Object.keys(hours).sort(function(a,b){ return a-b; }).map(function(h){ return h + '時'; });
