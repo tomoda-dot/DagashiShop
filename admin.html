@@ -346,7 +346,11 @@
               </div>
             </div>
             <div class="flex justify-between items-center border-b border-slate-50 pb-1">
-              <span class="text-blue-600 font-bold">本日の売上合計</span>
+              <select id="reconcile-type" onchange="onReconcileTypeChange()" class="bg-blue-50 border-2 border-blue-200 text-blue-700 font-bold px-2 py-1 rounded-lg text-xs md:text-sm outline-none cursor-pointer">
+                <option value="sales" selected>本日の売上合計</option>
+                <option value="savings">積立金</option>
+                <option value="pettycash">小口現金</option>
+              </select>
               <span id="disp-sales" class="font-bold font-mono text-blue-600">¥0</span>
             </div>
             <div class="py-2 flex justify-between items-center">
@@ -847,8 +851,49 @@
     const DISPLAY_ORDER = [10000, 50, 5000, 10, 1000, 5, 500, 1, 100];
     const ALL_DENOMS    = [10000, 5000, 1000, 500, 100, 50, 10, 5, 1];
     let g_fixed = 33300, g_sales = 0, g_currentDate = "";
+    let g_lastUserFixed = 33300;
+    let g_savingsBalance = 0, g_pettyCashBalance = 0;
     let g_allDetailRows = []; // 明細の全行データ（検索フィルタ用）
     let g_allData = [];
+
+    function updateReconciliationDisplay() {
+      const typeEl = document.getElementById('reconcile-type');
+      const type = typeEl ? typeEl.value : 'sales';
+      const fixedInput = document.getElementById('in-fixed');
+      const salesDisp = document.getElementById('disp-sales');
+
+      if (type === 'savings') {
+        if (fixedInput) {
+          const currentVal = parseInt(fixedInput.value) || 0;
+          if (currentVal > 0) g_lastUserFixed = currentVal;
+          fixedInput.value = 0;
+          g_fixed = 0;
+        }
+        if (salesDisp) salesDisp.innerText = '¥' + g_savingsBalance.toLocaleString();
+      } else if (type === 'pettycash') {
+        if (fixedInput) {
+          const currentVal = parseInt(fixedInput.value) || 0;
+          if (currentVal > 0) g_lastUserFixed = currentVal;
+          fixedInput.value = 0;
+          g_fixed = 0;
+        }
+        if (salesDisp) salesDisp.innerText = '¥' + g_pettyCashBalance.toLocaleString();
+      } else {
+        // sales (本日の売上合計)
+        if (fixedInput) {
+          if ((parseInt(fixedInput.value) || 0) === 0 && g_lastUserFixed > 0) {
+            fixedInput.value = g_lastUserFixed;
+          }
+          g_fixed = parseInt(fixedInput.value) || 0;
+        }
+        if (salesDisp) salesDisp.innerText = '¥' + g_sales.toLocaleString();
+      }
+      calculate();
+    }
+
+    function onReconcileTypeChange() {
+      updateReconciliationDisplay();
+    }
 
     // ── メニューに戻る ─────────────────────────────
     function goMenu() {
@@ -919,10 +964,10 @@
           total += Number(r[5]) || 0;  // subtotal
         });
         g_sales = total;
-        document.getElementById('disp-sales').innerText = '¥' + g_sales.toLocaleString();
-        calculate();
+        updateReconciliationDisplay();
       }).catch(function() {
-        document.getElementById('disp-sales').innerText = '¥0';
+        g_sales = 0;
+        updateReconciliationDisplay();
       });
     }
 
@@ -937,6 +982,7 @@
         if (data && data.length > 0) {
           const t = data[0];
           g_fixed = Number(t['固定準備金']) || parseInt(document.getElementById('in-fixed').value) || 33300;
+          g_lastUserFixed = g_fixed;
           if (t['販売場所']) document.getElementById('in-location').value = t['販売場所'];
           document.getElementById('in-fixed').value = g_fixed;
         }
@@ -958,15 +1004,15 @@
           total += Number(r[5]) || 0;
         });
         g_sales = total;
-        document.getElementById('disp-sales').innerText = '¥' + g_sales.toLocaleString();
-        calculate();
 
         // 積立金残高と小口現金残高を読み込み
         GAS.getSavingsData().then(function(sRows) {
           const lastRow = sRows && sRows.length > 0 ? sRows[sRows.length - 1] : null;
           const bal = lastRow ? lastRow.balance : 0;
+          g_savingsBalance = bal;
           const el = document.getElementById('closing-savings-balance');
           if (el) el.innerText = '¥' + bal.toLocaleString();
+          updateReconciliationDisplay();
         }).catch(function(err) {
           console.error('Savings balance load error:', err);
         });
@@ -974,12 +1020,15 @@
         GAS.getPettyCashData().then(function(pcRows) {
           const lastRow = pcRows && pcRows.length > 0 ? pcRows[pcRows.length - 1] : null;
           const bal = lastRow ? lastRow.balance : 0;
+          g_pettyCashBalance = bal;
           const el = document.getElementById('closing-pettycash-balance');
           if (el) el.innerText = '¥' + bal.toLocaleString();
+          updateReconciliationDisplay();
         }).catch(function(err) {
           console.error('Petty cash balance load error:', err);
         });
 
+        updateReconciliationDisplay();
         document.getElementById('loading').style.display = 'none';
       }).catch(function() { document.getElementById('loading').style.display = 'none'; });
     }
@@ -1108,14 +1157,31 @@
         if (rollEl) sum += v * (parseInt(rollEl.value) || 0) * 50;
       });
       document.getElementById('total-actual').innerText = '¥' + sum.toLocaleString();
-      const diff = sum - (g_fixed + g_sales);
+
+      const typeEl = document.getElementById('reconcile-type');
+      const type = typeEl ? typeEl.value : 'sales';
+      let targetAmount = 0;
+      if (type === 'savings') {
+        targetAmount = g_savingsBalance;
+      } else if (type === 'pettycash') {
+        targetAmount = g_pettyCashBalance;
+      } else {
+        targetAmount = g_fixed + g_sales;
+      }
+
+      const diff = sum - targetAmount;
       const dEl = document.getElementById('total-diff');
       dEl.innerText = (diff > 0 ? '+' : '') + diff.toLocaleString();
       dEl.style.color = diff === 0 ? "#10b981" : (diff < 0 ? "#f43f5e" : "#f59e0b");
     }
 
     function onFixedChange() {
-      g_fixed = parseInt(document.getElementById('in-fixed').value) || 0;
+      const currentVal = parseInt(document.getElementById('in-fixed').value) || 0;
+      g_fixed = currentVal;
+      const typeEl = document.getElementById('reconcile-type');
+      if (!typeEl || typeEl.value === 'sales') {
+        g_lastUserFixed = currentVal;
+      }
       calculate();
     }
 
@@ -2168,7 +2234,14 @@
             const d = data.regiDefaults;
             if (d.fixedCash !== undefined) {
               g_fixed = d.fixedCash;
-              document.getElementById('in-fixed').value = d.fixedCash;
+              g_lastUserFixed = d.fixedCash;
+              const typeEl = document.getElementById('reconcile-type');
+              if (typeEl && typeEl.value !== 'sales') {
+                document.getElementById('in-fixed').value = 0;
+                g_fixed = 0;
+              } else {
+                document.getElementById('in-fixed').value = d.fixedCash;
+              }
             }
             [10000,5000,1000,500,100,50,10,5,1].forEach(v => {
               const el = document.getElementById('in-'+v);
