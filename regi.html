@@ -79,6 +79,24 @@
             --light:   #eef0f3;
             --white:   #ffffff;
         }
+        [data-theme="chic"] .tenkey-preset:nth-child(odd) {
+            background: var(--coral);
+            color: #ffffff;
+            border: 2px solid var(--coral);
+        }
+        [data-theme="chic"] .tenkey-preset:nth-child(odd):active {
+            background: #3b526f;
+            border-color: #3b526f;
+        }
+        [data-theme="chic"] .tenkey-preset:nth-child(even) {
+            background: var(--sage);
+            color: #ffffff;
+            border: 2px solid var(--sage);
+        }
+        [data-theme="chic"] .tenkey-preset:nth-child(even):active {
+            background: #62758c;
+            border-color: #62758c;
+        }
 
         * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
 
