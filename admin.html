@@ -2,11 +2,12 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>📊 売上管理システム</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
+    * { touch-action: manipulation; }
     body { background-color: #f1f5f9; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; touch-action: manipulation; }
     .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
     .card { background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }    .loading-overlay { background: rgba(255,255,255,0.8); display: none; position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
@@ -2203,6 +2204,10 @@
 <script src="supabase-config.js"></script>
 <script src="supabase-adapter.js"></script>
 <script>
+    document.addEventListener('dblclick', function(e) {
+      e.preventDefault();
+    }, { passive: false });
+
     window.onload = () => {
       initMonthSelector();
       initSavingsMonthSelector();

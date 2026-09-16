@@ -2,13 +2,14 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>📊 売上分析 | 駄菓子屋ひとつぎ</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
-  body { background: #f1f5f9; font-family: 'Hiragino Sans', sans-serif; }
+  * { touch-action: manipulation; }
+  body { background: #f1f5f9; font-family: 'Hiragino Sans', sans-serif; touch-action: manipulation; }
   .card { background: white; border-radius: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
   .tab-btn { padding: 8px 20px; font-size: 13px; font-weight: 700; border: none; cursor: pointer;
     background: none; color: #94a3b8; border-bottom: 2px solid transparent; transition: all .15s; }
@@ -141,6 +142,10 @@ var g_items   = [];  // order_items rows
 var g_loading = false;
 
 // ── 初期化 ─────────────────────────────────────────
+document.addEventListener('dblclick', function(e) {
+  e.preventDefault();
+}, { passive: false });
+
 window.onload = function() {
   initMonthSelector();
   onPeriodChange();

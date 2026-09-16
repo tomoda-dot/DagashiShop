@@ -2,13 +2,13 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>駄菓子屋 在庫管理</title>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#FBF3E8;--sf:#FFFFFF;--bd:#E8D9C5;--bh:#C9B59E;--tx:#2D1F10;--t2:#7A6248;--t3:#A8917A;--red:#D97252;--rbg:#FDF0EB;--amb:#D4963A;--abg:#FDF5E6;--grn:#5BA88C;--gbg:#EDF6F1;--r:12px;--rl:16px;}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Zen Kaku Gothic New',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;font-size:14px;line-height:1.6;}
+*{box-sizing:border-box;margin:0;padding:0;touch-action:manipulation;}
+body{font-family:'Zen Kaku Gothic New',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;font-size:14px;line-height:1.6;touch-action:manipulation;}
 #loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;}
 .spin{width:36px;height:36px;border:3px solid var(--bd);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px;}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -3887,6 +3887,11 @@ function buildAndDownloadCsv(selCols, selProds, supplierMap) {
 <script src="supabase-config.js?v=20260723_2"></script>
 <script src="supabase-adapter.js?v=20260723_2"></script>
 <script>
+// ダブルクリック・ダブルタップによる拡大ズームを防止
+document.addEventListener('dblclick', function(e) {
+  e.preventDefault();
+}, { passive: false });
+
 loadData().then(function(){
   showApp();
   // 仕入れ先を先にロードしてから発注履歴・価格一覧をロード

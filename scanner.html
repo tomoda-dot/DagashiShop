@@ -2,16 +2,17 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>バーコードスキャナー | 駄菓子屋</title>
 <style>
+  * { touch-action: manipulation; }
   :root{
     --bg:#fbf3e8; --tx:#3d4036; --t2:#696b60; --t3:#9a9c8f;
     --card:#ffffff; --bd:#ece4d6; --red:#f49576; --grn:#7bbf8c; --amb:#e8a854;
     --r:14px;
   }
-  *{box-sizing:border-box;margin:0;padding:0;font-family:'Hiragino Maru Gothic ProN','Rounded Mplus 1c','Meiryo',sans-serif;}
-  body{background:var(--bg);color:var(--tx);min-height:100vh;padding-bottom:90px;}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Hiragino Maru Gothic ProN','Rounded Mplus 1c','Meiryo',sans-serif;touch-action:manipulation;}
+  body{background:var(--bg);color:var(--tx);min-height:100vh;padding-bottom:90px;touch-action:manipulation;}
   header{background:#fff;border-bottom:1px solid var(--bd);padding:14px 16px;position:sticky;top:0;z-index:50;
     display:flex;align-items:center;justify-content:space-between;}
   header h1{font-size:17px;font-weight:800;}
@@ -236,6 +237,10 @@ dlog('supabase-config.js: ' + (typeof SUPABASE_URL !== 'undefined' ? 'OK' : 'NG'
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" onload="dlog('html5-qrcode: OK')" onerror="dlog('❌ html5-qrcode: 読み込み失敗')"></script>
 <script src="supabase-adapter.js" onload="dlog('supabase-adapter: OK')" onerror="dlog('❌ supabase-adapter: 読み込み失敗')"></script>
 <script>
+document.addEventListener('dblclick', function(e) {
+  e.preventDefault();
+}, { passive: false });
+
 dlog('メインスクリプト開始');
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 var mode = 'regi'; // 'regi' | 'register'
