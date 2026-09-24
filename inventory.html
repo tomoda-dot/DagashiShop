@@ -1017,6 +1017,8 @@ function detProdChange(){
     var p=prods.filter(function(x){return x.id===pid;})[0];
     if(p){
       detPid=pid;
+      document.getElementById('det-name').value=p.name||'';
+      document.getElementById('det-kana').value=p.name_kana||'';
       document.getElementById('det-maker').value=p.maker||'';
       document.getElementById('det-barcode').value=p.barcode||'';
       document.getElementById('det-cat').value=p.cat||'スナック';
@@ -1025,6 +1027,7 @@ function detProdChange(){
       document.getElementById('det-bprice').value=p.buy_price||'';
       document.getElementById('det-bqty').value=p.buy_qty||'';
       document.getElementById('det-price').value=p.price||'';
+      document.getElementById('det-memo').value=p.memo||'';
       var spEl2=document.getElementById('det-sell-price');
       spEl2.value=p.sell_price||p.price||'';
       spEl2.dataset.edited=p.sell_price?'1':'';
@@ -1549,6 +1552,8 @@ function saveRestock(){
   var rsData={productId:pid,nm:p.name,iri:d.buy_qty,buy_price:d.buy_price,tanka:tanka,sell:d.sell_price||d.price,d:d.exp||today};
   // 商品情報・仕入れ先情報を更新（賞味期限の即時更新は禁止し、仕入れ履歴側にのみ保持）
   d.id=pid; d.name=p.name;
+  if(!d.name_kana && p.name_kana) d.name_kana = p.name_kana;
+  if(!d.memo && p.memo) d.memo = p.memo;
   delete d.exp;
   run1('updateProduct',d).then(function(){
     return saveProductSuppliers(pid);
