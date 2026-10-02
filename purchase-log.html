@@ -1036,17 +1036,16 @@ function renderExpiryList() {
           '<div>' +
             '<div class="lot-title">' + escapeHtml(prod.name) + '</div>' +
             '<div class="lot-store">🏬 ' + escapeHtml(storeName) + '</div>' +
-            '<div style="font-size:12px; font-weight:700; color:var(--tx); margin-top:3px;">📦 仕入数: <strong style="font-size:14px; color:var(--red);">' + (r.iri || 0) + '</strong> 個</div>' +
+            '<div style="margin-top:6px;">' +
+              '<span class="badge-exp ' + badgeClass + '">' + expText + '</span>' +
+              '<span style="font-size:11px; color:var(--t3); margin-left:6px;">(' + escapeHtml(r.d || '未設定') + ')</span>' +
+            '</div>' +
           '</div>' +
-        '</div>' +
-        '<div>' +
-          '<span class="badge-exp ' + badgeClass + '">' + expText + '</span>' +
-          '<span style="font-size:11px; color:var(--t3); margin-left:8px;">(期限: ' + escapeHtml(r.d || '未設定') + ')</span>' +
         '</div>' +
       '</div>' +
       '<div>' +
         '<div class="lot-info-row">' +
-          '<div>仕入数: <strong>' + (r.iri || 0) + '</strong> 個</div>' +
+          '<div>📦 仕入数: <strong style="font-size:14px;">' + (r.iri || 0) + '</strong> 個</div>' +
           '<div class="lot-price">' + (r.price || 0) + '円 <span class="unit-p">(' + (Math.round((r.tanka || 0) * 10) / 10) + '円/個)</span></div>' +
         '</div>' +
         '<div style="margin-top: 10px; display: flex; justify-content: space-between; gap: 8px;">' +
