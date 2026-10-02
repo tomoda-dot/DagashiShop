@@ -126,6 +126,8 @@ header {
 .btn-grn:hover { background: #478F74; }
 .btn-amb { background: var(--amb); box-shadow: 0 2px 8px rgba(212, 150, 58, 0.25); }
 .btn-amb:hover { background: #B87E2E; }
+.btn-blu { background: var(--blu); box-shadow: 0 2px 8px rgba(74, 144, 226, 0.25); }
+.btn-blu:hover { background: #357ABD; }
 .btn-sub {
   background: var(--sf); color: var(--t2); border: 1px solid var(--bd);
   box-shadow: none;
@@ -142,7 +144,6 @@ header {
 .inp:focus, .select:focus, .textarea:focus {
   border-color: var(--red); box-shadow: 0 0 0 3px rgba(217, 114, 82, 0.15);
 }
-.textarea { resize: vertical; min-height: 80px; }
 
 /* Filter & Search Toolbar */
 .toolbar {
@@ -159,8 +160,19 @@ header {
 }
 .sec-title {
   font-size: 16px; font-weight: 900; margin-bottom: 14px; color: var(--tx);
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
 }
+
+/* Inspection Alert Banner in Form */
+.inspect-banner {
+  background: #FFF8E7; border: 1px solid #FFE082; border-radius: var(--r);
+  padding: 14px; margin-bottom: 16px; display: none; flex-direction: column; gap: 8px;
+}
+.inspect-banner.has-warning { display: flex; }
+.inspect-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+.inspect-item.hike { color: var(--red); }
+.inspect-item.shrink { color: var(--amb); }
+.inspect-item.exp-warn { color: #C62828; }
 
 /* Lot List / Expiry Cards */
 .lot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
@@ -211,8 +223,6 @@ tr:hover td { background: #FDFBFAF0; }
   background: #FFF3CD; color: #856404; border: 1px solid #FFEEBA; font-size: 10px;
   font-weight: 900; padding: 1px 6px; border-radius: 4px; margin-left: 4px;
 }
-.price-up { color: var(--red); font-weight: 700; font-size: 11px; }
-.price-down { color: var(--grn); font-weight: 700; font-size: 11px; }
 
 /* Form Layout */
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px; }
@@ -235,7 +245,7 @@ tr:hover td { background: #FDFBFAF0; }
 }
 .modal-overlay.open { display: flex; }
 .modal-box {
-  background: var(--sf); border-radius: var(--rl); max-width: 600px; width: 100%;
+  background: var(--sf); border-radius: var(--rl); max-width: 650px; width: 100%;
   max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: var(--shadow-lg);
   border: 1px solid var(--bd); position: relative; animation: popIn 0.2s ease-out;
 }
@@ -264,6 +274,13 @@ tr:hover td { background: #FDFBFAF0; }
 .shop-item.checked { background: #f0f0f0; text-decoration: line-through; opacity: 0.6; }
 .shop-left { display: flex; align-items: center; gap: 12px; }
 .chk-box { width: 22px; height: 22px; cursor: pointer; accent-color: var(--grn); }
+
+/* Printable FAX Area */
+@media print {
+  body * { visibility: hidden; }
+  #printableFaxArea, #printableFaxArea * { visibility: visible; }
+  #printableFaxArea { position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: #fff; padding: 20px; }
+}
 
 @media (max-width: 600px) {
   .htl { font-size: 17px; }
@@ -330,13 +347,13 @@ tr:hover td { background: #FDFBFAF0; }
         <span class="tab-badge" id="badgeExpAlert" style="display:none;">0</span>
       </button>
       <button class="tab" onclick="switchTab('inputTab')">
-        ➕ 新規仕入れの記録
+        🔍 仕入れ検品・売価決定記帳
       </button>
       <button class="tab" onclick="switchTab('priceTab')">
         💰 店舗別・価格比較
       </button>
       <button class="tab" onclick="switchTab('shopTab')">
-        📝 買い物・発注メモ
+        📝 買い物・FAX発注
         <span class="tab-badge grn" id="badgeShopList" style="display:none;">0</span>
       </button>
       <button class="tab" onclick="switchTab('storeTab')">
@@ -358,7 +375,7 @@ tr:hover td { background: #FDFBFAF0; }
         <option value="consumed">⚪ 使い切り・完売済み</option>
         <option value="all">🌐 全ての履歴</option>
       </select>
-      <button class="btn btn-grn" onclick="switchTab('inputTab')">➕ 仕入れを記録する</button>
+      <button class="btn btn-grn" onclick="switchTab('inputTab')">➕ 仕入れ検品を記録する</button>
     </div>
 
     <div id="expContainer" class="lot-grid">
@@ -366,11 +383,11 @@ tr:hover td { background: #FDFBFAF0; }
     </div>
   </div>
 
-  <!-- ================= TAB 2: 新規仕入れの記録 ================= -->
+  <!-- ================= TAB 2: 仕入れ検品・売価決定記帳 ================= -->
   <div id="inputTab" class="tab-content" style="display: none;">
     <div class="card-sec">
       <div class="sec-title">
-        <span>➕ 新しい仕入れの記録（ロット追加）</span>
+        <span>🔍 仕入れ商品の検品・売価設定（店頭出し時）</span>
         <button class="btn btn-sub btn-sm" onclick="openProductSelectModal()">🔍 商品マスターから選択</button>
       </div>
 
@@ -379,11 +396,19 @@ tr:hover td { background: #FDFBFAF0; }
         <div style="display: flex; align-items: center; gap: 12px;">
           <img id="selProdImg" src="" style="width: 48px; height: 48px; border-radius: 8px; object-fit: cover; display: none; border: 1px solid var(--bd);">
           <div>
-            <div id="selProdName" style="font-size: 15px; font-weight: 900; color: var(--tx);">商品を選択してください</div>
-            <div id="selProdMeta" style="font-size: 12px; color: var(--t2);">「商品マスターから選択」ボタンを押して商品を選んでください</div>
+            <div id="selProdName" style="font-size: 15px; font-weight: 900; color: var(--tx);">検品する商品を選択してください</div>
+            <div id="selProdMeta" style="font-size: 12px; color: var(--t2);">「商品マスターから選択」を押すと過去の仕入れ単価や入数が自動補完されます</div>
           </div>
         </div>
-        <button class="btn btn-sub btn-sm" onclick="openProductSelectModal()">変更</button>
+        <button class="btn btn-sub btn-sm" onclick="openProductSelectModal()">商品変更</button>
+      </div>
+
+      <!-- Inspection Warnings & Alerts Banner -->
+      <div id="inspectBanner" class="inspect-banner">
+        <div style="font-size: 12px; font-weight: 900; color: #856404; margin-bottom: 2px;">⚠️ 検品チェック結果 (過去のデータとの比較)</div>
+        <div id="inspectHike" class="inspect-item hike" style="display:none;"></div>
+        <div id="inspectShrink" class="inspect-item shrink" style="display:none;"></div>
+        <div id="inspectExpWarn" class="inspect-item exp-warn" style="display:none;"></div>
       </div>
 
       <form id="purchaseForm" onsubmit="handleSavePurchase(event)">
@@ -395,6 +420,16 @@ tr:hover td { background: #FDFBFAF0; }
             <label>購入店舗・仕入れ先 <span class="req">*</span></label>
             <select id="formStore" class="select" required>
               <option value="">-- 購入店舗を選択 --</option>
+            </select>
+          </div>
+
+          <!-- Tax Mode Selection -->
+          <div class="form-group">
+            <label>税区分 (税込・税別選択) <span class="req">*</span></label>
+            <select id="formTaxMode" class="select" onchange="calcTanka()" required>
+              <option value="incl">税込価格 (領収書が税込表示)</option>
+              <option value="ex8">税別 8% (食品・軽減税率)</option>
+              <option value="ex10">税別 10% (標準税率)</option>
             </select>
           </div>
 
@@ -412,32 +447,33 @@ tr:hover td { background: #FDFBFAF0; }
 
           <!-- Items per pack -->
           <div class="form-group">
-            <label>1箱あたりの入数 <span class="req">*</span></label>
+            <label>1箱あたりの入数 (実測個数) <span class="req">*</span></label>
             <input type="number" id="formIri" class="inp" min="1" value="30" placeholder="例: 30" required oninput="calcTanka()">
           </div>
 
           <!-- Total Buy Price -->
           <div class="form-group">
-            <label>仕入れ総額 (税込) <span class="req">*</span></label>
+            <label>伝票・レシートの仕入れ金額 <span class="req">*</span></label>
             <input type="number" id="formBuyPrice" class="inp" min="0" value="" placeholder="例: 960" required oninput="calcTanka()">
           </div>
 
           <!-- Calculated Unit Price -->
           <div class="form-group">
-            <label>計算: 1個あたりの仕入れ単価</label>
+            <label>計算: 1個あたりの税込実質単価</label>
             <input type="text" id="formCalcTanka" class="inp" readonly style="background: #f5f5f5; font-weight: 700; color: var(--red);" value="0 円 / 個">
           </div>
 
           <!-- Selling Price -->
           <div class="form-group">
-            <label>販売価格 (売価) <span class="req">*</span></label>
-            <input type="number" id="formSellPrice" class="inp" min="0" placeholder="例: 40" required>
+            <label>店頭販売価格 (値札に書く単価) <span class="req">*</span></label>
+            <input type="number" id="formSellPrice" class="inp" min="0" placeholder="例: 40" required oninput="calcMargin()">
+            <div id="formMarginInfo" style="font-size: 11px; font-weight: 700; color: var(--t2); margin-top: 2px;">粗利益率: --%</div>
           </div>
 
           <!-- Expiry Date -->
           <div class="form-group">
-            <label>賞味期限 <span class="req">*</span></label>
-            <input type="date" id="formExpDate" class="inp" required>
+            <label>実物の賞味期限 <span class="req">*</span></label>
+            <input type="date" id="formExpDate" class="inp" required onchange="checkExpiryInspection()">
             <div class="quick-dates">
               <span class="qbtn" onclick="addExpMonths(1)">+1ヶ月</span>
               <span class="qbtn" onclick="addExpMonths(2)">+2ヶ月</span>
@@ -454,7 +490,7 @@ tr:hover td { background: #FDFBFAF0; }
           <input type="text" id="formMemo" class="inp" placeholder="例: ダイソー特売品、箱潰れ値引きなど">
         </div>
 
-        <button type="submit" class="btn btn-lg">💾 仕入れ記録を保存する</button>
+        <button type="submit" class="btn btn-lg">🏷️ 値札決定・仕入れを確定保存</button>
       </form>
     </div>
   </div>
@@ -486,18 +522,19 @@ tr:hover td { background: #FDFBFAF0; }
     </div>
   </div>
 
-  <!-- ================= TAB 4: 買い物・発注メモ ================= -->
+  <!-- ================= TAB 4: 買い物・FAX発注メモ ================= -->
   <div id="shopTab" class="tab-content" style="display: none;">
     <div class="card-sec">
       <div class="sec-title">
-        <span>📝 現場で使える「買い物・発注メモ」</span>
+        <span>📝 買い物リスト & 📠 FAX発注書作成</span>
         <div>
           <button class="btn btn-sub btn-sm" onclick="copyShoppingList()">📋 メモをコピー(LINE用)</button>
+          <button class="btn btn-blu btn-sm" onclick="openFaxModal()">📠 FAX発注書を作成</button>
           <button class="btn btn-grn btn-sm" onclick="openProductSelectForShopModal()">➕ 商品を追加</button>
         </div>
       </div>
       <p style="font-size: 12px; color: var(--t2); margin-bottom: 14px;">
-        お店で買い出しをする際に、チェックボックスで「購入済み」にチェックできます。購入後「仕入れ記録にまとめて登録」を押せば一瞬で記帳完了！
+        店頭での買い物メモとして利用できます。買い出し問屋へのFAX発注書もワンタップでA4印刷作成できます！
       </p>
 
       <div id="shoppingListContainer">
@@ -505,7 +542,7 @@ tr:hover td { background: #FDFBFAF0; }
       </div>
 
       <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-        <button class="btn btn-lg btn-grn" style="flex: 1;" onclick="batchRegisterPurchased()">🛒 チェックしたものを仕入れ記録へ登録</button>
+        <button class="btn btn-lg btn-grn" style="flex: 1;" onclick="batchRegisterPurchased()">🛒 チェックしたものを検品・仕入れ登録</button>
         <button class="btn btn-sub" onclick="clearShoppingList()">🗑️ メモをクリア</button>
       </div>
     </div>
@@ -524,6 +561,7 @@ tr:hover td { background: #FDFBFAF0; }
           <thead>
             <tr>
               <th>店舗・仕入れ先名</th>
+              <th>FAX番号</th>
               <th>電話番号</th>
               <th>住所</th>
               <th>メモ</th>
@@ -568,7 +606,11 @@ tr:hover td { background: #FDFBFAF0; }
     <form onsubmit="handleSaveStore(event)">
       <div class="form-group" style="margin-bottom: 12px;">
         <label>店舗・仕入れ先名 <span class="req">*</span></label>
-        <input type="text" id="newStoreName" class="inp" placeholder="例: ダイソー 豊中店, 業務スーパー" required>
+        <input type="text" id="newStoreName" class="inp" placeholder="例: ダイソー 豊中店, 業務スーパー, 〇〇問屋" required>
+      </div>
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label>FAX番号 (FAX発注用)</label>
+        <input type="text" id="newStoreFax" class="inp" placeholder="例: 06-1234-5679">
       </div>
       <div class="form-group" style="margin-bottom: 12px;">
         <label>電話番号</label>
@@ -584,6 +626,32 @@ tr:hover td { background: #FDFBFAF0; }
       </div>
       <button type="submit" class="btn btn-lg">💾 店舗を登録</button>
     </form>
+  </div>
+</div>
+
+<!-- FAX Order Preview Modal -->
+<div id="faxModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">📠 FAX発注書の作成・印刷</div>
+      <button class="close-btn" onclick="closeModal('faxModal')">×</button>
+    </div>
+    <div style="margin-bottom: 16px;">
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label>発注先問屋を選択</label>
+        <select id="faxSupplierSelect" class="select" onchange="updateFaxPreview()"></select>
+      </div>
+    </div>
+    
+    <!-- Printable Document Preview Container -->
+    <div id="printableFaxArea" style="border: 1px solid #ccc; padding: 20px; background: #fff; font-size: 13px; color: #000; border-radius: 8px;">
+      <!-- Dynamic FAX sheet HTML inserted here -->
+    </div>
+
+    <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
+      <button class="btn btn-blu" style="flex: 1;" onclick="printFaxDoc()">🖨️ A4で印刷 / PDF保存</button>
+      <button class="btn btn-grn" onclick="sendFaxDigital()">🚀 秒速FAXで直接送信</button>
+    </div>
   </div>
 </div>
 
@@ -618,10 +686,10 @@ function initApp() {
       // Default stores if none exist
       if (ALL_SUPPLIERS.length === 0) {
         ALL_SUPPLIERS = [
-          { id: 1, name: 'ダイソー', tel: '', address: '', memo: '' },
-          { id: 2, name: '業務スーパー', tel: '', address: '', memo: '' },
-          { id: 3, name: 'ドン・キホーテ', tel: '', address: '', memo: '' },
-          { id: 4, name: '卸問屋', tel: '', address: '', memo: '' }
+          { id: 1, name: 'ダイソー', fax: '', tel: '', address: '', memo: '' },
+          { id: 2, name: '業務スーパー', fax: '', tel: '', address: '', memo: '' },
+          { id: 3, name: 'ドン・キホーテ', fax: '', tel: '', address: '', memo: '' },
+          { id: 4, name: '卸問屋', fax: '06-9999-9999', tel: '', address: '', memo: '' }
         ];
       }
 
@@ -667,21 +735,116 @@ function switchTab(tabId) {
   event.currentTarget.classList.add('on');
 }
 
-// ================= CALCULATIONS & DATES =================
+// ================= CALCULATIONS, TAX & INSPECTION =================
 function calcTanka() {
   var packs = parseFloat(document.getElementById('formPacks').value) || 1;
   var iri = parseFloat(document.getElementById('formIri').value) || 1;
-  var totalBuy = parseFloat(document.getElementById('formBuyPrice').value) || 0;
-  
+  var buyPrice = parseFloat(document.getElementById('formBuyPrice').value) || 0;
+  var taxMode = document.getElementById('formTaxMode').value;
+
+  var totalInclTax = buyPrice;
+  if (taxMode === 'ex8') {
+    totalInclTax = Math.round(buyPrice * 1.08);
+  } else if (taxMode === 'ex10') {
+    totalInclTax = Math.round(buyPrice * 1.10);
+  }
+
   var totalQty = packs * iri;
-  var tanka = totalQty > 0 ? (totalBuy / totalQty) : 0;
+  var unitCost = totalQty > 0 ? (totalInclTax / totalQty) : 0;
+  var unitCostRound = Math.round(unitCost * 10) / 10;
   
-  document.getElementById('formCalcTanka').value = (Math.round(tanka * 10) / 10) + ' 円 / 個 (' + totalQty + '個仕入れ)';
+  document.getElementById('formCalcTanka').value = unitCostRound + ' 円 / 個 (税込実質額: ¥' + totalInclTax.toLocaleString() + ' / ' + totalQty + '個)';
+
+  calcMargin();
+  runInspectionCheck(unitCostRound, iri);
+}
+
+function calcMargin() {
+  var unitCostStr = document.getElementById('formCalcTanka').value;
+  var unitCost = parseFloat(unitCostStr) || 0;
+  var sellPrice = parseFloat(document.getElementById('formSellPrice').value) || 0;
+
+  var info = document.getElementById('formMarginInfo');
+  if (sellPrice > 0 && unitCost > 0) {
+    var margin = ((sellPrice - unitCost) / sellPrice) * 100;
+    var marginRound = Math.round(margin * 10) / 10;
+    info.textContent = '粗利益額: ' + (Math.round((sellPrice - unitCost)*10)/10) + '円 | 粗利益率: ' + marginRound + '%';
+    info.style.color = marginRound >= 30 ? 'var(--grn)' : (marginRound > 0 ? 'var(--t2)' : 'var(--red)');
+  } else {
+    info.textContent = '粗利益率: --%';
+  }
+}
+
+function runInspectionCheck(curTanka, curIri) {
+  if (!SELECTED_PRODUCT) return;
+
+  var banner = document.getElementById('inspectBanner');
+  var hike = document.getElementById('inspectHike');
+  var shrink = document.getElementById('inspectShrink');
+
+  var pastList = ALL_RESTOCK.filter(function(r) { return r.productId === SELECTED_PRODUCT.id; });
+  
+  var hasWarn = false;
+  hike.style.display = 'none';
+  shrink.style.display = 'none';
+
+  if (pastList.length > 0) {
+    var last = pastList[0];
+    var prevTanka = Math.round((last.tanka || 0) * 10) / 10;
+    var prevIri = last.iri || 0;
+
+    // Price Hike Check
+    if (curTanka > prevTanka && prevTanka > 0) {
+      var diffPct = Math.round(((curTanka - prevTanka) / prevTanka) * 100);
+      hike.innerHTML = '📈 【値上げ注意】 前回の仕入れ単価 ' + prevTanka + '円 → 今回 ' + curTanka + '円 (' + diffPct + '% 値上がりしています！値札の売価変更を検討してください)';
+      hike.style.display = 'flex';
+      hasWarn = true;
+    }
+
+    // Shrinkflation Check
+    if (curIri < prevIri && prevIri > 0) {
+      shrink.innerHTML = '📉 【入数減少注意】 前回の入数 ' + prevIri + '個 → 今回 ' + curIri + '個 (' + (prevIri - curIri) + '個減っています！容量変更がないか確認してください)';
+      shrink.style.display = 'flex';
+      hasWarn = true;
+    }
+  }
+
+  checkExpiryInspection();
+  
+  if (hasWarn || document.getElementById('inspectExpWarn').style.display !== 'none') {
+    banner.classList.add('has-warning');
+  } else {
+    banner.classList.remove('has-warning');
+  }
+}
+
+function checkExpiryInspection() {
+  var expDateStr = document.getElementById('formExpDate').value;
+  var expWarn = document.getElementById('inspectExpWarn');
+  var banner = document.getElementById('inspectBanner');
+
+  if (expDateStr) {
+    var days = getDaysRemaining(expDateStr);
+    if (days < 0) {
+      expWarn.innerHTML = '🚨 【賞味期限エラー】 入力された賞味期限は既に切れています (' + Math.abs(days) + '日前)。受入できません！';
+      expWarn.style.display = 'flex';
+      banner.classList.add('has-warning');
+    } else if (days <= 30) {
+      expWarn.innerHTML = '⚠️ 【賞味期限注意】 賞味期限まであと ' + days + ' 日しかありません。期限が近すぎないか確認してください！';
+      expWarn.style.display = 'flex';
+      banner.classList.add('has-warning');
+    } else {
+      expWarn.style.display = 'none';
+    }
+  } else {
+    expWarn.style.display = 'none';
+  }
 }
 
 function addExpMonths(months) {
   var curDate = document.getElementById('formDate').value || todayJST();
   document.getElementById('formExpDate').value = addMonthsToDate(curDate, months);
+  checkExpiryInspection();
 }
 
 function addMonthsToDate(dateStr, months) {
@@ -722,6 +885,7 @@ function renderStoreTable() {
     var tr = document.createElement('tr');
     tr.innerHTML = 
       '<td><strong>' + escapeHtml(s.name) + '</strong></td>' +
+      '<td>' + escapeHtml(s.fax || '-') + '</td>' +
       '<td>' + escapeHtml(s.tel || '-') + '</td>' +
       '<td>' + escapeHtml(s.address || '-') + '</td>' +
       '<td>' + escapeHtml(s.memo || '-') + '</td>' +
@@ -737,19 +901,20 @@ function openAddStoreModal() {
 function handleSaveStore(e) {
   e.preventDefault();
   var name = document.getElementById('newStoreName').value.trim();
+  var fax = document.getElementById('newStoreFax').value.trim();
   var tel = document.getElementById('newStoreTel').value.trim();
   var addr = document.getElementById('newStoreAddr').value.trim();
   var memo = document.getElementById('newStoreMemo').value.trim();
 
   if (!name) return;
 
-  GAS.addSupplier({ name: name, tel: tel, address: addr, memo: memo })
+  GAS.addSupplier({ name: name, fax: fax, tel: tel, address: addr, memo: memo })
     .then(function(res) {
-      ALL_SUPPLIERS.push({ id: res.id, name: name, tel: tel, address: addr, memo: memo });
+      ALL_SUPPLIERS.push({ id: res.id, name: name, fax: fax, tel: tel, address: addr, memo: memo });
       populateStoreDropdown();
       renderStoreTable();
       closeModal('storeModal');
-      alert('店舗を登録しました！');
+      alert('店舗・問屋を登録しました！');
     })
     .catch(function(err) { alert('エラー: ' + err.message); });
 }
@@ -818,7 +983,7 @@ function renderExpiryList() {
     return true;
   });
 
-  // Sort by expiry date ascending (closest to expiring first)
+  // Sort by expiry date ascending
   filtered.sort(function(a, b) {
     if (a.status === 'consumed') return 1;
     if (b.status === 'consumed') return -1;
@@ -939,7 +1104,7 @@ function selectProductForPurchase(prod) {
   SELECTED_PRODUCT = prod;
   document.getElementById('formProductId').value = prod.id;
   document.getElementById('selProdName').textContent = prod.name;
-  document.getElementById('selProdMeta').textContent = '現在の売価: ' + (prod.sell_price || prod.price || 0) + '円 / 過去の入数設定: ' + (prod.buy_qty || 30) + '個';
+  document.getElementById('selProdMeta').textContent = '現在の店頭売価: ' + (prod.sell_price || prod.price || 0) + '円 / 登録入数: ' + (prod.buy_qty || 30) + '個';
   
   var img = document.getElementById('selProdImg');
   if (prod.img_url) {
@@ -969,23 +1134,28 @@ function handleSavePurchase(e) {
   }
 
   var store = document.getElementById('formStore').value;
+  var taxMode = document.getElementById('formTaxMode').value;
   var dateStr = document.getElementById('formDate').value;
   var packs = parseInt(document.getElementById('formPacks').value) || 1;
   var iri = parseInt(document.getElementById('formIri').value) || 1;
-  var totalBuy = parseFloat(document.getElementById('formBuyPrice').value) || 0;
+  var buyPrice = parseFloat(document.getElementById('formBuyPrice').value) || 0;
   var sellPrice = parseFloat(document.getElementById('formSellPrice').value) || 0;
   var expDate = document.getElementById('formExpDate').value;
   var memo = document.getElementById('formMemo').value.trim();
 
+  var totalInclTax = buyPrice;
+  if (taxMode === 'ex8') totalInclTax = Math.round(buyPrice * 1.08);
+  else if (taxMode === 'ex10') totalInclTax = Math.round(buyPrice * 1.10);
+
   var totalQty = packs * iri;
-  var tanka = totalQty > 0 ? (totalBuy / totalQty) : 0;
+  var tanka = totalQty > 0 ? (totalInclTax / totalQty) : 0;
   var nmStr = '【' + store + '】' + SELECTED_PRODUCT.name + (memo ? ' (' + memo + ')' : '');
 
   var rsData = {
     productId: productId,
     nm: nmStr,
     iri: totalQty,
-    buy_price: totalBuy,
+    buy_price: totalInclTax,
     tanka: tanka,
     sell: sellPrice,
     d: expDate,
@@ -994,9 +1164,8 @@ function handleSavePurchase(e) {
 
   GAS.addRestock(rsData)
     .then(function() {
-      // Also update master sell price if changed
       if (sellPrice !== SELECTED_PRODUCT.sell_price) {
-        GAS.updateProduct({ id: productId, sell_price: sellPrice, buy_price: totalBuy, buy_qty: iri });
+        GAS.updateProduct({ id: productId, sell_price: sellPrice, buy_price: totalInclTax, buy_qty: iri });
       }
 
       ALL_RESTOCK.unshift({
@@ -1004,7 +1173,7 @@ function handleSavePurchase(e) {
         productId: productId,
         nm: nmStr,
         iri: totalQty,
-        price: totalBuy,
+        price: totalInclTax,
         tanka: tanka,
         sell: sellPrice,
         d: expDate,
@@ -1014,15 +1183,16 @@ function handleSavePurchase(e) {
       renderStats();
       renderExpiryList();
       renderPriceComparison();
-      alert('仕入れ記録を正常に保存しました！🎉');
+      alert('仕入れ検品および売価決定の記帳が完了しました！🎉');
       
       // Reset form
       document.getElementById('purchaseForm').reset();
       document.getElementById('formDate').value = todayJST();
       document.getElementById('formExpDate').value = addMonthsToDate(todayJST(), 3);
-      document.getElementById('selProdName').textContent = '商品を選択してください';
-      document.getElementById('selProdMeta').textContent = '「商品マスターから選択」ボタンを押して商品を選んでください';
+      document.getElementById('selProdName').textContent = '検品する商品を選択してください';
+      document.getElementById('selProdMeta').textContent = '「商品マスターから選択」を押すと過去の仕入れ単価や入数が自動補完されます';
       document.getElementById('selProdImg').style.display = 'none';
+      document.getElementById('inspectBanner').classList.remove('has-warning');
       SELECTED_PRODUCT = null;
 
       switchTab('expTab');
@@ -1039,7 +1209,6 @@ function renderPriceComparison() {
 
   var query = document.getElementById('priceSearch').value.toLowerCase().trim();
 
-  // Group restock history by productId & store
   var prodMap = {};
   ALL_PRODUCTS.forEach(function(p) {
     if (query && !p.name.toLowerCase().includes(query)) return;
@@ -1060,15 +1229,13 @@ function renderPriceComparison() {
     var storesObj = item.stores;
     var storeKeys = Object.keys(storesObj);
 
-    if (storeKeys.length === 0) return; // Skip if no purchase history
+    if (storeKeys.length === 0) return;
 
-    // Find lowest tanka store
     var cheapestStore = '';
     var minTanka = 999999;
-    var latestTanka = 0;
 
     storeKeys.forEach(function(sName) {
-      var latest = storesObj[sName][0]; // Latest entry
+      var latest = storesObj[sName][0];
       if (latest.tanka && latest.tanka < minTanka) {
         minTanka = latest.tanka;
         cheapestStore = sName;
@@ -1101,7 +1268,7 @@ function renderPriceComparison() {
   });
 }
 
-// ================= TAB 4: SHOPPING LIST MEMO =================
+// ================= TAB 4: SHOPPING LIST MEMO & FAX =================
 function renderShoppingList() {
   var container = document.getElementById('shoppingListContainer');
   container.innerHTML = '';
@@ -1115,7 +1282,7 @@ function renderShoppingList() {
   }
 
   if (SHOPPING_LIST.length === 0) {
-    container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--t3); background: var(--sf); border-radius: var(--r); border: 1px solid var(--bd);">買い物メモは空です。「商品を追加」ボタンから買い出し予定の商品を追加しましょう。</div>';
+    container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--t3); background: var(--sf); border-radius: var(--r); border: 1px solid var(--bd);">買い物・発注メモは空です。「商品を追加」ボタンから商品を追加してください。</div>';
     return;
   }
 
@@ -1127,7 +1294,7 @@ function renderShoppingList() {
         '<input type="checkbox" class="chk-box" ' + (item.checked ? 'checked' : '') + ' onchange="toggleShopCheck(' + idx + ')">' +
         '<div>' +
           '<div style="font-weight:700; font-size:14px;">' + escapeHtml(item.name) + '</div>' +
-          '<div style="font-size:11px; color:var(--t2);">予定店舗: ' + escapeHtml(item.store || '指定なし') + ' | 数量: <strong>' + item.packs + '箱 (' + (item.packs * item.iri) + '個)</strong></div>' +
+          '<div style="font-size:11px; color:var(--t2);">問屋/店舗: ' + escapeHtml(item.store || '指定なし') + ' | 予定数: <strong>' + item.packs + '箱 (' + (item.packs * item.iri) + '個)</strong></div>' +
         '</div>' +
       '</div>' +
       '<button class="btn btn-sub btn-sm" onclick="removeShopItem(' + idx + ')">🗑️</button>';
@@ -1150,9 +1317,9 @@ function filterModalProductsForShop() {
     var card = document.createElement('div');
     card.className = 'prod-item-card';
     card.onclick = function() {
-      var packs = prompt('「' + p.name + '」の購入予定箱数を入力してください:', '1');
+      var packs = prompt('「' + p.name + '」の発注・購入箱数を入力してください:', '1');
       if (packs) {
-        var storeName = document.getElementById('formStore').value || 'ダイソー';
+        var storeName = document.getElementById('formStore').value || '問屋A';
         SHOPPING_LIST.push({
           productId: p.id,
           name: p.name,
@@ -1171,7 +1338,7 @@ function filterModalProductsForShop() {
     card.innerHTML = 
       (p.img_url ? '<img class="prod-item-img" src="' + escapeHtml(p.img_url) + '">' : '<div class="prod-item-img" style="display:flex;align-items:center;justify-content:center;font-size:18px;">🍬</div>') +
       '<div class="prod-item-name">' + escapeHtml(p.name) + '</div>' +
-      '<div class="prod-item-price">タップしてメモ追加</div>';
+      '<div class="prod-item-price">タップして追加</div>';
     grid.appendChild(card);
   });
 }
@@ -1187,7 +1354,7 @@ function removeShopItem(idx) {
 }
 
 function clearShoppingList() {
-  if (!confirm('買い物メモをすべて消去しますか？')) return;
+  if (!confirm('買い物・発注メモをすべて消去しますか？')) return;
   SHOPPING_LIST = [];
   saveShoppingList();
 }
@@ -1204,7 +1371,7 @@ function copyShoppingList() {
     text += (item.checked ? '✅ ' : '・') + item.name + ' : ' + item.packs + '箱 (' + item.store + ')\n';
   });
   navigator.clipboard.writeText(text).then(function() {
-    alert('買い物リストをクリップボードにコピーしました！LINE等に貼り付けできます。');
+    alert('買い物リストをクリップボードにコピーしました！');
   });
 }
 
@@ -1214,7 +1381,7 @@ function batchRegisterPurchased() {
     return alert('チェックされた（購入済み）商品がありません。買い終わった商品のチェックボックスをオンにしてください。');
   }
 
-  if (!confirm(checkedItems.length + ' 件の購入済み商品を一括で「仕入れ記録」へ保存しますか？')) return;
+  if (!confirm(checkedItems.length + ' 件の購入済み商品を一括で「検品・仕入れ記録」へ保存しますか？')) return;
 
   var promises = checkedItems.map(function(item) {
     var expDate = addMonthsToDate(todayJST(), 3);
@@ -1240,7 +1407,100 @@ function batchRegisterPurchased() {
       initApp();
       switchTab('expTab');
     })
-    .catch(function(err) { alert('一部または全ての登録に失敗しました: ' + err.message); });
+    .catch(function(err) { alert('登録エラー: ' + err.message); });
+}
+
+// ================= FAX ORDER SYSTEM =================
+function openFaxModal() {
+  var sel = document.getElementById('faxSupplierSelect');
+  sel.innerHTML = '';
+  ALL_SUPPLIERS.forEach(function(s) {
+    var opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name + (s.fax ? ' (FAX: ' + s.fax + ')' : '');
+    sel.appendChild(opt);
+  });
+
+  document.getElementById('faxModal').classList.add('open');
+  updateFaxPreview();
+}
+
+function updateFaxPreview() {
+  var supId = parseInt(document.getElementById('faxSupplierSelect').value) || 0;
+  var sup = ALL_SUPPLIERS.find(function(s) { return s.id === supId; }) || { name: '問屋各位', fax: '', tel: '' };
+
+  var rowsHtml = '';
+  var subtotal = 0;
+
+  SHOPPING_LIST.forEach(function(item) {
+    var lineTotal = item.buyPrice || 0;
+    subtotal += lineTotal;
+    rowsHtml += '<tr>' +
+      '<td style="padding:8px; border:1px solid #999;">' + escapeHtml(item.name) + '</td>' +
+      '<td style="padding:8px; border:1px solid #999; text-align:center;">' + item.packs + ' 箱 (' + (item.packs * item.iri) + '個)</td>' +
+      '<td style="padding:8px; border:1px solid #999; text-align:right;">¥' + lineTotal.toLocaleString() + '</td>' +
+      '</tr>';
+  });
+
+  if (SHOPPING_LIST.length === 0) {
+    rowsHtml = '<tr><td colspan="3" style="padding:20px; text-align:center; color:#888;">買い物リストが空です</td></tr>';
+  }
+
+  var tax = Math.round(subtotal * 0.08);
+  var grandTotal = subtotal + tax;
+  var todayStr = todayJST();
+
+  var faxDocHtml = 
+    '<div style="max-width:700px; margin:0 auto; font-family:\'Meiryo\', sans-serif;">' +
+      '<h2 style="text-align:center; border-bottom:2px solid #000; padding-bottom:8px; letter-spacing:4px; margin-bottom:16px;">発 注 書 (FAX用)</h2>' +
+      '<div style="display:flex; justify-content:space-between; margin-bottom:16px; font-size:12px;">' +
+        '<div>' +
+          '<div><strong>【発注先】 ' + escapeHtml(sup.name) + ' 御中</strong></div>' +
+          '<div>FAX: ' + escapeHtml(sup.fax || '末登録') + ' | TEL: ' + escapeHtml(sup.tel || '-') + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;">' +
+          '<div>発注日: ' + todayStr + '</div>' +
+          '<div><strong>【発注者】 （株）Tempo ひとつぎ豊中小曽根</strong></div>' +
+          '<div>TEL: 070-2441-9338 | 大阪府豊中市小曽根1-10-23</div>' +
+        '</div>' +
+      '</div>' +
+      '<table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:12px;">' +
+        '<thead>' +
+          '<tr style="background:#f0f0f0;">' +
+            '<th style="padding:8px; border:1px solid #999; text-align:left;">商品名</th>' +
+            '<th style="padding:8px; border:1px solid #999; text-align:center;">発注数量</th>' +
+            '<th style="padding:8px; border:1px solid #999; text-align:right;">参考金額 (税抜)</th>' +
+          '</tr>' +
+        '</thead>' +
+        '<tbody>' + rowsHtml + '</tbody>' +
+      '</table>' +
+      '<div style="text-align:right; font-size:12px; margin-top:8px;">' +
+        '<div>小計(税抜): ¥' + subtotal.toLocaleString() + '</div>' +
+        '<div>消費税(8% 軽減税率): ¥' + tax.toLocaleString() + '</div>' +
+        '<div style="font-size:16px; font-weight:bold; margin-top:4px;">合計金額 (税込): ¥' + grandTotal.toLocaleString() + '</div>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById('printableFaxArea').innerHTML = faxDocHtml;
+}
+
+function printFaxDoc() {
+  window.print();
+}
+
+function sendFaxDigital() {
+  var supId = parseInt(document.getElementById('faxSupplierSelect').value) || 0;
+  var sup = ALL_SUPPLIERS.find(function(s) { return s.id === supId; });
+  if (!sup || !sup.fax) return alert('選択された問屋にFAX番号が登録されていません。');
+
+  if (!confirm(sup.name + ' (' + sup.fax + ') へ秒速FAXを送信しますか？')) return;
+
+  var faxHtml = document.getElementById('printableFaxArea').innerHTML;
+  GAS.sendFaxEmail({ faxNumber: sup.fax, html: faxHtml })
+    .then(function(res) {
+      alert('FAX送信を実行しました！');
+    })
+    .catch(function(err) { alert('送信エラー: ' + err.message); });
 }
 
 // ================= UTILS & MODAL HELPERS =================
