@@ -348,15 +348,15 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
         <div style="display:flex;flex-direction:column;gap:8px;">
           <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:2px solid var(--bd);border-radius:var(--r);background:var(--sf);">
             <input type="radio" name="det-status" id="st-active" value="active" style="width:16px;height:16px;cursor:pointer;" />
-            <span><strong style="color:var(--grn);">● 通常</strong> <span style="font-size:11px;color:var(--t2);">在庫一覧・仕入れリスト両方に表示</span></span>
+            <span><strong style="color:var(--grn);">● 販売中（通常）</strong> <span style="font-size:11px;color:var(--t2);">店頭で通常販売中の商品</span></span>
           </label>
           <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:2px solid var(--bd);border-radius:var(--r);background:var(--sf);">
             <input type="radio" name="det-status" id="st-hidden" value="hidden" style="width:16px;height:16px;cursor:pointer;" />
-            <span><strong style="color:var(--amb);">○ 一時非表示</strong> <span style="font-size:11px;color:var(--t2);">季節・夏限定など。仕入れリストには残る</span></span>
+            <span><strong style="color:var(--amb);">⏸️ 一時販売終了</strong> <span style="font-size:11px;color:var(--t2);">季節限定・一時取り扱い休止</span></span>
           </label>
           <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:2px solid var(--bd);border-radius:var(--r);background:var(--sf);">
             <input type="radio" name="det-status" id="st-disc" value="discontinued" style="width:16px;height:16px;cursor:pointer;" />
-            <span><strong style="color:var(--red);">× 完全終売</strong> <span style="font-size:11px;color:var(--t2);">在庫一覧・仕入れリスト両方から非表示</span></span>
+            <span><strong style="color:var(--red);">⛔ 販売終了</strong> <span style="font-size:11px;color:var(--t2);">メーカー終売・取扱い終了</span></span>
           </label>
         </div>
       </div>

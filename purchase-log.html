@@ -587,8 +587,12 @@ tr:hover td { background: #FDFBFAF0; }
       <div class="modal-title">📦 商品を選択</div>
       <button class="close-btn" onclick="closeModal('productModal')">×</button>
     </div>
-    <div style="margin-bottom: 12px;">
+    <div style="margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
       <input type="text" id="modalSearch" class="inp" placeholder="🔍 商品名・かな・バーコードで検索..." oninput="filterModalProducts()">
+      <label style="font-size: 12px; color: var(--t2); display: flex; align-items: center; gap: 6px; cursor: pointer;">
+        <input type="checkbox" id="modalShowDiscontinued" onchange="filterModalProducts()">
+        一時販売終了・販売終了の商品も表示する
+      </label>
     </div>
     <div id="modalProdGrid" class="prod-select-grid">
       <!-- Dynamic products inside modal -->
@@ -1093,22 +1097,32 @@ function openProductSelectModal() {
 
 function filterModalProducts() {
   var query = document.getElementById('modalSearch').value.toLowerCase().trim();
+  var showDisc = document.getElementById('modalShowDiscontinued') ? document.getElementById('modalShowDiscontinued').checked : false;
   var grid = document.getElementById('modalProdGrid');
   grid.innerHTML = '';
 
   var filtered = ALL_PRODUCTS.filter(function(p) {
+    if (!showDisc && (p.status === 'hidden' || p.status === 'discontinued' || p.status === 'temp_discontinued')) return false;
     if (!query) return true;
     return (p.name || '').toLowerCase().includes(query) || (p.name_kana || '').toLowerCase().includes(query) || (p.barcode || '').includes(query);
   });
 
   filtered.forEach(function(p) {
+    var statusBadge = '';
+    if (p.status === 'hidden' || p.status === 'temp_discontinued') {
+      statusBadge = '<div style="font-size:10px; font-weight:700; color:var(--amb); background:var(--abg); border-radius:4px; padding:1px 4px; margin-top:2px;">⏸️ 一時販売終了</div>';
+    } else if (p.status === 'discontinued') {
+      statusBadge = '<div style="font-size:10px; font-weight:700; color:var(--red); background:var(--rbg); border-radius:4px; padding:1px 4px; margin-top:2px;">⛔ 販売終了</div>';
+    }
+
     var card = document.createElement('div');
     card.className = 'prod-item-card';
     card.onclick = function() { selectProductForPurchase(p); };
     card.innerHTML = 
       (p.img_url ? '<img class="prod-item-img" src="' + escapeHtml(p.img_url) + '">' : '<div class="prod-item-img" style="display:flex;align-items:center;justify-content:center;font-size:18px;">🍬</div>') +
       '<div class="prod-item-name">' + escapeHtml(p.name) + '</div>' +
-      '<div class="prod-item-price">売価 ' + (p.sell_price || p.price || 0) + '円</div>';
+      '<div class="prod-item-price">売価 ' + (p.sell_price || p.price || 0) + '円</div>' +
+      statusBadge;
     grid.appendChild(card);
   });
 }
