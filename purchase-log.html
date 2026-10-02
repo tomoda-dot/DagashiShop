@@ -1044,7 +1044,8 @@ function renderExpiryList() {
           '<div>仕入数: <strong>' + (r.iri || 0) + '</strong> 個</div>' +
           '<div class="lot-price">' + (r.price || 0) + '円 <span class="unit-p">(' + (Math.round((r.tanka || 0) * 10) / 10) + '円/個)</span></div>' +
         '</div>' +
-        '<div style="margin-top: 10px; display: flex; justify-content: flex-end;">' +
+        '<div style="margin-top: 10px; display: flex; justify-content: space-between; gap: 8px;">' +
+          '<button class="btn btn-sub btn-sm" onclick="deleteRestockLot(' + r.id + ')" style="color:var(--red);">🗑️ 削除</button>' +
           (r.status === 'consumed' ? 
             '<button class="btn btn-sub btn-sm" onclick="toggleConsumed(' + r.id + ', false)">🔄 保持中に戻す</button>' :
             '<button class="btn btn-grn btn-sm" onclick="toggleConsumed(' + r.id + ', true)">✅ 使い切り・完売</button>') +
@@ -1053,6 +1054,18 @@ function renderExpiryList() {
 
     container.appendChild(card);
   });
+}
+
+function deleteRestockLot(restockId) {
+  if (!confirm('この仕入れロット記録をデータベースから削除してもよろしいですか？')) return;
+  GAS.deleteRestock(restockId)
+    .then(function() {
+      ALL_RESTOCK = ALL_RESTOCK.filter(function(x) { return x.id !== restockId; });
+      renderExpiryList();
+      renderPriceComparison();
+      alert('削除しました。');
+    })
+    .catch(function(err) { alert('削除エラー: ' + err.message); });
 }
 
 function parseStoreFromNm(nm) {
