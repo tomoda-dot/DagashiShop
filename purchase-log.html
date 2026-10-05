@@ -1306,10 +1306,46 @@ function openProductDetailModal(productId) {
           '<div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:700; flex-wrap:wrap; gap:8px;">' +
             '<div>📦 仕入数: ' + (r.iri || 0) + '個 &nbsp;|&nbsp; 💰 仕入額: ' + (r.price || 0) + '円 <span style="font-size:11px; font-weight:400; color:var(--t2);">(' + unitCost + '円/個)</span></div>' +
             '<div style="display:flex; gap:6px;">' +
+              '<button type="button" class="btn btn-sub btn-sm" onclick="toggleEditLotInModal(' + r.id + ')" style="padding:4px 10px; font-size:11px;">✏️ 編集</button>' +
               '<button type="button" class="btn btn-sub btn-sm" onclick="deleteRestockLotInModal(' + r.id + ', \'' + productId + '\')" style="color:var(--red); padding:4px 10px; font-size:11px;">🗑️ ロット削除</button>' +
               (r.status === 'consumed' ? 
                 '<button type="button" class="btn btn-sub btn-sm" onclick="toggleConsumedInModal(' + r.id + ', false, \'' + productId + '\')" style="padding:4px 10px; font-size:11px;">🔄 保持中に戻す</button>' :
                 '<button type="button" class="btn btn-grn btn-sm" onclick="toggleConsumedInModal(' + r.id + ', true, \'' + productId + '\')" style="padding:4px 10px; font-size:11px;">✅ 完売・使い切り</button>') +
+            '</div>' +
+          '</div>' +
+
+          '<!-- ロット編集用フォーム -->' +
+          '<div id="editLotBox_' + r.id + '" style="display:none; margin-top:10px; padding-top:10px; border-top:1.5px dashed var(--bd); background:var(--sf); padding:10px; border-radius:8px;">' +
+            '<div style="font-size:12px; font-weight:800; color:var(--tx); margin-bottom:8px;">✏️ 仕入れロット情報の編集</div>' +
+            '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; margin-bottom:10px;">' +
+              '<div>' +
+                '<label style="font-size:11px; font-weight:700; color:var(--t2);">店舗・仕入れ先</label>' +
+                '<select id="editLotStore_' + r.id + '" class="select" style="font-size:12px; padding:4px 8px; margin-top:2px;">' +
+                  ALL_SUPPLIERS.map(function(s) {
+                    return '<option value="' + escapeHtml(s.name) + '" ' + (s.name === storeName ? 'selected' : '') + '>' + escapeHtml(s.name) + '</option>';
+                  }).join('') +
+                '</select>' +
+              '</div>' +
+              '<div>' +
+                '<label style="font-size:11px; font-weight:700; color:var(--t2);">仕入れ日</label>' +
+                '<input type="date" id="editLotDate_' + r.id + '" class="inp" value="' + (restockDateStr !== '未記録' ? restockDateStr : '') + '" style="font-size:12px; padding:4px 8px; margin-top:2px;">' +
+              '</div>' +
+              '<div>' +
+                '<label style="font-size:11px; font-weight:700; color:var(--t2);">賞味期限</label>' +
+                '<input type="date" id="editLotExpDate_' + r.id + '" class="inp" value="' + (r.d || '') + '" style="font-size:12px; padding:4px 8px; margin-top:2px;">' +
+              '</div>' +
+              '<div>' +
+                '<label style="font-size:11px; font-weight:700; color:var(--t2);">仕入れ額 (円)</label>' +
+                '<input type="number" id="editLotBuyPrice_' + r.id + '" class="inp" value="' + (r.price || 0) + '" style="font-size:12px; padding:4px 8px; margin-top:2px;">' +
+              '</div>' +
+              '<div>' +
+                '<label style="font-size:11px; font-weight:700; color:var(--t2);">仕入れ数 (個数)</label>' +
+                '<input type="number" id="editLotIri_' + r.id + '" class="inp" value="' + (r.iri || 0) + '" style="font-size:12px; padding:4px 8px; margin-top:2px;">' +
+              '</div>' +
+            '</div>' +
+            '<div style="display:flex; justify-content:flex-end; gap:6px;">' +
+              '<button type="button" class="btn btn-sub btn-sm" onclick="toggleEditLotInModal(' + r.id + ')" style="font-size:11px; padding:4px 10px;">❌ キャンセル</button>' +
+              '<button type="button" class="btn btn-grn btn-sm" onclick="saveLotEditInModal(' + r.id + ', \'' + productId + '\')" style="font-size:11px; padding:4px 12px; font-weight:800;">💾 保存する</button>' +
             '</div>' +
           '</div>' +
         '</div>';
@@ -1346,6 +1382,56 @@ function openProductDetailModal(productId) {
 
   var modal = document.getElementById('productDetailModal');
   if (modal) modal.classList.add('open');
+}
+
+function toggleEditLotInModal(restockId) {
+  var box = document.getElementById('editLotBox_' + restockId);
+  if (!box) return;
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveLotEditInModal(restockId, productId) {
+  var r = ALL_RESTOCK.find(function(x) { return x.id === restockId; });
+  if (!r) return;
+
+  var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(productId); });
+  var prodName = prod ? prod.name : '';
+
+  var newStore = document.getElementById('editLotStore_' + restockId).value;
+  var newDate = document.getElementById('editLotDate_' + restockId).value;
+  var newExpDate = document.getElementById('editLotExpDate_' + restockId).value;
+  var newBuyPrice = parseFloat(document.getElementById('editLotBuyPrice_' + restockId).value) || 0;
+  var newIri = parseInt(document.getElementById('editLotIri_' + restockId).value) || 1;
+
+  var newNm = '【' + newStore + '】' + prodName;
+  var newTanka = newIri > 0 ? (newBuyPrice / newIri) : 0;
+
+  GAS.updateRestock({
+    id: restockId,
+    nm: newNm,
+    iri: newIri,
+    buy_price: newBuyPrice,
+    tanka: newTanka,
+    d: newExpDate,
+    date: newDate
+  })
+    .then(function() {
+      r.nm = newNm;
+      r.iri = newIri;
+      r.price = newBuyPrice;
+      r.tanka = newTanka;
+      r.d = newExpDate;
+      r.date = newDate;
+
+      renderStats();
+      renderExpiryList();
+      renderPriceComparison();
+      openProductDetailModal(productId);
+      alert('仕入れロット情報を更新しました！');
+    })
+    .catch(function(err) {
+      alert('更新エラー: ' + err.message);
+    });
 }
 
 function updateProductStatusInModal(productId, newStatus) {

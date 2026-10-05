@@ -336,6 +336,7 @@ GAS.updateRestock = function(r) {
     sell:      Number(r.sell) || 0,
     d:         r.d || null
   };
+  if (r.date !== undefined) body.date = r.date;
   return sbPatch('restock', 'id=eq.' + r.id, body).then(function() { return { ok: true }; });
 };
 
