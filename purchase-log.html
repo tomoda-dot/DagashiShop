@@ -978,6 +978,11 @@ function renderExpiryList() {
     if (filter === 'warn' && (days < 0 || days > 30 || r.status === 'consumed')) return false;
     if (filter === 'consumed' && r.status !== 'consumed') return false;
 
+    // 賞味期限を1週間(7日)以上過ぎたものはアクティブ・通常リストから自動非表示
+    if (filter !== 'expired' && r.status !== 'consumed' && days !== null && days < -7) {
+      return false;
+    }
+
     if (query) {
       var prod = ALL_PRODUCTS.find(function(p) { return p.id === r.productId; });
       var pName = prod ? prod.name.toLowerCase() : '';
@@ -987,15 +992,20 @@ function renderExpiryList() {
     return true;
   });
 
-  // Sort by expiry date ascending
+  // 仕入れ日・登録日順で昇順ソート（新しく仕入れたものがリストの下に追加される）
   filtered.sort(function(a, b) {
     if (a.status === 'consumed') return 1;
     if (b.status === 'consumed') return -1;
-    return new Date(a.d || '2099-12-31') - new Date(b.d || '2099-12-31');
+    var dateA = a.date || a.created_at || a.d || '';
+    var dateB = b.date || b.created_at || b.d || '';
+    if (dateA && dateB && dateA !== dateB) {
+      return new Date(dateA) - new Date(dateB);
+    }
+    return (a.id || 0) - (b.id || 0);
   });
 
   if (filtered.length === 0) {
-    container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--t3); background: var(--sf); border-radius: var(--r); border: 1px solid var(--bd);">該当するロットはありません</div>';
+    container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--t3); background: var(--sf); border-radius: var(--r); border: 1px solid var(--bd);">該当する仕入れロットはありません</div>';
     return;
   }
 
@@ -1026,29 +1036,28 @@ function renderExpiryList() {
     }
 
     var storeName = parseStoreFromNm(r.nm);
+    var restockDateStr = r.date || (r.created_at ? String(r.created_at).slice(0, 10) : '未記録');
+    if (restockDateStr && restockDateStr.includes('T')) restockDateStr = restockDateStr.slice(0, 10);
 
     var card = document.createElement('div');
     card.className = 'lot-card ' + cardClass;
     card.innerHTML = 
       '<div>' +
-        '<div class="lot-head">' +
+        '<div class="lot-head" style="display:flex; align-items:center; gap:10px;">' +
           (prod.img_url ? '<img class="lot-img" src="' + escapeHtml(prod.img_url) + '">' : '<div class="lot-img" style="display:flex;align-items:center;justify-content:center;font-size:20px;">🍬</div>') +
-          '<div>' +
-            '<div class="lot-title">' + escapeHtml(prod.name) + '</div>' +
-            '<div class="lot-store">🏬 ' + escapeHtml(storeName) + '</div>' +
-            '<div style="font-size:12px; font-weight:700; color:var(--tx); margin-top:2px;">📦 仕入数: <strong style="font-size:14px; color:var(--red);">' + (r.iri || 0) + '</strong> 個</div>' +
-            '<div style="margin-top:6px;">' +
-              '<span class="badge-exp ' + badgeClass + '">' + expText + '</span>' +
-              '<span style="font-size:11px; color:var(--t3); margin-left:6px;">(' + escapeHtml(r.d || '未設定') + ')</span>' +
-            '</div>' +
+          '<div style="flex:1; min-width:0;">' +
+            '<div class="lot-title" style="font-size:15px; font-weight:700;">' + escapeHtml(prod.name) + '</div>' +
+            '<div class="lot-store" style="font-size:12px; color:var(--t2);">🏬 ' + escapeHtml(storeName) + ' &nbsp;|&nbsp; 📦 仕入数: <strong style="font-size:13px; color:var(--tx);">' + (r.iri || 0) + '</strong> 個</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
       '<div>' +
-        '<div class="lot-info-row">' +
-          '<div class="lot-price">仕入額: ' + (r.price || 0) + '円 <span class="unit-p">(' + (Math.round((r.tanka || 0) * 10) / 10) + '円/個)</span></div>' +
+        '<div class="lot-info-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:10px 0 6px; border-top:1px dashed var(--bd); margin-top:8px;">' +
+          '<div style="font-size:12px; color:var(--t2);">📅 <strong>仕入日:</strong> ' + escapeHtml(restockDateStr) + '</div>' +
+          '<div class="lot-price" style="font-size:13px; font-weight:700;">💰 <strong>仕入額:</strong> ' + (r.price || 0) + '円 <span class="unit-p" style="font-size:11px; font-weight:400; color:var(--t2);">(' + (Math.round((r.tanka || 0) * 10) / 10) + '円/個)</span></div>' +
+          '<div style="font-size:12px; display:inline-flex; align-items:center; gap:4px;">⏳ <strong>賞味期限:</strong> <span class="badge-exp ' + badgeClass + '">' + expText + '</span> <span style="font-size:11px; color:var(--t3);">(' + escapeHtml(r.d || '未設定') + ')</span></div>' +
         '</div>' +
-        '<div style="margin-top: 10px; display: flex; justify-content: space-between; gap: 8px;">' +
+        '<div style="margin-top: 8px; display: flex; justify-content: space-between; gap: 8px;">' +
           '<button class="btn btn-sub btn-sm" onclick="deleteRestockLot(' + r.id + ')" style="color:var(--red);">🗑️ 削除</button>' +
           (r.status === 'consumed' ? 
             '<button class="btn btn-sub btn-sm" onclick="toggleConsumed(' + r.id + ', false)">🔄 保持中に戻す</button>' :
