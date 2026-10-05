@@ -683,6 +683,7 @@ tr:hover td { background: #FDFBFAF0; }
 var ALL_PRODUCTS = [];
 var ALL_RESTOCK = [];
 var ALL_SUPPLIERS = [];
+var ALL_PRODUCT_SUPPLIERS = [];
 var SHOPPING_LIST = JSON.parse(localStorage.getItem('dagashi_shop_memo') || '[]');
 var SELECTED_PRODUCT = null;
 
@@ -701,6 +702,7 @@ function initApp() {
       ALL_PRODUCTS = res.products || [];
       ALL_RESTOCK = res.restock || [];
       ALL_SUPPLIERS = res.suppliers || [];
+      ALL_PRODUCT_SUPPLIERS = res.productSuppliers || [];
 
       // Default stores if none exist
       if (ALL_SUPPLIERS.length === 0) {
@@ -1508,64 +1510,108 @@ function handleSavePurchase(e) {
 // ================= TAB 3: PRICE COMPARISON =================
 function renderPriceComparison() {
   var tbody = document.getElementById('priceTableBody');
+  if (!tbody) return;
   tbody.innerHTML = '';
 
   var query = document.getElementById('priceSearch').value.toLowerCase().trim();
 
-  var prodMap = {};
   ALL_PRODUCTS.forEach(function(p) {
     if (query && !p.name.toLowerCase().includes(query)) return;
-    prodMap[p.id] = { product: p, stores: {} };
-  });
 
-  ALL_RESTOCK.forEach(function(r) {
-    if (!prodMap[r.productId]) return;
-    var storeName = parseStoreFromNm(r.nm);
-    if (!prodMap[r.productId].stores[storeName]) {
-      prodMap[r.productId].stores[storeName] = [];
-    }
-    prodMap[r.productId].stores[storeName].push(r);
-  });
+    var storeMap = {};
 
-  Object.values(prodMap).forEach(function(item) {
-    var p = item.product;
-    var storesObj = item.stores;
-    var storeKeys = Object.keys(storesObj);
+    // 1. product_suppliers (仕入れ先・問屋マスタ) からのデータを抽出
+    var pSups = ALL_PRODUCT_SUPPLIERS.filter(function(ps) { return String(ps.product_id) === String(p.id); });
+    pSups.forEach(function(ps) {
+      var supObj = ALL_SUPPLIERS.find(function(s) { return String(s.id) === String(ps.supplier_id); });
+      var sName = supObj ? supObj.name : ('仕入先 #' + ps.supplier_id);
+      
+      var qty = ps.buy_qty || 1;
+      var rawPrice = ps.buy_price || 0;
+      var unitExcl = qty > 0 ? (rawPrice / qty) : 0;
+      // 8%税込の単価を算定（端数は小数点以下2桁で表示）
+      var unitIncl = Math.round(unitExcl * 1.08 * 100) / 100;
 
-    if (storeKeys.length === 0) return;
+      storeMap[sName] = {
+        name: sName,
+        unitPrice: unitIncl,
+        isPrimary: !!ps.is_primary,
+        source: 'master'
+      };
+    });
 
-    var cheapestStore = '';
-    var minTanka = 999999;
+    // 2. ALL_RESTOCK (仕入れ記録ログ) からのデータを抽出 (マスタ未登録の店舗補完)
+    var pRestocks = ALL_RESTOCK.filter(function(r) { return String(r.productId) === String(p.id); });
+    pRestocks.forEach(function(r) {
+      var sName = parseStoreFromNm(r.nm);
+      if (!sName || sName === '店舗未記入' || sName === '購入先未記録') return;
 
-    storeKeys.forEach(function(sName) {
-      var latest = storesObj[sName][0];
-      if (latest.tanka && latest.tanka < minTanka) {
-        minTanka = latest.tanka;
-        cheapestStore = sName;
+      if (!storeMap[sName]) {
+        var tanka = r.tanka || 0;
+        if (!tanka && r.iri > 0) {
+          tanka = (r.price / r.iri);
+        }
+        if (tanka > 0) {
+          storeMap[sName] = {
+            name: sName,
+            unitPrice: Math.round(tanka * 100) / 100,
+            isPrimary: false,
+            source: 'log'
+          };
+        }
       }
     });
 
-    var tr = document.createElement('tr');
-    
-    var storesHtml = storeKeys.map(function(sName) {
-      var latest = storesObj[sName][0];
-      var isCheapest = (sName === cheapestStore && storeKeys.length > 1);
+    // 3. マスタにもログにも無いが、商品情報の buy_price がある場合
+    var storeNames = Object.keys(storeMap);
+    if (storeNames.length === 0) {
+      if (p.buy_price && p.buy_price > 0) {
+        var qty = p.buy_qty || 1;
+        var unitExcl = qty > 0 ? (p.buy_price / qty) : 0;
+        var unitIncl = Math.round(unitExcl * 1.08 * 100) / 100;
+        storeMap['登録仕入れ先'] = {
+          name: '登録仕入れ先',
+          unitPrice: unitIncl,
+          isPrimary: true,
+          source: 'default'
+        };
+        storeNames = ['登録仕入れ先'];
+      } else {
+        return; // 価格データなし
+      }
+    }
+
+    // 最安仕入れ先を特定
+    var cheapestStore = '';
+    var minPrice = 999999;
+    storeNames.forEach(function(sName) {
+      var st = storeMap[sName];
+      if (st.unitPrice > 0 && st.unitPrice < minPrice) {
+        minPrice = st.unitPrice;
+        cheapestStore = st.name;
+      }
+    });
+
+    // 各店舗の仕入れ単価表示HTML
+    var storesHtml = storeNames.map(function(sName) {
+      var st = storeMap[sName];
+      var isCheapest = (st.name === cheapestStore && storeNames.length > 1);
+      var primaryTag = st.isPrimary ? ' <span style="color:#d9480f; font-weight:800; font-size:11px;">★ 主</span>' : '';
+      var cheapTag = isCheapest ? ' <span class="cheap-tag">最安</span>' : '';
       return '<div style="margin-bottom:4px;">' +
-        '<span class="store-pill">🏬 ' + escapeHtml(sName) + '</span> ' +
-        '<strong>' + (Math.round((latest.tanka || 0) * 10) / 10) + '円/個</strong> ' +
-        (isCheapest ? '<span class="cheap-tag">最安</span>' : '') +
+        '<span class="store-pill">🏬 ' + escapeHtml(st.name) + '</span> ' +
+        '<strong>' + st.unitPrice + '円/個</strong>' +
+        primaryTag + cheapTag +
         '</div>';
     }).join('');
 
-    var firstStore = storesObj[storeKeys[0]][0];
-    var curTanka = firstStore ? Math.round((firstStore.tanka || 0) * 10) / 10 : 0;
-
+    var tr = document.createElement('tr');
     tr.innerHTML = 
       '<td><strong>' + escapeHtml(p.name) + '</strong></td>' +
       '<td>' + (p.sell_price || p.price || 0) + ' 円</td>' +
       '<td>' + storesHtml + '</td>' +
       '<td><span style="font-weight:900; color:var(--grn);">' + escapeHtml(cheapestStore || '-') + '</span></td>' +
-      '<td><span style="font-weight:900; font-size:15px;">' + curTanka + ' 円/個</span></td>';
+      '<td><span style="font-weight:900; font-size:15px;">' + (minPrice < 999999 ? minPrice : '-') + ' 円/個</span></td>';
 
     tbody.appendChild(tr);
   });
