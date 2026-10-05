@@ -748,14 +748,23 @@ function updateSyncStatus(ok, msg) {
 }
 
 // ================= TAB SWITCHING =================
-function switchTab(tabId) {
+function switchTab(tabId, elem) {
   var tabs = document.querySelectorAll('.tab');
   var contents = document.querySelectorAll('.tab-content');
   tabs.forEach(function(t) { t.classList.remove('on'); });
   contents.forEach(function(c) { c.style.display = 'none'; });
 
-  document.getElementById(tabId).style.display = 'block';
-  event.currentTarget.classList.add('on');
+  var targetContent = document.getElementById(tabId);
+  if (targetContent) targetContent.style.display = 'block';
+
+  if (elem && elem.classList) {
+    elem.classList.add('on');
+  } else if (typeof event !== 'undefined' && event && event.currentTarget && event.currentTarget.classList) {
+    event.currentTarget.classList.add('on');
+  } else {
+    var btn = document.querySelector('.tab[onclick*="' + tabId + '"]');
+    if (btn && btn.classList) btn.classList.add('on');
+  }
 }
 
 // ================= CALCULATIONS, TAX & INSPECTION =================
@@ -975,7 +984,7 @@ function openAddStoreModal() {
 }
 
 function handleSaveStore(e) {
-  e.preventDefault();
+  if (e && e.preventDefault) e.preventDefault();
   var name = document.getElementById('newStoreName').value.trim();
   var fax = document.getElementById('newStoreFax').value.trim();
   var tel = document.getElementById('newStoreTel').value.trim();
@@ -1597,7 +1606,7 @@ function selectProductForPurchase(prod) {
 
 // ================= SAVE PURCHASE =================
 function handleSavePurchase(e) {
-  e.preventDefault();
+  if (e && e.preventDefault) e.preventDefault();
   
   var productId = parseInt(document.getElementById('formProductId').value);
   if (!productId || !SELECTED_PRODUCT) {
