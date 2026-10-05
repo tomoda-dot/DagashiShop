@@ -369,11 +369,13 @@ tr:hover td { background: #FDFBFAF0; }
         <input type="text" id="expSearch" class="inp" placeholder="🔍 商品名・店舗名で検索..." oninput="renderExpiryList()">
       </div>
       <select id="expFilter" class="select" style="width: auto;" onchange="renderExpiryList()">
-        <option value="active">🟢 保有中（賞味期限の近い順）</option>
-        <option value="expired">🚨 期限切れ・危険のみ</option>
-        <option value="warn">⚠️ 30日以内のみ</option>
+        <option value="active">🟢 保有中（通常販売）</option>
+        <option value="expired">🚨 期限切れ（赤カード）のみ</option>
+        <option value="warn">⚠️ 30日以内（オレンジカード）のみ</option>
+        <option value="hidden">⏸️ 一時販売終了のみ</option>
+        <option value="discontinued">❌ 販売終了（終売）のみ</option>
         <option value="consumed">⚪ 使い切り・完売済み</option>
-        <option value="all">🌐 全ての履歴</option>
+        <option value="all">🌐 全て表示（終売含む）</option>
       </select>
       <button class="btn btn-grn" onclick="switchTab('inputTab')">➕ 仕入れ検品を記録する</button>
     </div>
@@ -1053,6 +1055,9 @@ function renderExpiryList() {
     else if (topDays <= 14) cardClass = 'warning';
     else if (topDays <= 30) cardClass = 'warning';
 
+    if (prod.status === 'hidden') cardClass += ' st-hidden';
+    if (prod.status === 'discontinued') cardClass += ' st-disc';
+
     // 点線の下：賞味期限リスト（①、②、③...） - ボタンなしでスッキリ表示
     var listHtml = '';
     lots.forEach(function(r, idx) {
@@ -1087,9 +1092,16 @@ function renderExpiryList() {
         '</div>';
     });
 
+    var statusBadgeHtml = '';
+    if (prod.status === 'hidden') {
+      statusBadgeHtml = '<span style="font-size:11px; background:#FFF3BF; color:#F59F00; border:1px solid #FFE066; padding:2px 8px; border-radius:10px; font-weight:800; margin-left:6px;">⏸️ 一時販売終了</span>';
+    } else if (prod.status === 'discontinued') {
+      statusBadgeHtml = '<span style="font-size:11px; background:#FFE3E3; color:#E03131; border:1px solid #FFC9C9; padding:2px 8px; border-radius:10px; font-weight:800; margin-left:6px;">❌ 販売終了</span>';
+    }
+
     var card = document.createElement('div');
     card.className = 'lot-card ' + cardClass;
-    card.style.cssText = 'background:var(--sf); border-radius:var(--rl); padding:16px; border:1.5px solid var(--bd); margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,0.03); cursor:pointer; transition:transform 0.15s, box-shadow 0.15s;';
+    card.style.cssText = 'border-radius:var(--rl); padding:16px; margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,0.03); cursor:pointer; transition:transform 0.15s, box-shadow 0.15s;';
     card.onclick = function() {
       openProductDetailModal(pId);
     };
@@ -1100,7 +1112,7 @@ function renderExpiryList() {
         '<div class="lot-head" style="display:flex; align-items:flex-start; gap:12px;">' +
           (prod.img_url ? '<img class="lot-img" src="' + escapeHtml(prod.img_url) + '" style="width:54px; height:54px; border-radius:10px; object-fit:cover;">' : '<div class="lot-img" style="width:54px; height:54px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:24px; background:var(--bg); border:1px solid var(--bd);">🍬</div>') +
           '<div style="flex:1; min-width:0;">' +
-            '<div class="lot-title" style="font-size:16px; font-weight:800; color:var(--tx); margin-bottom:4px; line-height:1.3;">' + escapeHtml(prod.name) + '</div>' +
+            '<div class="lot-title" style="font-size:16px; font-weight:800; color:var(--tx); margin-bottom:4px; line-height:1.3;">' + escapeHtml(prod.name) + statusBadgeHtml + '</div>' +
             '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; font-size:12px; color:var(--t2); font-weight:700; margin-top:2px;">' +
               '<span>🏬 ' + escapeHtml(topStore) + '</span>' +
               '<button type="button" class="btn btn-sub btn-sm" onclick="event.stopPropagation(); openProductDetailModal(\'' + pId + '\')" style="font-size:11px; padding:3px 10px; border-radius:12px; font-weight:700; white-space:nowrap;">🔍 詳細・編集 ➔</button>' +
@@ -1206,9 +1218,10 @@ function openProductDetailModal(productId) {
   }
 
   var sellPrice = prod ? (prod.sell_price || prod.price || 0) : 0;
+  var pStatus = prod ? (prod.status || 'active') : 'active';
 
   bodyEl.innerHTML = 
-    '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; background:var(--sf); border:1.5px solid var(--bd); padding:14px; border-radius:var(--r); flex-wrap:wrap; gap:10px;">' +
+    '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; background:var(--sf); border:1.5px solid var(--bd); padding:14px; border-radius:var(--r); flex-wrap:wrap; gap:10px;">' +
       '<div style="display:flex; align-items:center; gap:12px;">' +
         (prod && prod.img_url ? '<img src="' + escapeHtml(prod.img_url) + '" style="width:50px; height:50px; border-radius:10px; object-fit:cover;">' : '<div style="width:50px; height:50px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:22px; background:var(--bg); border:1px solid var(--bd);">🍬</div>') +
         '<div>' +
@@ -1219,11 +1232,36 @@ function openProductDetailModal(productId) {
       '<button type="button" class="btn btn-blu btn-sm" onclick="openAddRestockForProduct(\'' + productId + '\')" style="font-weight:800; font-size:12px; padding:8px 14px;">➕ 仕入を新規登録</button>' +
     '</div>' +
 
+    '<!-- 販売ステータス（一時終売・終売設定） -->' +
+    '<div style="margin-bottom:16px; padding:10px 14px; background:var(--bg); border:1px solid var(--bd); border-radius:var(--r); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">' +
+      '<div style="font-size:13px; font-weight:800; color:var(--tx);">⚙️ 販売状況（ステータス設定）:</div>' +
+      '<div style="display:flex; gap:6px;">' +
+        '<button type="button" class="btn btn-sm ' + (pStatus === 'active' ? 'btn-grn' : 'btn-sub') + '" onclick="updateProductStatusInModal(\'' + productId + '\', \'active\')">🟢 通常販売</button>' +
+        '<button type="button" class="btn btn-sm ' + (pStatus === 'hidden' ? 'btn-amb' : 'btn-sub') + '" onclick="updateProductStatusInModal(\'' + productId + '\', \'hidden\')">⏸️ 一時販売終了</button>' +
+        '<button type="button" class="btn btn-sm ' + (pStatus === 'discontinued' ? 'btn-red' : 'btn-sub') + '" onclick="updateProductStatusInModal(\'' + productId + '\', \'discontinued\')">❌ 販売終了</button>' +
+      '</div>' +
+    '</div>' +
+
     '<div style="font-size:13px; font-weight:800; color:var(--tx); margin-bottom:10px;">📦 保有仕入れロット一覧・個別に編集/削除</div>' +
     lotsTableHtml;
 
   var modal = document.getElementById('productDetailModal');
   if (modal) modal.classList.add('open');
+}
+
+function updateProductStatusInModal(productId, newStatus) {
+  var prod = ALL_PRODUCTS.find(function(p) { return p.id === productId; });
+  if (!prod) return;
+
+  GAS.updateProduct({ id: productId, status: newStatus })
+    .then(function() {
+      prod.status = newStatus;
+      var statusName = newStatus === 'active' ? '通常販売' : (newStatus === 'hidden' ? '一時販売終了' : '販売終了');
+      alert('商品「' + prod.name + '」のステータスを「' + statusName + '」に変更しました！');
+      renderExpiryList();
+      openProductDetailModal(productId);
+    })
+    .catch(function(err) { alert('エラー: ' + err.message); });
 }
 
 function deleteRestockLotInModal(restockId, productId) {
