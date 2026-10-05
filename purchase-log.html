@@ -1413,6 +1413,7 @@ function saveLotEditInModal(restockId, productId) {
     buy_price: newBuyPrice,
     tanka: newTanka,
     d: newExpDate,
+    applied_at: newDate,
     date: newDate
   })
     .then(function() {
@@ -1421,6 +1422,7 @@ function saveLotEditInModal(restockId, productId) {
       r.price = newBuyPrice;
       r.tanka = newTanka;
       r.d = newExpDate;
+      r.applied_at = newDate;
       r.date = newDate;
 
       renderStats();

@@ -336,8 +336,20 @@ GAS.updateRestock = function(r) {
     sell:      Number(r.sell) || 0,
     d:         r.d || null
   };
-  if (r.date !== undefined) body.date = r.date;
-  return sbPatch('restock', 'id=eq.' + r.id, body).then(function() { return { ok: true }; });
+  var dateVal = r.applied_at || r.date;
+  if (dateVal) {
+    body.applied_at = dateVal;
+  }
+
+  return sbPatch('restock', 'id=eq.' + r.id, body)
+    .catch(function(err) {
+      if (err && err.message && err.message.includes('PGRST204')) {
+        delete body.applied_at;
+        return sbPatch('restock', 'id=eq.' + r.id, body);
+      }
+      throw err;
+    })
+    .then(function() { return { ok: true }; });
 };
 
 // ─ deleteRestock ─
