@@ -1027,11 +1027,16 @@ function renderExpiryList() {
   Object.keys(productMap).forEach(function(pId) {
     var lots = productMap[pId];
 
-    // 賞味期限が近い順に並び替え（①番が最も期限が近い＝現在のメイン情報）
+    // 仕入れ順（仕入れ日時・登録ID順）で並び替え（①番が最も古い仕入れ＝現在のメイン情報）
     lots.sort(function(a, b) {
       if (a.status === 'consumed') return 1;
       if (b.status === 'consumed') return -1;
-      return new Date(a.d || '2099-12-31') - new Date(b.d || '2099-12-31');
+      var dateA = a.date || a.created_at || '';
+      var dateB = b.date || b.created_at || '';
+      if (dateA && dateB && dateA !== dateB) {
+        return new Date(dateA) - new Date(dateB);
+      }
+      return (a.id || 0) - (b.id || 0);
     });
 
     var topLot = lots[0]; // ①番のロット
@@ -1114,7 +1119,7 @@ function renderExpiryList() {
       '<!-- 点線の下：賞味期限リスト -->' +
       '<div>' +
         '<div style="font-size:11px; font-weight:800; color:var(--t3); margin-bottom:6px;">' +
-          '<span>📅 賞味期限リスト （期限が近い順）</span>' +
+          '<span>📅 賞味期限リスト （仕入れ順）</span>' +
         '</div>' +
         '<div class="exp-lot-list">' +
           listHtml +
@@ -1132,7 +1137,12 @@ function openProductDetailModal(productId) {
   lots.sort(function(a, b) {
     if (a.status === 'consumed') return 1;
     if (b.status === 'consumed') return -1;
-    return new Date(a.d || '2099-12-31') - new Date(b.d || '2099-12-31');
+    var dateA = a.date || a.created_at || '';
+    var dateB = b.date || b.created_at || '';
+    if (dateA && dateB && dateA !== dateB) {
+      return new Date(dateA) - new Date(dateB);
+    }
+    return (a.id || 0) - (b.id || 0);
   });
 
   var titleEl = document.getElementById('pdetModalTitle');
