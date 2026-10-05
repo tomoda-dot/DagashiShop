@@ -1095,12 +1095,10 @@ function renderExpiryList() {
         '<div class="lot-head" style="display:flex; align-items:flex-start; gap:12px;">' +
           (prod.img_url ? '<img class="lot-img" src="' + escapeHtml(prod.img_url) + '" style="width:54px; height:54px; border-radius:10px; object-fit:cover;">' : '<div class="lot-img" style="width:54px; height:54px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:24px; background:var(--bg); border:1px solid var(--bd);">🍬</div>') +
           '<div style="flex:1; min-width:0;">' +
-            '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">' +
-              '<div class="lot-title" style="font-size:16px; font-weight:800; color:var(--tx); margin-bottom:2px;">' + escapeHtml(prod.name) + '</div>' +
-              '<button type="button" class="btn btn-sub btn-sm" onclick="event.stopPropagation(); openProductDetailModal(\'' + pId + '\')" style="font-size:11px; padding:4px 10px; border-radius:12px; font-weight:700; white-space:nowrap;">🔍 詳細・編集 ➔</button>' +
-            '</div>' +
-            '<div style="display:flex; flex-wrap:wrap; gap:12px; font-size:12px; color:var(--t2); font-weight:700; margin-top:2px;">' +
+            '<div class="lot-title" style="font-size:16px; font-weight:800; color:var(--tx); margin-bottom:4px; line-height:1.3;">' + escapeHtml(prod.name) + '</div>' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; font-size:12px; color:var(--t2); font-weight:700; margin-top:2px;">' +
               '<span>🏬 ' + escapeHtml(topStore) + '</span>' +
+              '<button type="button" class="btn btn-sub btn-sm" onclick="event.stopPropagation(); openProductDetailModal(\'' + pId + '\')" style="font-size:11px; padding:3px 10px; border-radius:12px; font-weight:700; white-space:nowrap;">🔍 詳細・編集 ➔</button>' +
             '</div>' +
             '<div style="display:flex; flex-wrap:wrap; gap:12px; font-size:13px; font-weight:800; margin-top:4px; color:var(--tx);">' +
               '<span>💰 仕入額: <strong style="color:var(--red);">' + (topLot.price || 0) + '円</strong> <span style="font-size:11px; font-weight:500; color:var(--t2);">(' + topUnitCost + '円/個)</span></span>' +
