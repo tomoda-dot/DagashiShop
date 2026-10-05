@@ -1472,6 +1472,9 @@ function deleteRestockLotInModal(restockId, productId) {
 }
 
 function toggleConsumedInModal(restockId, isConsumed, productId) {
+  var msg = isConsumed ? 'この仕入れロット記録を「完売・使い切り」に変更してもよろしいですか？' : 'この仕入れロット記録を「保持中」に戻してもよろしいですか？';
+  if (!confirm(msg)) return;
+
   var status = isConsumed ? 'consumed' : 'active';
   GAS.updateRestockStatus(restockId, status)
     .then(function() {
@@ -1514,6 +1517,9 @@ function parseStoreFromNm(nm) {
 }
 
 function toggleConsumed(restockId, isConsumed) {
+  var msg = isConsumed ? 'この仕入れロット記録を「完売・使い切り」に変更してもよろしいですか？' : 'この仕入れロット記録を「保持中」に戻してもよろしいですか？';
+  if (!confirm(msg)) return;
+
   var newStatus = isConsumed ? 'consumed' : 'pending';
   sbPatch('restock', 'id=eq.' + restockId, { status: newStatus })
     .then(function() {
