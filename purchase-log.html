@@ -1466,8 +1466,9 @@ function toggleConsumedInModal(restockId, isConsumed, productId) {
   var status = isConsumed ? 'consumed' : 'active';
   GAS.updateRestockStatus(restockId, status)
     .then(function() {
-      var item = ALL_RESTOCK.find(function(x) { return x.id === restockId; });
+      var item = ALL_RESTOCK.find(function(x) { return String(x.id) === String(restockId); });
       if (item) item.status = status;
+      renderStats();
       renderExpiryList();
       openProductDetailModal(productId);
     })

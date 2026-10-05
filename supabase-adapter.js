@@ -109,7 +109,7 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'getMakers','saveMakers',
     'getPettyCashData','addPettyCashRow','deletePettyCashRow',
     'getProductSuppliers','saveProductSupplier','deleteProductSupplier','getAllProductSuppliers',
-    'updateRestock','deleteRestock','setAllStockToTen'
+    'updateRestock','updateRestockStatus','deleteRestock','setAllStockToTen'
   ];
   fns.forEach(function(name) {
     GasProxy.prototype[name] = function(arg1, arg2) {
@@ -349,6 +349,12 @@ GAS.updateRestock = function(r) {
       }
       throw err;
     })
+    .then(function() { return { ok: true }; });
+};
+
+// ─ updateRestockStatus ─
+GAS.updateRestockStatus = function(id, status) {
+  return sbPatch('restock', 'id=eq.' + id, { status: status })
     .then(function() { return { ok: true }; });
 };
 
