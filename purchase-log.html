@@ -1185,8 +1185,8 @@ function renderExpiryList() {
 }
 
 function openProductDetailModal(productId) {
-  var prod = ALL_PRODUCTS.find(function(p) { return p.id === productId; });
-  var lots = ALL_RESTOCK.filter(function(r) { return r.productId === productId; });
+  var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(productId); });
+  var lots = ALL_RESTOCK.filter(function(r) { return String(r.productId) === String(productId); });
 
   lots.sort(function(a, b) {
     if (a.status === 'consumed') return 1;
@@ -1292,7 +1292,7 @@ function openProductDetailModal(productId) {
 }
 
 function updateProductStatusInModal(productId, newStatus) {
-  var prod = ALL_PRODUCTS.find(function(p) { return p.id === productId; });
+  var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(productId); });
   if (!prod) return;
 
   GAS.updateProduct({ id: productId, status: newStatus })
@@ -1331,8 +1331,8 @@ function toggleConsumedInModal(restockId, isConsumed, productId) {
 
 function openAddRestockForProduct(productId) {
   closeModal('productDetailModal');
-  switchTab('entryTab');
-  var prod = ALL_PRODUCTS.find(function(p) { return p.id === productId; });
+  switchTab('inputTab');
+  var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(productId); });
   if (prod) selectProduct(prod);
 }
 
