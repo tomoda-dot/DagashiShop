@@ -53,7 +53,7 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* App Container */
-#app { display: none; max-width: 1000px; margin: 0 auto; padding: 0 1rem; }
+#app { display: none; max-width: 1350px; width: 96%; margin: 0 auto; padding: 0 1rem; }
 
 /* Sticky Header */
 header {
@@ -422,7 +422,7 @@ tr:hover td { background: #FDFBFAF0; }
           <!-- Store Select -->
           <div class="form-group">
             <label>購入店舗・仕入れ先 <span class="req">*</span></label>
-            <select id="formStore" class="select" required>
+            <select id="formStore" class="select" onchange="handleFormStoreChange()" required>
               <option value="">-- 購入店舗を選択 --</option>
             </select>
           </div>
@@ -888,6 +888,59 @@ function getDaysRemaining(expDateStr) {
 }
 
 // ================= STORE DROPDOWN & TABLE =================
+function getStorePillStyle(storeName) {
+  if (!storeName || storeName === '店舗未記入' || storeName === '購入先未記録') {
+    return 'background:#F3F4F6; color:#6B7280; border:1px solid #D1D5DB;';
+  }
+  
+  var palette = [
+    { bg: '#EBF8FF', color: '#1A56DB', border: '#BEE3F8' }, // Blue
+    { bg: '#ECFDF5', color: '#047857', border: '#A7F3D0' }, // Emerald
+    { bg: '#FAF5FF', color: '#6B46C1', border: '#E9D8FD' }, // Purple
+    { bg: '#FFF7ED', color: '#C2410C', border: '#FFEDD5' }, // Orange
+    { bg: '#F0FDFA', color: '#0F766E', border: '#99F6E4' }, // Teal
+    { bg: '#FFF1F2', color: '#BE123C', border: '#FECDD3' }, // Rose Pink
+    { bg: '#FEF3C7', color: '#92400E', border: '#FDE68A' }, // Amber
+    { bg: '#EEF2FF', color: '#4338CA', border: '#C7D2FE' }  // Indigo
+  ];
+
+  var hash = 0;
+  for (var i = 0; i < storeName.length; i++) {
+    hash = (hash << 5) - hash + storeName.charCodeAt(i);
+    hash |= 0;
+  }
+  var index = Math.abs(hash) % palette.length;
+  var c = palette[index];
+  return 'background:' + c.bg + '; color:' + c.color + '; border:1px solid ' + c.border + ';';
+}
+
+function handleFormStoreChange() {
+  if (!SELECTED_PRODUCT) return;
+  var storeName = document.getElementById('formStore').value;
+  if (!storeName) return;
+
+  var supObj = ALL_SUPPLIERS.find(function(s) { return s.name === storeName; });
+  if (supObj) {
+    var ps = ALL_PRODUCT_SUPPLIERS.find(function(item) {
+      return String(item.product_id) === String(SELECTED_PRODUCT.id) && String(item.supplier_id) === String(supObj.id);
+    });
+
+    if (ps) {
+      if (ps.buy_qty) document.getElementById('formIri').value = ps.buy_qty;
+      if (ps.buy_price) document.getElementById('formBuyPrice').value = ps.buy_price;
+    } else {
+      var pastRestock = ALL_RESTOCK.find(function(r) {
+        return String(r.productId) === String(SELECTED_PRODUCT.id) && parseStoreFromNm(r.nm) === storeName;
+      });
+      if (pastRestock) {
+        if (pastRestock.iri) document.getElementById('formIri').value = pastRestock.iri;
+        if (pastRestock.price) document.getElementById('formBuyPrice').value = pastRestock.price;
+      }
+    }
+    calcTanka();
+  }
+}
+
 function populateStoreDropdown() {
   var sel = document.getElementById('formStore');
   sel.innerHTML = '<option value="">-- 購入店舗を選択 --</option>';
@@ -1161,7 +1214,7 @@ function renderExpiryList() {
           '<div style="flex:1; min-width:0;">' +
             '<div class="lot-title" style="font-size:16px; font-weight:800; color:var(--tx); margin-bottom:4px; line-height:1.3;">' + escapeHtml(prod.name) + statusBadgeHtml + '</div>' +
             '<div style="font-size:12px; color:var(--t2); font-weight:700; margin-top:2px;">' +
-              '<span>🏬 ' + escapeHtml(topStore) + '</span>' +
+              '<span class="store-pill" style="' + getStorePillStyle(topStore) + ' font-size:11px; padding:2px 8px;">🏬 ' + escapeHtml(topStore) + '</span>' +
             '</div>' +
             '<div style="display:flex; flex-wrap:wrap; gap:12px; font-size:13px; font-weight:800; margin-top:4px; color:var(--tx);">' +
               '<span>💰 仕入額: <strong style="color:var(--red);">' + (topLot.price || 0) + '円</strong> <span style="font-size:11px; font-weight:500; color:var(--t2);">(' + topUnitCost + '円/個)</span></span>' +
@@ -1245,7 +1298,7 @@ function openProductDetailModal(productId) {
           '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">' +
             '<div style="display:flex; align-items:center; gap:8px;">' +
               '<span style="font-weight:900; color:var(--red); font-size:15px;">' + numLabel + '</span>' +
-              '<span style="font-weight:800; font-size:13px; color:var(--tx);">🏬 ' + escapeHtml(storeName) + '</span>' +
+              '<span class="store-pill" style="' + getStorePillStyle(storeName) + ' font-size:11px; padding:2px 8px;">🏬 ' + escapeHtml(storeName) + '</span>' +
               '<span style="font-size:12px; color:var(--t2);">| 📅 仕入日: ' + escapeHtml(restockDateStr) + '</span>' +
             '</div>' +
             '<span class="badge-exp ' + badgeClass + '" style="font-size:11px;">' + expText + ' (' + (r.d || '未設定') + ')</span>' +
@@ -1411,7 +1464,6 @@ function selectProductForPurchase(prod) {
   SELECTED_PRODUCT = prod;
   document.getElementById('formProductId').value = prod.id;
   document.getElementById('selProdName').textContent = prod.name;
-  document.getElementById('selProdMeta').textContent = '現在の店頭売価: ' + (prod.sell_price || prod.price || 0) + '円 / 登録入数: ' + (prod.buy_qty || 30) + '個';
   
   var img = document.getElementById('selProdImg');
   if (prod.img_url) {
@@ -1421,8 +1473,29 @@ function selectProductForPurchase(prod) {
     img.style.display = 'none';
   }
 
-  if (prod.buy_qty) document.getElementById('formIri').value = prod.buy_qty;
-  if (prod.buy_price) document.getElementById('formBuyPrice').value = prod.buy_price;
+  // 1. 主な仕入れ先マスタ（is_primary）があれば優先選択
+  var primaryPs = ALL_PRODUCT_SUPPLIERS.find(function(ps) {
+    return String(ps.product_id) === String(prod.id) && ps.is_primary;
+  });
+  if (!primaryPs) {
+    primaryPs = ALL_PRODUCT_SUPPLIERS.find(function(ps) {
+      return String(ps.product_id) === String(prod.id);
+    });
+  }
+
+  if (primaryPs) {
+    var supObj = ALL_SUPPLIERS.find(function(s) { return String(s.id) === String(primaryPs.supplier_id); });
+    if (supObj) {
+      document.getElementById('formStore').value = supObj.name;
+      if (primaryPs.buy_qty) document.getElementById('formIri').value = primaryPs.buy_qty;
+      if (primaryPs.buy_price) document.getElementById('formBuyPrice').value = primaryPs.buy_price;
+    }
+  } else {
+    if (prod.buy_qty) document.getElementById('formIri').value = prod.buy_qty;
+    if (prod.buy_price) document.getElementById('formBuyPrice').value = prod.buy_price;
+  }
+
+  document.getElementById('selProdMeta').textContent = '現在の店頭売価: ' + (prod.sell_price || prod.price || 0) + '円 / 登録入数: ' + (document.getElementById('formIri').value || 30) + '個';
   document.getElementById('formSellPrice').value = prod.sell_price || prod.price || 0;
 
   calcTanka();
