@@ -211,17 +211,19 @@ header {
 .table-wrap { overflow-x: auto; border: 1px solid var(--bd); border-radius: var(--r); background: var(--sf); }
 table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
 th { background: #F8F4EE; padding: 12px 14px; font-weight: 700; color: var(--t2); border-bottom: 1px solid var(--bd); white-space: nowrap; }
-td { padding: 12px 14px; border-bottom: 1px solid var(--bd); color: var(--tx); vertical-align: middle; }
+td { padding: 12px 14px; border-bottom: 1px solid var(--bd); color: var(--tx); vertical-align: middle; white-space: nowrap; }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: #FDFBFAF0; }
 
 .store-pill {
   display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px;
   background: var(--bbg); color: var(--blu); font-weight: 700; font-size: 11px; border: 1px solid #D0E1F9;
+  white-space: nowrap;
 }
 .cheap-tag {
   background: #FFF3CD; color: #856404; border: 1px solid #FFEEBA; font-size: 10px;
   font-weight: 900; padding: 1px 6px; border-radius: 4px; margin-left: 4px;
+  white-space: nowrap;
 }
 
 /* Form Layout */
@@ -1596,22 +1598,22 @@ function renderPriceComparison() {
     var storesHtml = storeNames.map(function(sName) {
       var st = storeMap[sName];
       var isCheapest = (st.name === cheapestStore && storeNames.length > 1);
-      var primaryTag = st.isPrimary ? ' <span style="color:#d9480f; font-weight:800; font-size:11px;">★ 主</span>' : '';
-      var cheapTag = isCheapest ? ' <span class="cheap-tag">最安</span>' : '';
-      return '<div style="margin-bottom:4px;">' +
-        '<span class="store-pill">🏬 ' + escapeHtml(st.name) + '</span> ' +
-        '<strong>' + st.unitPrice + '円/個</strong>' +
+      var primaryTag = st.isPrimary ? ' <span style="color:#d9480f; font-weight:800; font-size:11px; white-space:nowrap;">★ 主</span>' : '';
+      var cheapTag = isCheapest ? ' <span class="cheap-tag" style="white-space:nowrap;">最安</span>' : '';
+      return '<div style="margin-bottom:4px; white-space:nowrap; display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">' +
+        '<span class="store-pill" style="white-space:nowrap;">🏬 ' + escapeHtml(st.name) + '</span> ' +
+        '<strong style="white-space:nowrap;">' + st.unitPrice + '円/個</strong>' +
         primaryTag + cheapTag +
         '</div>';
     }).join('');
 
     var tr = document.createElement('tr');
     tr.innerHTML = 
-      '<td><strong>' + escapeHtml(p.name) + '</strong></td>' +
-      '<td>' + (p.sell_price || p.price || 0) + ' 円</td>' +
-      '<td>' + storesHtml + '</td>' +
-      '<td><span style="font-weight:900; color:var(--grn);">' + escapeHtml(cheapestStore || '-') + '</span></td>' +
-      '<td><span style="font-weight:900; font-size:15px;">' + (minPrice < 999999 ? minPrice : '-') + ' 円/個</span></td>';
+      '<td style="white-space:nowrap;"><strong>' + escapeHtml(p.name) + '</strong></td>' +
+      '<td style="white-space:nowrap;">' + (p.sell_price || p.price || 0) + ' 円</td>' +
+      '<td style="white-space:nowrap;">' + storesHtml + '</td>' +
+      '<td style="white-space:nowrap;"><span style="font-weight:900; color:var(--grn); white-space:nowrap;">' + escapeHtml(cheapestStore || '-') + '</span></td>' +
+      '<td style="white-space:nowrap;"><span style="font-weight:900; font-size:15px; white-space:nowrap;">' + (minPrice < 999999 ? minPrice : '-') + ' 円/個</span></td>';
 
     tbody.appendChild(tr);
   });
