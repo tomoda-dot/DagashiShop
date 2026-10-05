@@ -178,7 +178,7 @@ header {
 .lot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
 .lot-card {
   background: var(--sf); border: 1px solid var(--bd); border-radius: var(--r);
-  padding: 14px; position: relative; transition: all 0.2s; display: flex; flex-direction: column; justify-content: space-between;
+  padding: 14px; position: relative; transition: all 0.2s; display: flex; flex-direction: column; justify-content: flex-start;
 }
 .lot-card:hover { border-color: var(--bh); box-shadow: var(--shadow); }
 .lot-card.expired { border-left: 5px solid var(--red); background: var(--rbg); }
@@ -988,19 +988,32 @@ function renderExpiryList() {
   // 1. アクティブ/フィルタ対象の仕入れロットを抽出
   var activeRestock = ALL_RESTOCK.filter(function(r) {
     var days = getDaysRemaining(r.d);
-    
-    if (filter === 'active' && r.status === 'consumed') return false;
-    if (filter === 'expired' && (days >= 0 || r.status === 'consumed')) return false;
-    if (filter === 'warn' && (days < 0 || days > 30 || r.status === 'consumed')) return false;
-    if (filter === 'consumed' && r.status !== 'consumed') return false;
+    var prod = ALL_PRODUCTS.find(function(p) { return p.id === r.productId; });
+    var pStatus = prod ? (prod.status || 'active') : 'active';
 
-    // 賞味期限を1週間(7日)以上過ぎたものは自動非表示 (expiredタブ以外)
-    if (filter !== 'expired' && r.status !== 'consumed' && days !== null && days < -7) {
+    if (filter === 'active') {
+      if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
+      if (r.status === 'consumed') return false;
+    } else if (filter === 'expired') {
+      if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
+      if (days >= 0 || r.status === 'consumed') return false;
+    } else if (filter === 'warn') {
+      if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
+      if (days < 0 || days > 30 || r.status === 'consumed') return false;
+    } else if (filter === 'consumed') {
+      if (r.status !== 'consumed') return false;
+    } else if (filter === 'hidden') {
+      if (pStatus !== 'hidden') return false;
+    } else if (filter === 'discontinued') {
+      if (pStatus !== 'discontinued') return false;
+    }
+
+    // 賞味期限を1週間(7日)以上過ぎたものは自動非表示 (expired/hidden/discontinued/allタブ以外)
+    if (filter !== 'expired' && filter !== 'hidden' && filter !== 'discontinued' && filter !== 'all' && r.status !== 'consumed' && days !== null && days < -7) {
       return false;
     }
 
     if (query) {
-      var prod = ALL_PRODUCTS.find(function(p) { return p.id === r.productId; });
       var pName = prod ? prod.name.toLowerCase() : '';
       var rNm = (r.nm || '').toLowerCase();
       if (!pName.includes(query) && !rNm.includes(query)) return false;
@@ -1017,6 +1030,28 @@ function renderExpiryList() {
     }
     productMap[key].push(r);
   });
+
+  // 一時販売終了・販売終了・全て表示の場合、仕入れロットが現在無い対象商品もリストアップ
+  if (filter === 'hidden' || filter === 'discontinued' || filter === 'all') {
+    ALL_PRODUCTS.forEach(function(p) {
+      var pSt = p.status || 'active';
+      if ((filter === 'hidden' && pSt === 'hidden') ||
+          (filter === 'discontinued' && pSt === 'discontinued') ||
+          (filter === 'all')) {
+        if (!productMap[p.id]) {
+          if (query && !p.name.toLowerCase().includes(query)) return;
+          productMap[p.id] = [{
+            productId: p.id,
+            nm: p.name,
+            d: '',
+            tanka: p.buy_price || 0,
+            price: p.buy_price || 0,
+            status: 'active'
+          }];
+        }
+      }
+    });
+  }
 
   if (Object.keys(productMap).length === 0) {
     container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--t3); background: var(--sf); border-radius: var(--r); border: 1px solid var(--bd);">該当する賞味期限・仕入れデータはありません</div>';
@@ -1044,50 +1079,58 @@ function renderExpiryList() {
     var topLot = lots[0]; // ①番のロット
     var prod = ALL_PRODUCTS.find(function(p) { return p.id === topLot.productId; }) || { name: topLot.nm || '商品名なし', img_url: '', price: 0 };
     
-    var topDays = getDaysRemaining(topLot.d);
+    var topDays = topLot.d ? getDaysRemaining(topLot.d) : 999;
     var topStore = parseStoreFromNm(topLot.nm);
     var topUnitCost = Math.round((topLot.tanka || 0) * 10) / 10;
     var sellPrice = prod.sell_price || prod.price || 0;
 
     var cardClass = 'good';
     if (topLot.status === 'consumed') cardClass = 'consumed';
-    else if (topDays < 0) cardClass = 'expired';
-    else if (topDays <= 14) cardClass = 'warning';
-    else if (topDays <= 30) cardClass = 'warning';
+    else if (topLot.d && topDays < 0) cardClass = 'expired';
+    else if (topLot.d && topDays <= 14) cardClass = 'warning';
+    else if (topLot.d && topDays <= 30) cardClass = 'warning';
 
     if (prod.status === 'hidden') cardClass += ' st-hidden';
     if (prod.status === 'discontinued') cardClass += ' st-disc';
 
-    // 点線の下：賞味期限リスト（①、②、③...） - ボタンなしでスッキリ表示
+    // 点線の下：賞味期限リスト（①、②、③...）
     var listHtml = '';
     lots.forEach(function(r, idx) {
       var numLabel = circNums[idx] || ('(' + (idx + 1) + ')');
-      var dDays = getDaysRemaining(r.d);
       var badgeClass = 'grn';
-      var expText = 'あと ' + dDays + ' 日';
+      var expText = '';
+      var expFormatted = '記録なし';
 
-      if (r.status === 'consumed') {
+      if (!r.d) {
         badgeClass = 'gray';
-        expText = '完売・使い切り';
-      } else if (dDays < 0) {
-        badgeClass = 'red';
-        expText = '🚨 期限切れ (' + Math.abs(dDays) + '日前)';
-      } else if (dDays <= 14) {
-        badgeClass = 'red';
-        expText = '⚠️ あと ' + dDays + ' 日';
-      } else if (dDays <= 30) {
-        badgeClass = 'amb';
-        expText = '⏳ あと ' + dDays + ' 日';
+        expText = '仕入れ記録なし';
+        expFormatted = '未登録';
+      } else {
+        var dDays = getDaysRemaining(r.d);
+        expText = 'あと ' + dDays + ' 日';
+        expFormatted = r.d.replace(/-/g, '/');
+
+        if (r.status === 'consumed') {
+          badgeClass = 'gray';
+          expText = '完売・使い切り';
+        } else if (dDays < 0) {
+          badgeClass = 'red';
+          expText = '🚨 期限切れ (' + Math.abs(dDays) + '日前)';
+        } else if (dDays <= 14) {
+          badgeClass = 'red';
+          expText = '⚠️ あと ' + dDays + ' 日';
+        } else if (dDays <= 30) {
+          badgeClass = 'amb';
+          expText = '⏳ あと ' + dDays + ' 日';
+        }
       }
 
-      var expFormatted = r.d ? r.d.replace(/-/g, '/') : '未設定';
-
       listHtml += 
-        '<div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid #f0e6d8; font-size:13px;">' +
-          '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">' +
-            '<span style="font-weight:900; color:var(--red); font-size:14px; min-width:18px;">' + numLabel + '</span>' +
+        '<div style="display:flex; align-items:center; justify-content:center; padding:5px 0; border-bottom:1px solid #f0e6d8; font-size:13px; width:100%;">' +
+          '<div style="display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;">' +
+            '<span style="font-weight:900; color:var(--red); font-size:14px; min-width:18px; text-align:center;">' + numLabel + '</span>' +
             '<span style="font-weight:700; color:var(--tx);">' + escapeHtml(expFormatted) + '</span>' +
-            '<span class="badge-exp ' + badgeClass + '" style="font-size:11px;">' + expText + '</span>' +
+            '<span class="badge-exp ' + badgeClass + '" style="font-size:11px; margin-top:0;">' + expText + '</span>' +
           '</div>' +
         '</div>';
     });
@@ -1101,7 +1144,7 @@ function renderExpiryList() {
 
     var card = document.createElement('div');
     card.className = 'lot-card ' + cardClass;
-    card.style.cssText = 'border-radius:var(--rl); padding:16px; margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,0.03); cursor:pointer; transition:transform 0.15s, box-shadow 0.15s;';
+    card.style.cssText = 'border-radius:var(--rl); padding:16px; margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,0.03); cursor:pointer; transition:transform 0.15s, box-shadow 0.15s; display:flex; flex-direction:column; justify-content:flex-start;';
     card.onclick = function() {
       openProductDetailModal(pId);
     };
@@ -1113,9 +1156,8 @@ function renderExpiryList() {
           (prod.img_url ? '<img class="lot-img" src="' + escapeHtml(prod.img_url) + '" style="width:54px; height:54px; border-radius:10px; object-fit:cover;">' : '<div class="lot-img" style="width:54px; height:54px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:24px; background:var(--bg); border:1px solid var(--bd);">🍬</div>') +
           '<div style="flex:1; min-width:0;">' +
             '<div class="lot-title" style="font-size:16px; font-weight:800; color:var(--tx); margin-bottom:4px; line-height:1.3;">' + escapeHtml(prod.name) + statusBadgeHtml + '</div>' +
-            '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; font-size:12px; color:var(--t2); font-weight:700; margin-top:2px;">' +
+            '<div style="font-size:12px; color:var(--t2); font-weight:700; margin-top:2px;">' +
               '<span>🏬 ' + escapeHtml(topStore) + '</span>' +
-              '<button type="button" class="btn btn-sub btn-sm" onclick="event.stopPropagation(); openProductDetailModal(\'' + pId + '\')" style="font-size:11px; padding:3px 10px; border-radius:12px; font-weight:700; white-space:nowrap;">🔍 詳細・編集 ➔</button>' +
             '</div>' +
             '<div style="display:flex; flex-wrap:wrap; gap:12px; font-size:13px; font-weight:800; margin-top:4px; color:var(--tx);">' +
               '<span>💰 仕入額: <strong style="color:var(--red);">' + (topLot.price || 0) + '円</strong> <span style="font-size:11px; font-weight:500; color:var(--t2);">(' + topUnitCost + '円/個)</span></span>' +
@@ -1126,14 +1168,14 @@ function renderExpiryList() {
       '</div>' +
 
       '<!-- 区切り点線 -->' +
-      '<div style="border-bottom:1.5px dashed var(--bd); margin:12px 0 10px;"></div>' +
+      '<div style="border-bottom:1.5px dashed var(--bd); margin:10px 0 8px;"></div>' +
 
       '<!-- 点線の下：賞味期限リスト -->' +
       '<div>' +
-        '<div style="font-size:11px; font-weight:800; color:var(--t3); margin-bottom:6px;">' +
+        '<div style="font-size:11px; font-weight:800; color:var(--t3); margin-bottom:6px; text-align:center;">' +
           '<span>📅 賞味期限リスト （仕入れ順）</span>' +
         '</div>' +
-        '<div class="exp-lot-list">' +
+        '<div class="exp-lot-list" style="display:flex; flex-direction:column; align-items:center;">' +
           listHtml +
         '</div>' +
       '</div>';
