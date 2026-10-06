@@ -1398,9 +1398,13 @@ function renderExpiryList() {
   // 2. 商品ごとにロットをグループ化
   var productMap = {};
   activeRestock.forEach(function(r) {
+    var rClean = cleanProductName(r.nm);
     var prod = ALL_PRODUCTS.find(function(p) {
-      return (r.productId && String(p.id) === String(r.productId)) ||
-             (r.nm && p.name && (r.nm.includes(p.name) || p.name.includes(r.nm)));
+      var pClean = cleanProductName(p.name);
+      if (rClean && pClean && (rClean === pClean || rClean.includes(pClean) || pClean.includes(rClean))) return true;
+      if (!rClean && (r.productId && String(p.id) === String(r.productId))) return true;
+      if (!rClean && (r.product_id && String(p.id) === String(r.product_id))) return true;
+      return false;
     });
     var key = prod ? String(prod.id) : (r.productId ? String(r.productId) : (r.nm || 'other'));
     if (!productMap[key]) {
@@ -1575,28 +1579,41 @@ function renderExpiryList() {
   });
 }
 
+function cleanProductName(nm) {
+  if (!nm) return '';
+  return String(nm).replace(/【.*?】/g, '').replace(/\(.*?\)/g, '').trim().toLowerCase();
+}
+
 function openProductDetailModal(targetId) {
   if (targetId === undefined || targetId === null || targetId === '') return;
 
   var targetStr = String(targetId).trim();
 
+  // 1. IDでの一致を最優先
   var prod = ALL_PRODUCTS.find(function(p) {
-    var pIdStr = String(p.id).trim();
-    var pNameStr = String(p.name || '').trim();
-    if (pIdStr === targetStr) return true;
-    if (pNameStr && pNameStr === targetStr) return true;
-    if (targetStr && pNameStr && (targetStr.includes(pNameStr) || pNameStr.includes(targetStr))) return true;
-    return false;
+    return String(p.id).trim() === targetStr;
   });
+
+  // 2. 名前での一致
+  if (!prod) {
+    var targetClean = cleanProductName(targetStr);
+    prod = ALL_PRODUCTS.find(function(p) {
+      var pClean = cleanProductName(p.name);
+      return pClean && targetClean && (pClean === targetClean || targetClean.includes(pClean) || pClean.includes(targetClean));
+    });
+  }
 
   var productId = prod ? prod.id : targetId;
   var prodName = prod ? prod.name : targetStr;
+  var prodClean = cleanProductName(prodName);
+  var safeProdIdStr = String(productId).replace(/'/g, "\\'");
 
   var lots = ALL_RESTOCK.filter(function(r) {
+    if (!r) return false;
+    var rClean = cleanProductName(r.nm);
+    if (prodClean && rClean && (rClean === prodClean || rClean.includes(prodClean) || prodClean.includes(rClean))) return true;
     if (prod && (String(r.productId) === String(prod.id) || String(r.product_id) === String(prod.id))) return true;
     if (String(r.productId) === targetStr || String(r.product_id) === targetStr) return true;
-    if (prodName && r.nm && (r.nm.includes(prodName) || prodName.includes(r.nm))) return true;
-    if (targetStr && r.nm && (r.nm.includes(targetStr) || targetStr.includes(r.nm))) return true;
     return false;
   });
 
