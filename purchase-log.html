@@ -963,19 +963,20 @@ function populateStoreDropdown() {
 
 function renderStoreTable() {
   var tbody = document.getElementById('storeTableBody');
+  if (!tbody) return;
   tbody.innerHTML = '';
   document.getElementById('statStores').textContent = ALL_SUPPLIERS.length;
 
   ALL_SUPPLIERS.forEach(function(s) {
     var tr = document.createElement('tr');
     tr.innerHTML = 
-      '<td><span class="store-pill" style="' + getStorePillStyle(s.name) + ' cursor:pointer;" onclick="openEditStoreByName(\'' + escapeHtml(s.name).replace(/'/g, "\\'") + '\')">🏬 <strong>' + escapeHtml(s.name) + '</strong></span></td>' +
-      '<td>' + escapeHtml(s.fax || '-') + '</td>' +
-      '<td>' + escapeHtml(s.tel || '-') + '</td>' +
-      '<td>' + escapeHtml(s.address || '-') + '</td>' +
-      '<td>' + escapeHtml(s.memo || '-') + '</td>' +
+      '<td><span class="store-pill" style="' + getStorePillStyle(s.name) + ' cursor:pointer;" onclick="openEditStoreById(' + s.id + ')" title="タップして『' + escapeHtml(s.name) + '』の情報を編集">🏬 <strong>' + escapeHtml(s.name) + '</strong> ✏️</span></td>' +
+      '<td style="cursor:pointer;" onclick="openEditStoreById(' + s.id + ')" title="タップして編集">' + escapeHtml(s.fax || '-') + '</td>' +
+      '<td style="cursor:pointer;" onclick="openEditStoreById(' + s.id + ')" title="タップして編集">' + escapeHtml(s.tel || '-') + '</td>' +
+      '<td style="cursor:pointer;" onclick="openEditStoreById(' + s.id + ')" title="タップして編集">' + escapeHtml(s.address || '-') + '</td>' +
+      '<td style="cursor:pointer;" onclick="openEditStoreById(' + s.id + ')" title="タップして編集">' + escapeHtml(s.memo || '-') + '</td>' +
       '<td style="white-space:nowrap;">' +
-        '<button class="btn btn-sub btn-sm" onclick="openEditStoreByName(\'' + escapeHtml(s.name).replace(/'/g, "\\'") + '\')" style="margin-right:6px;">✏️ 編集</button>' +
+        '<button class="btn btn-sub btn-sm" onclick="openEditStoreById(' + s.id + ')" style="margin-right:6px;">✏️ 編集</button>' +
         '<button class="btn btn-sub btn-sm" onclick="deleteStore(' + s.id + ')" style="color:var(--red);">🗑️ 削除</button>' +
       '</td>';
     tbody.appendChild(tr);
@@ -994,30 +995,39 @@ function openAddStoreModal() {
   document.getElementById('storeModal').classList.add('open');
 }
 
+function openEditStoreById(id) {
+  var sup = ALL_SUPPLIERS.find(function(s) { return String(s.id) === String(id); });
+  if (!sup) return;
+
+  document.getElementById('editingStoreId').value = sup.id;
+  document.getElementById('storeModalTitle').textContent = '✏️ 店舗・仕入れ先情報の編集';
+  document.getElementById('storeModalSubmitBtn').textContent = '💾 変更内容を保存';
+  document.getElementById('newStoreName').value = sup.name || '';
+  document.getElementById('newStoreFax').value = sup.fax || '';
+  document.getElementById('newStoreTel').value = sup.tel || '';
+  document.getElementById('newStoreAddr').value = sup.address || '';
+  document.getElementById('newStoreMemo').value = sup.memo || '';
+
+  document.getElementById('storeModal').classList.add('open');
+}
+
 function openEditStoreByName(storeName) {
   if (!storeName || storeName === '店舗未記入' || storeName === '購入先未記録') return;
   var sup = ALL_SUPPLIERS.find(function(s) { return String(s.name).trim() === String(storeName).trim(); });
 
-  document.getElementById('storeModalTitle').textContent = '✏️ 店舗・仕入れ先情報の編集';
-  document.getElementById('storeModalSubmitBtn').textContent = '💾 変更内容を保存';
-
   if (sup) {
-    document.getElementById('editingStoreId').value = sup.id;
-    document.getElementById('newStoreName').value = sup.name || '';
-    document.getElementById('newStoreFax').value = sup.fax || '';
-    document.getElementById('newStoreTel').value = sup.tel || '';
-    document.getElementById('newStoreAddr').value = sup.address || '';
-    document.getElementById('newStoreMemo').value = sup.memo || '';
+    openEditStoreById(sup.id);
   } else {
     document.getElementById('editingStoreId').value = '';
+    document.getElementById('storeModalTitle').textContent = '✏️ 店舗・仕入れ先情報の編集';
+    document.getElementById('storeModalSubmitBtn').textContent = '💾 変更内容を保存';
     document.getElementById('newStoreName').value = storeName || '';
     document.getElementById('newStoreFax').value = '';
     document.getElementById('newStoreTel').value = '';
     document.getElementById('newStoreAddr').value = '';
     document.getElementById('newStoreMemo').value = '';
+    document.getElementById('storeModal').classList.add('open');
   }
-
-  document.getElementById('storeModal').classList.add('open');
 }
 
 function handleSaveStore(e) {
