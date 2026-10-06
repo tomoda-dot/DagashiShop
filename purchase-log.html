@@ -890,8 +890,8 @@ tr:hover td { background: #FDFBFAF0; }
     <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
       <button type="button" id="batchInspPrevBtn" class="btn btn-sub" onclick="prevBatchInspectSlide()" style="min-width: 120px;">◀ 前の商品</button>
       
-      <button type="button" class="btn btn-sub btn-sm" onclick="submitBatchInspect()" style="color: var(--tx); font-size: 12px;">
-        ⚡ 一括保存して終了
+      <button type="button" id="batchInspPartialBtn" class="btn btn-sub btn-sm" onclick="submitBatchInspectPartial()" style="color: var(--tx); font-size: 12px; font-weight: 700; border-color: var(--bh);">
+        ⏸️ ここまでの検品分を保存して中断
       </button>
 
       <button type="button" id="batchInspNextBtn" class="btn btn-grn" onclick="nextBatchInspectSlide()" style="min-width: 140px; font-weight: 800;">
@@ -2336,6 +2336,26 @@ function copyShoppingList() {
 var INSPECT_ITEMS = [];
 var INSPECT_INDEX = 0;
 
+function getStoreProductPriceAndIri(productId, storeName) {
+  if (!productId || !storeName) return null;
+  var supObj = ALL_SUPPLIERS.find(function(s) { return s.name === storeName; });
+  if (supObj) {
+    var ps = ALL_PRODUCT_SUPPLIERS.find(function(item) {
+      return String(item.product_id) === String(productId) && String(item.supplier_id) === String(supObj.id);
+    });
+    if (ps && ps.buy_price) {
+      return { buyPrice: ps.buy_price, iri: ps.buy_qty || 30 };
+    }
+  }
+  var pastRestock = ALL_RESTOCK.find(function(r) {
+    return String(r.productId) === String(productId) && parseStoreFromNm(r.nm) === storeName;
+  });
+  if (pastRestock && (pastRestock.price || pastRestock.buy_price)) {
+    return { buyPrice: pastRestock.price || pastRestock.buy_price, iri: pastRestock.iri || 30 };
+  }
+  return null;
+}
+
 function batchRegisterPurchased() {
   var checkedItems = SHOPPING_LIST.filter(function(x) { return x.checked; });
   if (checkedItems.length === 0) {
@@ -2346,8 +2366,12 @@ function batchRegisterPurchased() {
   INSPECT_ITEMS = checkedItems.map(function(item) {
     var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(item.productId); });
     var storeName = item.store || (ALL_SUPPLIERS[0] ? ALL_SUPPLIERS[0].name : 'ダイソー');
-    var defaultIri = item.iri || (prod ? prod.buy_qty : 30) || 30;
-    var defaultBuyPrice = item.buyPrice || (prod ? prod.buy_price : 0) || 0;
+    var packs = item.packs || 1;
+
+    var storePriceData = getStoreProductPriceAndIri(item.productId, storeName);
+
+    var defaultIri = item.iri || (storePriceData ? storePriceData.iri : (prod ? prod.buy_qty : 30)) || 30;
+    var defaultBuyPrice = (storePriceData ? storePriceData.buyPrice * packs : item.buyPrice) || (prod ? prod.buy_price * packs : 0) || 0;
     var defaultSellPrice = item.sellPrice || (prod ? (prod.sell_price || prod.price) : 0) || 0;
 
     return {
@@ -2356,7 +2380,7 @@ function batchRegisterPurchased() {
       img_url: prod ? prod.img_url : null,
       store: storeName,
       taxMode: 'incl',
-      packs: item.packs || 1,
+      packs: packs,
       iri: defaultIri,
       buyPrice: defaultBuyPrice,
       sellPrice: defaultSellPrice,
@@ -2381,7 +2405,17 @@ function openModal(id) {
 function updateBatchInspField(field, val) {
   if (!INSPECT_ITEMS[INSPECT_INDEX]) return;
   
-  if (field === 'packs' || field === 'iri' || field === 'buyPrice' || field === 'sellPrice') {
+  if (field === 'store') {
+    INSPECT_ITEMS[INSPECT_INDEX].store = val;
+    var priceData = getStoreProductPriceAndIri(INSPECT_ITEMS[INSPECT_INDEX].productId, val);
+    if (priceData) {
+      var packs = INSPECT_ITEMS[INSPECT_INDEX].packs || 1;
+      INSPECT_ITEMS[INSPECT_INDEX].buyPrice = priceData.buyPrice * packs;
+      if (priceData.iri) INSPECT_ITEMS[INSPECT_INDEX].iri = priceData.iri;
+      document.getElementById('batchInspBuyPrice').value = INSPECT_ITEMS[INSPECT_INDEX].buyPrice;
+      document.getElementById('batchInspIri').value = INSPECT_ITEMS[INSPECT_INDEX].iri;
+    }
+  } else if (field === 'packs' || field === 'iri' || field === 'buyPrice' || field === 'sellPrice') {
     INSPECT_ITEMS[INSPECT_INDEX][field] = parseFloat(val) || 0;
   } else {
     INSPECT_ITEMS[INSPECT_INDEX][field] = val;
@@ -2493,6 +2527,13 @@ function renderBatchInspectSlide(index) {
     }).join('');
   }
 
+  // Update Partial Save Button Text
+  var partialBtn = document.getElementById('batchInspPartialBtn');
+  if (partialBtn) {
+    var count = index + 1;
+    partialBtn.textContent = '⏸️ ここまで (' + count + '/' + INSPECT_ITEMS.length + '件) を保存して中断';
+  }
+
   // Prev / Next Buttons UI
   var prevBtn = document.getElementById('batchInspPrevBtn');
   var nextBtn = document.getElementById('batchInspNextBtn');
@@ -2527,12 +2568,21 @@ function nextBatchInspectSlide() {
   }
 }
 
-function submitBatchInspect() {
+function submitBatchInspectPartial() {
   if (INSPECT_ITEMS.length === 0) return;
 
-  if (!confirm(INSPECT_ITEMS.length + ' 件の検品・仕入れ商品をデータベースへ確定保存しますか？')) return;
+  var currentCount = INSPECT_INDEX + 1;
+  var totalCount = INSPECT_ITEMS.length;
+  var remainingCount = totalCount - currentCount;
 
-  var promises = INSPECT_ITEMS.map(function(item) {
+  var msg = '「1商品目から ' + currentCount + '商品目 (' + INSPECT_ITEMS[INSPECT_INDEX].name + ')」までの ' + currentCount + ' 件を確定記帳し、' +
+            (remainingCount > 0 ? ('未検品の残り ' + remainingCount + ' 件は買い物リストに残して一時中断しますか？') : '全件を保存して終了しますか？');
+
+  if (!confirm(msg)) return;
+
+  var itemsToSave = INSPECT_ITEMS.slice(0, currentCount);
+
+  var promises = itemsToSave.map(function(item) {
     var store = item.store || '仕入れ先';
     var taxMode = item.taxMode || 'incl';
     var packs = item.packs || 1;
@@ -2571,17 +2621,31 @@ function submitBatchInspect() {
 
   Promise.all(promises)
     .then(function() {
-      // Remove checked items from SHOPPING_LIST
-      SHOPPING_LIST = SHOPPING_LIST.filter(function(x) { return !x.checked; });
+      // Remove only saved items from SHOPPING_LIST
+      var savedProductIds = itemsToSave.map(function(it) { return String(it.productId); });
+      SHOPPING_LIST = SHOPPING_LIST.filter(function(x) {
+        return !savedProductIds.includes(String(x.productId));
+      });
       saveShoppingList();
       closeModal('batchInspectModal');
-      alert('全 ' + INSPECT_ITEMS.length + ' 件の仕入れ検品および賞味期限の記帳が完了しました！🎉');
+
+      var doneMsg = currentCount + ' 件の仕入れ記帳を完了しました！🎉';
+      if (remainingCount > 0) {
+        doneMsg += '\n（残りの ' + remainingCount + ' 件は買い物リストに保存されています）';
+      }
+      alert(doneMsg);
       initApp();
       switchTab('expTab');
     })
     .catch(function(err) {
       alert('一括保存エラー: ' + err.message);
     });
+}
+
+function submitBatchInspect() {
+  if (INSPECT_ITEMS.length === 0) return;
+  INSPECT_INDEX = INSPECT_ITEMS.length - 1;
+  submitBatchInspectPartial();
 }
 
 // ================= FAX ORDER SYSTEM =================
