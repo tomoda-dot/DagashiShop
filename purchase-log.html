@@ -575,6 +575,20 @@ tr:hover td { background: #FDFBFAF0; }
         店頭での買い物メモとして利用できます。買い出し問屋へのFAX発注書もワンタップでA4印刷作成できます！
       </p>
 
+      <!-- Batch Store Selector Bar -->
+      <div style="background: #FFF8EE; border: 1px solid #FFE4C4; border-radius: var(--r); padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1;">
+          <span style="font-size: 13px; font-weight: 800; color: var(--tx);">🏬 問屋・仕入れ先の一括指定:</span>
+          <select id="batchShopStoreSelect" class="select" style="max-width: 240px; font-size: 13px; padding: 6px 10px; background: #fff; border-color: #E8D9C5;">
+            <option value="">-- 一括変更する店舗を選択 --</option>
+          </select>
+          <button type="button" class="btn btn-amb btn-sm" onclick="applyBatchStoreToShoppingList()" style="font-weight: 800; font-size: 12px; padding: 6px 14px;">
+            ⚡ リスト全件に一括反映
+          </button>
+        </div>
+        <span style="font-size: 11px; color: var(--t2); font-weight: 500;">※全商品の問屋/店舗をワンタップで揃えられます</span>
+      </div>
+
       <div id="shoppingListContainer">
         <!-- Dynamic shopping checklist -->
       </div>
@@ -1369,7 +1383,11 @@ function renderExpiryList() {
   // 2. 商品ごとにロットをグループ化
   var productMap = {};
   activeRestock.forEach(function(r) {
-    var key = r.productId || r.nm || 'other';
+    var prod = ALL_PRODUCTS.find(function(p) {
+      return (r.productId && String(p.id) === String(r.productId)) ||
+             (r.nm && p.name && (r.nm.includes(p.name) || p.name.includes(r.nm)));
+    });
+    var key = prod ? String(prod.id) : (r.productId ? String(r.productId) : (r.nm || 'other'));
     if (!productMap[key]) {
       productMap[key] = [];
     }
@@ -1422,7 +1440,9 @@ function renderExpiryList() {
     });
 
     var topLot = lots[0]; // ①番のロット
-    var prod = ALL_PRODUCTS.find(function(p) { return p.id === topLot.productId; }) || { name: topLot.nm || '商品名なし', img_url: '', price: 0 };
+    var prod = ALL_PRODUCTS.find(function(p) {
+      return String(p.id) === String(pId) || (topLot.productId && String(p.id) === String(topLot.productId)) || (topLot.nm && (topLot.nm.includes(p.name) || p.name.includes(topLot.nm)));
+    }) || { name: topLot.nm || '商品名なし', img_url: '', price: 0 };
     
     var topDays = topLot.d ? getDaysRemaining(topLot.d) : 999;
     var topStore = parseStoreFromNm(topLot.nm);
@@ -1529,9 +1549,20 @@ function renderExpiryList() {
   });
 }
 
-function openProductDetailModal(productId) {
-  var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(productId); });
-  var lots = ALL_RESTOCK.filter(function(r) { return String(r.productId) === String(productId); });
+function openProductDetailModal(targetId) {
+  var prod = ALL_PRODUCTS.find(function(p) {
+    return String(p.id) === String(targetId) || p.name === targetId || (targetId && typeof targetId === 'string' && (targetId.includes(p.name) || p.name.includes(targetId)));
+  });
+
+  var productId = prod ? prod.id : targetId;
+
+  var lots = ALL_RESTOCK.filter(function(r) {
+    if (prod && String(r.productId) === String(prod.id)) return true;
+    if (String(r.productId) === String(targetId)) return true;
+    if (prod && r.nm && (r.nm.includes(prod.name) || prod.name.includes(r.nm))) return true;
+    if (typeof targetId === 'string' && r.nm && (r.nm.includes(targetId) || targetId.includes(r.nm))) return true;
+    return false;
+  });
 
   lots.sort(function(a, b) {
     if (a.status === 'consumed') return 1;
@@ -2114,7 +2145,36 @@ function renderPriceComparison() {
 }
 
 // ================= TAB 4: SHOPPING LIST MEMO & FAX =================
+function populateBatchStoreDropdown() {
+  var sel = document.getElementById('batchShopStoreSelect');
+  if (!sel) return;
+  var currentVal = sel.value;
+  sel.innerHTML = '<option value="">-- 一括変更する店舗を選択 --</option>' +
+    ALL_SUPPLIERS.map(function(s) {
+      return '<option value="' + escapeHtml(s.name) + '" ' + (s.name === currentVal ? 'selected' : '') + '>' + escapeHtml(s.name) + '</option>';
+    }).join('');
+}
+
+function applyBatchStoreToShoppingList() {
+  var storeName = document.getElementById('batchShopStoreSelect').value;
+  if (!storeName) {
+    return alert('一括反映したい問屋・仕入れ先を選択してください。');
+  }
+  if (SHOPPING_LIST.length === 0) {
+    return alert('買い物リストに商品がありません。');
+  }
+  if (!confirm('買い物リスト内にある全 ' + SHOPPING_LIST.length + ' 件の商品の問屋/店舗を「' + storeName + '」に一括変更しますか？')) {
+    return;
+  }
+  SHOPPING_LIST.forEach(function(item) {
+    item.store = storeName;
+  });
+  saveShoppingList();
+  alert('買い物リスト内の全商品の問屋/店舗を「' + storeName + '」に一括指定しました！✨');
+}
+
 function renderShoppingList() {
+  populateBatchStoreDropdown();
   var container = document.getElementById('shoppingListContainer');
   container.innerHTML = '';
   
