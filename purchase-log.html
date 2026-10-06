@@ -515,7 +515,6 @@ tr:hover td { background: #FDFBFAF0; }
               <th>現在の売価</th>
               <th>購入店舗ごとの仕入れ価格・最新単価履歴</th>
               <th>最安購入店舗 👑</th>
-              <th>最新の最安仕入れ単価</th>
             </tr>
           </thead>
           <tbody id="priceTableBody">
@@ -1820,8 +1819,7 @@ function renderPriceComparison() {
       '<td style="white-space:nowrap;"><strong>' + escapeHtml(p.name) + '</strong>' + iriBadgeHtml + '</td>' +
       '<td style="white-space:nowrap;">' + (p.sell_price || p.price || 0) + ' 円</td>' +
       '<td style="white-space:nowrap;">' + storesHtml + '</td>' +
-      '<td style="white-space:nowrap;">' + (cheapestStore ? '<span class="store-pill" style="' + getStorePillStyle(cheapestStore) + ' white-space:nowrap; font-weight:800;">🏬 ' + escapeHtml(cheapestStore) + '</span>' : '-') + '</td>' +
-      '<td style="white-space:nowrap;"><span style="font-weight:900; font-size:15px; white-space:nowrap;">' + (minPrice < 999999 ? minPrice : '-') + ' 円/個</span></td>';
+      '<td style="white-space:nowrap;">' + (cheapestStore ? '<span class="store-pill" style="' + getStorePillStyle(cheapestStore) + ' white-space:nowrap; font-weight:800;">🏬 ' + escapeHtml(cheapestStore) + '</span>' : '-') + '</td>';
 
     tbody.appendChild(tr);
   });
