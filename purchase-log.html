@@ -1507,11 +1507,14 @@ function renderExpiryList() {
       statusBadgeHtml = '<span style="font-size:11px; background:#FFE3E3; color:#E03131; border:1px solid #FFC9C9; padding:2px 8px; border-radius:10px; font-weight:800; margin-left:6px;">❌ 販売終了</span>';
     }
 
+    var cardId = (prod && prod.id) ? prod.id : (topLot.productId ? topLot.productId : pId);
     var card = document.createElement('div');
     card.className = 'lot-card ' + cardClass;
     card.style.cssText = 'border-radius:var(--rl); padding:16px; margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,0.03); cursor:pointer; transition:transform 0.15s, box-shadow 0.15s; display:flex; flex-direction:column; justify-content:flex-start;';
-    card.onclick = function() {
-      openProductDetailModal(pId);
+    var safeCardId = String(cardId).replace(/'/g, "\\'");
+    card.setAttribute('onclick', 'openProductDetailModal(\'' + safeCardId + '\')');
+    card.onclick = function(e) {
+      openProductDetailModal(cardId);
     };
 
     card.innerHTML = 
@@ -1550,16 +1553,21 @@ function renderExpiryList() {
 }
 
 function openProductDetailModal(targetId) {
+  if (!targetId) return;
+
   var prod = ALL_PRODUCTS.find(function(p) {
-    return String(p.id) === String(targetId) || p.name === targetId || (targetId && typeof targetId === 'string' && (targetId.includes(p.name) || p.name.includes(targetId)));
+    return String(p.id) === String(targetId) ||
+           String(p.name).trim() === String(targetId).trim() ||
+           (typeof targetId === 'string' && (targetId.includes(p.name) || p.name.includes(targetId)));
   });
 
   var productId = prod ? prod.id : targetId;
+  var prodName = prod ? prod.name : String(targetId);
 
   var lots = ALL_RESTOCK.filter(function(r) {
-    if (prod && String(r.productId) === String(prod.id)) return true;
-    if (String(r.productId) === String(targetId)) return true;
-    if (prod && r.nm && (r.nm.includes(prod.name) || prod.name.includes(r.nm))) return true;
+    if (prod && (String(r.productId) === String(prod.id) || String(r.product_id) === String(prod.id))) return true;
+    if (String(r.productId) === String(targetId) || String(r.product_id) === String(targetId)) return true;
+    if (prodName && r.nm && (r.nm.includes(prodName) || prodName.includes(r.nm))) return true;
     if (typeof targetId === 'string' && r.nm && (r.nm.includes(targetId) || targetId.includes(r.nm))) return true;
     return false;
   });
@@ -1576,7 +1584,7 @@ function openProductDetailModal(targetId) {
   });
 
   var titleEl = document.getElementById('pdetModalTitle');
-  if (titleEl) titleEl.textContent = '🔍 『' + (prod ? prod.name : '商品') + '』の詳細・ロット編集';
+  if (titleEl) titleEl.textContent = '🔍 『' + prodName + '』の詳細・ロット編集';
 
   var bodyEl = document.getElementById('pdetModalBody');
   if (!bodyEl) return;
@@ -1684,7 +1692,7 @@ function openProductDetailModal(targetId) {
           '</div>' : 
           '<div onclick="openImgCard(\'' + productId + '\')" title="クリックで画像を追加" style="width:54px; height:54px; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:20px; background:var(--bg); border:1.5px dashed var(--bd); cursor:pointer; flex-shrink:0;">🍬<span style="font-size:9px; color:var(--t2); font-weight:700;">画像追加</span></div>') +
         '<div>' +
-          '<div style="font-size:16px; font-weight:800; color:var(--tx);">' + escapeHtml(prod ? prod.name : '商品') + '</div>' +
+          '<div style="font-size:16px; font-weight:800; color:var(--tx);">' + escapeHtml(prodName) + '</div>' +
           '<div style="font-size:12px; color:var(--t2); margin-top:2px;">🏷️ 1個の販売価格: <strong style="color:#2b8a3e; font-size:14px;">' + (sellPrice ? sellPrice + '円' : '未設定') + '</strong></div>' +
           '<button type="button" class="btn btn-sub btn-sm" onclick="openImgCard(\'' + productId + '\')" style="margin-top:4px; font-size:11px; padding:3px 10px; font-weight:700;">📷 画像を変更・追加</button>' +
         '</div>' +
@@ -1706,7 +1714,10 @@ function openProductDetailModal(targetId) {
     lotsTableHtml;
 
   var modal = document.getElementById('productDetailModal');
-  if (modal) modal.classList.add('open');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('open');
+  }
 }
 
 function toggleEditLotInModal(restockId) {
