@@ -1809,7 +1809,7 @@ function renderPriceComparison() {
       }
 
       return '<div style="margin-bottom:6px; white-space:nowrap; display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">' +
-        '<span class="store-pill" style="white-space:nowrap;">🏬 ' + escapeHtml(st.name) + '</span> ' +
+        '<span class="store-pill" style="' + getStorePillStyle(st.name) + ' white-space:nowrap;">🏬 ' + escapeHtml(st.name) + '</span> ' +
         priceDetailStr +
         primaryTag + cheapTag +
         '</div>';
@@ -1820,7 +1820,7 @@ function renderPriceComparison() {
       '<td style="white-space:nowrap;"><strong>' + escapeHtml(p.name) + '</strong>' + iriBadgeHtml + '</td>' +
       '<td style="white-space:nowrap;">' + (p.sell_price || p.price || 0) + ' 円</td>' +
       '<td style="white-space:nowrap;">' + storesHtml + '</td>' +
-      '<td style="white-space:nowrap;"><span style="font-weight:900; color:var(--grn); white-space:nowrap;">' + escapeHtml(cheapestStore || '-') + '</span></td>' +
+      '<td style="white-space:nowrap;">' + (cheapestStore ? '<span class="store-pill" style="' + getStorePillStyle(cheapestStore) + ' white-space:nowrap; font-weight:800;">🏬 ' + escapeHtml(cheapestStore) + '</span>' : '-') + '</td>' +
       '<td style="white-space:nowrap;"><span style="font-weight:900; font-size:15px; white-space:nowrap;">' + (minPrice < 999999 ? minPrice : '-') + ' 円/個</span></td>';
 
     tbody.appendChild(tr);
