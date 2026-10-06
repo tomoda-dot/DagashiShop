@@ -945,6 +945,8 @@ function initApp() {
       ALL_SUPPLIERS = res.suppliers || [];
       ALL_PRODUCT_SUPPLIERS = res.productSuppliers || [];
 
+      syncAllProductsToActiveLots();
+
       // Default stores if none exist
       if (ALL_SUPPLIERS.length === 0) {
         ALL_SUPPLIERS = [
@@ -1691,6 +1693,10 @@ function openProductDetailModal(targetId) {
                 '<label style="font-size:11px; font-weight:700; color:var(--t2);">仕入れ数 (個数)</label>' +
                 '<input type="number" id="editLotIri_' + r.id + '" class="inp" value="' + (r.iri || 0) + '" style="font-size:12px; padding:4px 8px; margin-top:2px;">' +
               '</div>' +
+              '<div>' +
+                '<label style="font-size:11px; font-weight:700; color:var(--t2);">1個の販売価格 (円)</label>' +
+                '<input type="number" id="editLotSellPrice_' + r.id + '" class="inp" value="' + (r.sell || sellPrice || 0) + '" style="font-size:12px; padding:4px 8px; margin-top:2px;">' +
+              '</div>' +
             '</div>' +
             '<div style="display:flex; justify-content:flex-end; gap:6px;">' +
               '<button type="button" class="btn btn-sub btn-sm" onclick="toggleEditLotInModal(' + r.id + ')" style="font-size:11px; padding:4px 10px;">❌ キャンセル</button>' +
@@ -1746,7 +1752,7 @@ function toggleEditLotInModal(restockId) {
 }
 
 function saveLotEditInModal(restockId, productId) {
-  var r = ALL_RESTOCK.find(function(x) { return x.id === restockId; });
+  var r = ALL_RESTOCK.find(function(x) { return String(x.id) === String(restockId); });
   if (!r) return;
 
   var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(productId); });
@@ -1757,6 +1763,7 @@ function saveLotEditInModal(restockId, productId) {
   var newExpDate = document.getElementById('editLotExpDate_' + restockId).value;
   var newBuyPrice = parseFloat(document.getElementById('editLotBuyPrice_' + restockId).value) || 0;
   var newIri = parseInt(document.getElementById('editLotIri_' + restockId).value) || 1;
+  var newSellPrice = parseFloat(document.getElementById('editLotSellPrice_' + restockId).value) || 0;
 
   var newNm = '【' + newStore + '】' + prodName;
   var newTanka = newIri > 0 ? (newBuyPrice / newIri) : 0;
@@ -1767,6 +1774,7 @@ function saveLotEditInModal(restockId, productId) {
     iri: newIri,
     buy_price: newBuyPrice,
     tanka: newTanka,
+    sell: newSellPrice,
     d: newExpDate,
     applied_at: newDate,
     date: newDate
@@ -1776,10 +1784,14 @@ function saveLotEditInModal(restockId, productId) {
       r.iri = newIri;
       r.price = newBuyPrice;
       r.tanka = newTanka;
+      r.sell = newSellPrice;
       r.d = newExpDate;
       r.applied_at = newDate;
       r.date = newDate;
 
+      return syncProductToActiveLot(productId);
+    })
+    .then(function() {
       renderStats();
       renderExpiryList();
       renderPriceComparison();
@@ -1836,9 +1848,9 @@ function syncProductToActiveLot(productId) {
 
   if (activeLots.length > 0) {
     var topLot = activeLots[0];
-    var sellPrice = topLot.sell || prod.sell_price || prod.price || 0;
-    var buyPrice = topLot.price || topLot.buy_price || prod.buy_price || 0;
-    var buyQty = topLot.iri || prod.buy_qty || 30;
+    var sellPrice = (topLot.sell && topLot.sell > 0) ? topLot.sell : (prod.sell_price || prod.price || 0);
+    var buyPrice = (topLot.price && topLot.price > 0) ? topLot.price : (prod.buy_price || 0);
+    var buyQty = (topLot.iri && topLot.iri > 0) ? topLot.iri : (prod.buy_qty || 30);
 
     prod.sell_price = sellPrice;
     prod.price = sellPrice;
@@ -1848,6 +1860,43 @@ function syncProductToActiveLot(productId) {
     return GAS.updateProduct({ id: prod.id, sell_price: sellPrice, buy_price: buyPrice, buy_qty: buyQty });
   }
   return Promise.resolve();
+}
+
+function syncAllProductsToActiveLots() {
+  ALL_PRODUCTS.forEach(function(prod) {
+    var lots = ALL_RESTOCK.filter(function(r) {
+      if (r.productId && String(r.productId) === String(prod.id)) return true;
+      if (r.product_id && String(r.product_id) === String(prod.id)) return true;
+      if (r.nm && (r.nm.includes(prod.name) || prod.name.includes(r.nm))) return true;
+      return false;
+    });
+
+    var activeLots = lots.filter(function(r) {
+      if (r.status === 'consumed') return false;
+      var days = getDaysRemaining(r.d);
+      if (r.d && days < -7) return false;
+      return true;
+    });
+
+    activeLots.sort(function(a, b) {
+      var dateA = String(a.date || a.created_at || '');
+      var dateB = String(b.date || b.created_at || '');
+      if (dateA && dateB && dateA !== dateB) {
+        return new Date(dateA) - new Date(dateB);
+      }
+      return (a.id || 0) - (b.id || 0);
+    });
+
+    if (activeLots.length > 0) {
+      var topLot = activeLots[0];
+      if (topLot.sell && topLot.sell > 0) {
+        prod.sell_price = topLot.sell;
+        prod.price = topLot.sell;
+      }
+      if (topLot.iri && topLot.iri > 0) prod.buy_qty = topLot.iri;
+      if (topLot.price && topLot.price > 0) prod.buy_price = topLot.price;
+    }
+  });
 }
 
 function deleteRestockLotInModal(restockId, productId) {
