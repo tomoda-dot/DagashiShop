@@ -916,6 +916,19 @@ var SELECTED_PRODUCT = null;
 // ================= INITIALIZATION =================
 document.addEventListener('DOMContentLoaded', function() {
   initApp();
+
+  var expContainer = document.getElementById('expContainer');
+  if (expContainer) {
+    expContainer.addEventListener('click', function(e) {
+      var card = e.target.closest('.lot-card');
+      if (card) {
+        var pid = card.dataset.pid || card.getAttribute('data-pid');
+        if (pid) {
+          openProductDetailModal(pid);
+        }
+      }
+    });
+  }
 });
 
 function initApp() {
@@ -1510,6 +1523,8 @@ function renderExpiryList() {
     var cardId = (prod && prod.id) ? prod.id : (topLot.productId ? topLot.productId : pId);
     var card = document.createElement('div');
     card.className = 'lot-card ' + cardClass;
+    card.dataset.pid = cardId;
+    card.setAttribute('data-pid', cardId);
     card.style.cssText = 'border-radius:var(--rl); padding:16px; margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,0.03); cursor:pointer; transition:transform 0.15s, box-shadow 0.15s; display:flex; flex-direction:column; justify-content:flex-start;';
     var safeCardId = String(cardId).replace(/'/g, "\\'");
     card.setAttribute('onclick', 'openProductDetailModal(\'' + safeCardId + '\')');
@@ -1553,22 +1568,27 @@ function renderExpiryList() {
 }
 
 function openProductDetailModal(targetId) {
-  if (!targetId) return;
+  if (targetId === undefined || targetId === null || targetId === '') return;
+
+  var targetStr = String(targetId).trim();
 
   var prod = ALL_PRODUCTS.find(function(p) {
-    return String(p.id) === String(targetId) ||
-           String(p.name).trim() === String(targetId).trim() ||
-           (typeof targetId === 'string' && (targetId.includes(p.name) || p.name.includes(targetId)));
+    var pIdStr = String(p.id).trim();
+    var pNameStr = String(p.name || '').trim();
+    if (pIdStr === targetStr) return true;
+    if (pNameStr && pNameStr === targetStr) return true;
+    if (targetStr && pNameStr && (targetStr.includes(pNameStr) || pNameStr.includes(targetStr))) return true;
+    return false;
   });
 
   var productId = prod ? prod.id : targetId;
-  var prodName = prod ? prod.name : String(targetId);
+  var prodName = prod ? prod.name : targetStr;
 
   var lots = ALL_RESTOCK.filter(function(r) {
     if (prod && (String(r.productId) === String(prod.id) || String(r.product_id) === String(prod.id))) return true;
-    if (String(r.productId) === String(targetId) || String(r.product_id) === String(targetId)) return true;
+    if (String(r.productId) === targetStr || String(r.product_id) === targetStr) return true;
     if (prodName && r.nm && (r.nm.includes(prodName) || prodName.includes(r.nm))) return true;
-    if (typeof targetId === 'string' && r.nm && (r.nm.includes(targetId) || targetId.includes(r.nm))) return true;
+    if (targetStr && r.nm && (r.nm.includes(targetStr) || targetStr.includes(r.nm))) return true;
     return false;
   });
 
@@ -1713,11 +1733,7 @@ function openProductDetailModal(targetId) {
     '<div style="font-size:13px; font-weight:800; color:var(--tx); margin-bottom:10px;">📦 保有仕入れロット一覧・個別に編集/削除</div>' +
     lotsTableHtml;
 
-  var modal = document.getElementById('productDetailModal');
-  if (modal) {
-    modal.style.display = 'flex';
-    modal.classList.add('open');
-  }
+  openModal('productDetailModal');
 }
 
 function toggleEditLotInModal(restockId) {
@@ -2354,7 +2370,10 @@ function batchRegisterPurchased() {
 
 function openModal(id) {
   var m = document.getElementById(id);
-  if (m) m.classList.add('open');
+  if (m) {
+    m.style.display = 'flex';
+    m.classList.add('open');
+  }
 }
 
 function updateBatchInspField(field, val) {
@@ -2659,7 +2678,11 @@ function sendFaxDigital() {
 
 // ================= UTILS & MODAL HELPERS =================
 function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
+  var m = document.getElementById(id);
+  if (m) {
+    m.style.display = 'none';
+    m.classList.remove('open');
+  }
 }
 
 function escapeHtml(str) {
