@@ -1976,17 +1976,40 @@ function renderShoppingList() {
   SHOPPING_LIST.forEach(function(item, idx) {
     var div = document.createElement('div');
     div.className = 'shop-item' + (item.checked ? ' checked' : '');
+
+    var storeOptionsHtml = ALL_SUPPLIERS.map(function(s) {
+      return '<option value="' + escapeHtml(s.name) + '" ' + (s.name === item.store ? 'selected' : '') + '>' + escapeHtml(s.name) + '</option>';
+    }).join('');
+
+    if (item.store && !ALL_SUPPLIERS.some(function(s) { return s.name === item.store; })) {
+      storeOptionsHtml = '<option value="' + escapeHtml(item.store) + '" selected>' + escapeHtml(item.store) + '</option>' + storeOptionsHtml;
+    }
+
     div.innerHTML = 
-      '<div class="shop-left">' +
+      '<div class="shop-left" style="flex:1;">' +
         '<input type="checkbox" class="chk-box" ' + (item.checked ? 'checked' : '') + ' onchange="toggleShopCheck(' + idx + ')">' +
-        '<div>' +
+        '<div style="flex:1;">' +
           '<div style="font-weight:700; font-size:14px;">' + escapeHtml(item.name) + '</div>' +
-          '<div style="font-size:11px; color:var(--t2);">問屋/店舗: ' + escapeHtml(item.store || '指定なし') + ' | 予定数: <strong>' + item.packs + '箱 (' + (item.packs * item.iri) + '個)</strong></div>' +
+          '<div style="font-size:11px; color:var(--t2); display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">' +
+            '<span>問屋/店舗:</span>' +
+            '<select class="select" style="padding:2px 6px; font-size:11px; max-width:160px;" onchange="updateShopItemStore(' + idx + ', this.value)">' +
+              '<option value="">-- 店舗を選択 --</option>' +
+              storeOptionsHtml +
+            '</select>' +
+            '<span>| 予定数: <strong>' + item.packs + '箱 (' + (item.packs * item.iri) + '個)</strong></span>' +
+          '</div>' +
         '</div>' +
       '</div>' +
       '<button class="btn btn-sub btn-sm" onclick="removeShopItem(' + idx + ')">🗑️</button>';
     container.appendChild(div);
   });
+}
+
+function updateShopItemStore(idx, newStore) {
+  if (SHOPPING_LIST[idx]) {
+    SHOPPING_LIST[idx].store = newStore;
+    saveShoppingList();
+  }
 }
 
 function openProductSelectForShopModal() {
@@ -2006,7 +2029,7 @@ function filterModalProductsForShop() {
     card.onclick = function() {
       var packs = prompt('「' + p.name + '」の発注・購入箱数を入力してください:', '1');
       if (packs) {
-        var storeName = document.getElementById('formStore').value || '問屋A';
+        var storeName = document.getElementById('formStore').value || (ALL_SUPPLIERS[0] ? ALL_SUPPLIERS[0].name : '');
         SHOPPING_LIST.push({
           productId: p.id,
           name: p.name,
