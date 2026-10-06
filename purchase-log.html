@@ -603,14 +603,15 @@ tr:hover td { background: #FDFBFAF0; }
   </div>
 </div>
 
-<!-- Add Store Modal -->
+<!-- Add / Edit Store Modal -->
 <div id="storeModal" class="modal-overlay">
   <div class="modal-box">
     <div class="modal-head">
-      <div class="modal-title">🏬 新規店舗・仕入れ先の登録</div>
+      <div class="modal-title" id="storeModalTitle">🏬 新規店舗・仕入れ先の登録</div>
       <button class="close-btn" onclick="closeModal('storeModal')">×</button>
     </div>
     <form onsubmit="handleSaveStore(event)">
+      <input type="hidden" id="editingStoreId" value="">
       <div class="form-group" style="margin-bottom: 12px;">
         <label>店舗・仕入れ先名 <span class="req">*</span></label>
         <input type="text" id="newStoreName" class="inp" placeholder="例: ダイソー 豊中店, 業務スーパー, 〇〇問屋" required>
@@ -631,7 +632,7 @@ tr:hover td { background: #FDFBFAF0; }
         <label>メモ</label>
         <input type="text" id="newStoreMemo" class="inp" placeholder="例: 毎週火曜お買い得デーなど">
       </div>
-      <button type="submit" class="btn btn-lg">💾 店舗を登録</button>
+      <button type="submit" id="storeModalSubmitBtn" class="btn btn-lg">💾 店舗を登録</button>
     </form>
   </div>
 </div>
@@ -968,22 +969,60 @@ function renderStoreTable() {
   ALL_SUPPLIERS.forEach(function(s) {
     var tr = document.createElement('tr');
     tr.innerHTML = 
-      '<td><strong>' + escapeHtml(s.name) + '</strong></td>' +
+      '<td><span class="store-pill" style="' + getStorePillStyle(s.name) + ' cursor:pointer;" onclick="openEditStoreByName(\'' + escapeHtml(s.name).replace(/'/g, "\\'") + '\')">🏬 <strong>' + escapeHtml(s.name) + '</strong></span></td>' +
       '<td>' + escapeHtml(s.fax || '-') + '</td>' +
       '<td>' + escapeHtml(s.tel || '-') + '</td>' +
       '<td>' + escapeHtml(s.address || '-') + '</td>' +
       '<td>' + escapeHtml(s.memo || '-') + '</td>' +
-      '<td><button class="btn btn-sub btn-sm" onclick="deleteStore(' + s.id + ')">🗑️ 削除</button></td>';
+      '<td style="white-space:nowrap;">' +
+        '<button class="btn btn-sub btn-sm" onclick="openEditStoreByName(\'' + escapeHtml(s.name).replace(/'/g, "\\'") + '\')" style="margin-right:6px;">✏️ 編集</button>' +
+        '<button class="btn btn-sub btn-sm" onclick="deleteStore(' + s.id + ')" style="color:var(--red);">🗑️ 削除</button>' +
+      '</td>';
     tbody.appendChild(tr);
   });
 }
 
 function openAddStoreModal() {
+  document.getElementById('editingStoreId').value = '';
+  document.getElementById('storeModalTitle').textContent = '🏬 新規店舗・仕入れ先の登録';
+  document.getElementById('storeModalSubmitBtn').textContent = '💾 店舗を登録';
+  document.getElementById('newStoreName').value = '';
+  document.getElementById('newStoreFax').value = '';
+  document.getElementById('newStoreTel').value = '';
+  document.getElementById('newStoreAddr').value = '';
+  document.getElementById('newStoreMemo').value = '';
+  document.getElementById('storeModal').classList.add('open');
+}
+
+function openEditStoreByName(storeName) {
+  if (!storeName || storeName === '店舗未記入' || storeName === '購入先未記録') return;
+  var sup = ALL_SUPPLIERS.find(function(s) { return String(s.name).trim() === String(storeName).trim(); });
+
+  document.getElementById('storeModalTitle').textContent = '✏️ 店舗・仕入れ先情報の編集';
+  document.getElementById('storeModalSubmitBtn').textContent = '💾 変更内容を保存';
+
+  if (sup) {
+    document.getElementById('editingStoreId').value = sup.id;
+    document.getElementById('newStoreName').value = sup.name || '';
+    document.getElementById('newStoreFax').value = sup.fax || '';
+    document.getElementById('newStoreTel').value = sup.tel || '';
+    document.getElementById('newStoreAddr').value = sup.address || '';
+    document.getElementById('newStoreMemo').value = sup.memo || '';
+  } else {
+    document.getElementById('editingStoreId').value = '';
+    document.getElementById('newStoreName').value = storeName || '';
+    document.getElementById('newStoreFax').value = '';
+    document.getElementById('newStoreTel').value = '';
+    document.getElementById('newStoreAddr').value = '';
+    document.getElementById('newStoreMemo').value = '';
+  }
+
   document.getElementById('storeModal').classList.add('open');
 }
 
 function handleSaveStore(e) {
   if (e && e.preventDefault) e.preventDefault();
+  var storeId = document.getElementById('editingStoreId').value;
   var name = document.getElementById('newStoreName').value.trim();
   var fax = document.getElementById('newStoreFax').value.trim();
   var tel = document.getElementById('newStoreTel').value.trim();
@@ -992,15 +1031,34 @@ function handleSaveStore(e) {
 
   if (!name) return;
 
-  GAS.addSupplier({ name: name, fax: fax, tel: tel, address: addr, memo: memo })
-    .then(function(res) {
-      ALL_SUPPLIERS.push({ id: res.id, name: name, fax: fax, tel: tel, address: addr, memo: memo });
-      populateStoreDropdown();
-      renderStoreTable();
-      closeModal('storeModal');
-      alert('店舗・問屋を登録しました！');
-    })
-    .catch(function(err) { alert('エラー: ' + err.message); });
+  if (storeId) {
+    // 既存店舗の更新
+    GAS.updateSupplier({ id: storeId, name: name, fax: fax, tel: tel, address: addr, memo: memo })
+      .then(function() {
+        var existingIndex = ALL_SUPPLIERS.findIndex(function(s) { return String(s.id) === String(storeId); });
+        if (existingIndex >= 0) {
+          ALL_SUPPLIERS[existingIndex] = { id: storeId, name: name, fax: fax, tel: tel, address: addr, memo: memo };
+        }
+        populateStoreDropdown();
+        renderStoreTable();
+        renderPriceComparison();
+        closeModal('storeModal');
+        alert('「' + name + '」の店舗情報を更新しました！');
+      })
+      .catch(function(err) { alert('更新エラー: ' + err.message); });
+  } else {
+    // 新規店舗の追加
+    GAS.addSupplier({ name: name, fax: fax, tel: tel, address: addr, memo: memo })
+      .then(function(res) {
+        ALL_SUPPLIERS.push({ id: res.id, name: name, fax: fax, tel: tel, address: addr, memo: memo });
+        populateStoreDropdown();
+        renderStoreTable();
+        renderPriceComparison();
+        closeModal('storeModal');
+        alert('「' + name + '」を仕入れ先として登録しました！');
+      })
+      .catch(function(err) { alert('登録エラー: ' + err.message); });
+  }
 }
 
 function deleteStore(id) {
@@ -1010,6 +1068,7 @@ function deleteStore(id) {
       ALL_SUPPLIERS = ALL_SUPPLIERS.filter(function(s) { return s.id !== id; });
       populateStoreDropdown();
       renderStoreTable();
+      renderPriceComparison();
     })
     .catch(function(err) { alert('エラー: ' + err.message); });
 }
@@ -1807,19 +1866,21 @@ function renderPriceComparison() {
         priceDetailStr = '<strong style="white-space:nowrap;">' + st.unitPrice + '円/個</strong>';
       }
 
+      var escName = escapeHtml(st.name).replace(/'/g, "\\'");
       return '<div style="margin-bottom:6px; white-space:nowrap; display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">' +
-        '<span class="store-pill" style="' + getStorePillStyle(st.name) + ' white-space:nowrap;">🏬 ' + escapeHtml(st.name) + '</span> ' +
+        '<span class="store-pill" onclick="openEditStoreByName(\'' + escName + '\')" title="タップして『' + escapeHtml(st.name) + '』の情報を編集" style="' + getStorePillStyle(st.name) + ' white-space:nowrap; cursor:pointer;">🏬 ' + escapeHtml(st.name) + ' ✏️</span> ' +
         priceDetailStr +
         primaryTag + cheapTag +
         '</div>';
     }).join('');
 
+    var cheapEscName = cheapestStore ? escapeHtml(cheapestStore).replace(/'/g, "\\'") : '';
     var tr = document.createElement('tr');
     tr.innerHTML = 
       '<td style="white-space:nowrap;"><strong>' + escapeHtml(p.name) + '</strong>' + iriBadgeHtml + '</td>' +
       '<td style="white-space:nowrap;">' + (p.sell_price || p.price || 0) + ' 円</td>' +
       '<td style="white-space:nowrap;">' + storesHtml + '</td>' +
-      '<td style="white-space:nowrap;">' + (cheapestStore ? '<span class="store-pill" style="' + getStorePillStyle(cheapestStore) + ' white-space:nowrap; font-weight:800;">🏬 ' + escapeHtml(cheapestStore) + '</span>' : '-') + '</td>';
+      '<td style="white-space:nowrap;">' + (cheapestStore ? '<span class="store-pill" onclick="openEditStoreByName(\'' + cheapEscName + '\')" title="タップして『' + escapeHtml(cheapestStore) + '』の情報を編集" style="' + getStorePillStyle(cheapestStore) + ' white-space:nowrap; font-weight:800; cursor:pointer;">🏬 ' + escapeHtml(cheapestStore) + ' ✏️</span>' : '-') + '</td>';
 
     tbody.appendChild(tr);
   });
