@@ -291,6 +291,41 @@ tr:hover td { background: #FDFBFAF0; }
   .scard .sval { font-size: 22px; }
   .lot-grid { grid-template-columns: 1fr; }
 }
+
+/* Batch Inspection Slide Wizard Styles */
+.slide-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.slide-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bd);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+.slide-dot:hover {
+  transform: scale(1.2);
+}
+.slide-dot.active {
+  background: var(--red);
+  transform: scale(1.3);
+  box-shadow: 0 0 8px rgba(217, 114, 82, 0.4);
+  border-color: #fff;
+}
+.slide-dot.completed {
+  background: var(--grn);
+}
+
+.slide-card-wrapper {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
 </style>
 </head>
 <body>
@@ -725,6 +760,129 @@ tr:hover td { background: #FDFBFAF0; }
     <div id="pdetModalBody" style="padding: 16px;">
       <!-- Dynamic product detail and lot management list -->
     </div>
+  </div>
+</div>
+
+<!-- Batch Restock & Inspection Wizard Modal (Slide Navigation) -->
+<div id="batchInspectModal" class="modal-overlay">
+  <div class="modal-box" style="max-width: 680px;">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="batchInspectModalTitle">🔍 仕入れ商品の一括検品スライド</div>
+        <div id="batchInspectSubTitle" style="font-size: 12px; color: var(--t2); font-weight: 700; margin-top: 2px;">
+          1個ずつ賞味期限や価格を確認・修正しながら確定できます
+        </div>
+      </div>
+      <button class="close-btn" onclick="closeModal('batchInspectModal')">×</button>
+    </div>
+
+    <!-- Step Dots Header -->
+    <div id="batchInspectDots" class="slide-dots">
+      <!-- Dynamic dots rendered here -->
+    </div>
+
+    <!-- Slide Content Card -->
+    <div id="batchInspectCardWrapper" class="slide-card-wrapper" style="background: var(--sf); border: 1.5px solid var(--bd); border-radius: var(--rl); padding: 18px; margin-bottom: 16px;">
+      
+      <!-- Product Header Preview -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--bg); border: 1px solid var(--bd); padding: 12px 14px; border-radius: var(--r); margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <img id="batchInspImg" src="" style="width: 52px; height: 52px; border-radius: 10px; object-fit: cover; border: 1px solid var(--bd); display: none; background: #fff; flex-shrink: 0;">
+          <div id="batchInspImgFallback" style="width: 52px; height: 52px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: #fff; border: 1px solid var(--bd); flex-shrink: 0;">🍬</div>
+          <div style="min-width: 0;">
+            <div id="batchInspName" style="font-size: 16px; font-weight: 900; color: var(--tx); line-height: 1.2; word-break: break-all;">商品名</div>
+            <div id="batchInspSellMeta" style="font-size: 12px; color: var(--t2); font-weight: 700; margin-top: 4px;">店頭売価: 0円 / 箱</div>
+          </div>
+        </div>
+        <span class="tab-badge grn" id="batchInspStepBadge" style="font-size: 11px; padding: 4px 10px; flex-shrink: 0;">1 / 5 商品目</span>
+      </div>
+
+      <!-- Form Grid -->
+      <div class="form-grid" style="gap: 12px;">
+        
+        <!-- Store Select -->
+        <div class="form-group">
+          <label>購入店舗・仕入れ先 <span class="req">*</span></label>
+          <select id="batchInspStore" class="select" onchange="updateBatchInspField('store', this.value)" required></select>
+        </div>
+
+        <!-- Tax Mode -->
+        <div class="form-group">
+          <label>税区分 <span class="req">*</span></label>
+          <select id="batchInspTaxMode" class="select" onchange="updateBatchInspField('taxMode', this.value)" required>
+            <option value="incl">税込価格 (領収書が税込表示)</option>
+            <option value="ex8">税別 8% (食品・軽減税率)</option>
+            <option value="ex10">税別 10% (標準税率)</option>
+          </select>
+        </div>
+
+        <!-- Packs -->
+        <div class="form-group">
+          <label>購入箱数 (パック数) <span class="req">*</span></label>
+          <input type="number" id="batchInspPacks" class="inp" min="1" value="1" required oninput="updateBatchInspField('packs', this.value)">
+        </div>
+
+        <!-- Items Per Pack -->
+        <div class="form-group">
+          <label>1箱あたりの入数 (実測個数) <span class="req">*</span></label>
+          <input type="number" id="batchInspIri" class="inp" min="1" value="30" required oninput="updateBatchInspField('iri', this.value)">
+        </div>
+
+        <!-- Total Buy Price -->
+        <div class="form-group">
+          <label>伝票・レシートの仕入れ金額 <span class="req">*</span></label>
+          <input type="number" id="batchInspBuyPrice" class="inp" min="0" value="0" required oninput="updateBatchInspField('buyPrice', this.value)">
+        </div>
+
+        <!-- Calculated Unit Cost -->
+        <div class="form-group">
+          <label>計算: 1個あたりの税込実質単価</label>
+          <input type="text" id="batchInspCalcTanka" class="inp" readonly style="background: #f5f5f5; font-weight: 700; color: var(--red);" value="0 円 / 個">
+        </div>
+
+        <!-- Selling Price -->
+        <div class="form-group">
+          <label>店頭販売価格 (単価) <span class="req">*</span></label>
+          <input type="number" id="batchInspSellPrice" class="inp" min="0" value="0" required oninput="updateBatchInspField('sellPrice', this.value)">
+          <div id="batchInspMarginInfo" style="font-size: 11px; font-weight: 700; color: var(--t2); margin-top: 2px;">粗利益率: --%</div>
+        </div>
+
+        <!-- Expiry Date -->
+        <div class="form-group">
+          <label>📅 実物の賞味期限 <span class="req">*</span></label>
+          <input type="date" id="batchInspExpDate" class="inp" required onchange="updateBatchInspField('expDate', this.value)">
+          <div class="quick-dates">
+            <span class="qbtn" onclick="batchInspAddMonths(1)">+1ヶ月</span>
+            <span class="qbtn" onclick="batchInspAddMonths(2)">+2ヶ月</span>
+            <span class="qbtn" onclick="batchInspAddMonths(3)">+3ヶ月</span>
+            <span class="qbtn" onclick="batchInspAddMonths(6)">+6ヶ月</span>
+            <span class="qbtn" onclick="batchInspAddMonths(12)">+1年</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Memo input -->
+      <div class="form-group" style="margin-top: 10px;">
+        <label>メモ・備考 (任意)</label>
+        <input type="text" id="batchInspMemo" class="inp" placeholder="例: セール価格、箱潰れ品など" oninput="updateBatchInspField('memo', this.value)">
+      </div>
+
+    </div>
+
+    <!-- Navigation Footer Controls -->
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <button type="button" id="batchInspPrevBtn" class="btn btn-sub" onclick="prevBatchInspectSlide()" style="min-width: 120px;">◀ 前の商品</button>
+      
+      <button type="button" class="btn btn-sub btn-sm" onclick="submitBatchInspect()" style="color: var(--tx); font-size: 12px;">
+        ⚡ 一括保存して終了
+      </button>
+
+      <button type="button" id="batchInspNextBtn" class="btn btn-grn" onclick="nextBatchInspectSlide()" style="min-width: 140px; font-weight: 800;">
+        次の商品 ▶
+      </button>
+    </div>
+
   </div>
 </div>
 
@@ -2085,39 +2243,253 @@ function copyShoppingList() {
   });
 }
 
+// ================= BATCH INSPECT SLIDE WIZARD GLOBAL STATE =================
+var INSPECT_ITEMS = [];
+var INSPECT_INDEX = 0;
+
 function batchRegisterPurchased() {
   var checkedItems = SHOPPING_LIST.filter(function(x) { return x.checked; });
   if (checkedItems.length === 0) {
     return alert('チェックされた（購入済み）商品がありません。買い終わった商品のチェックボックスをオンにしてください。');
   }
 
-  if (!confirm(checkedItems.length + ' 件の購入済み商品を一括で「検品・仕入れ記録」へ保存しますか？')) return;
+  // Build array of inspection objects
+  INSPECT_ITEMS = checkedItems.map(function(item) {
+    var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(item.productId); });
+    var storeName = item.store || (ALL_SUPPLIERS[0] ? ALL_SUPPLIERS[0].name : 'ダイソー');
+    var defaultIri = item.iri || (prod ? prod.buy_qty : 30) || 30;
+    var defaultBuyPrice = item.buyPrice || (prod ? prod.buy_price : 0) || 0;
+    var defaultSellPrice = item.sellPrice || (prod ? (prod.sell_price || prod.price) : 0) || 0;
 
-  var promises = checkedItems.map(function(item) {
-    var expDate = addMonthsToDate(todayJST(), 3);
-    var nmStr = '【' + (item.store || 'お買い物') + '】' + item.name;
-    var totalQty = item.packs * item.iri;
-    return GAS.addRestock({
+    return {
+      productId: item.productId,
+      name: item.name,
+      img_url: prod ? prod.img_url : null,
+      store: storeName,
+      taxMode: 'incl',
+      packs: item.packs || 1,
+      iri: defaultIri,
+      buyPrice: defaultBuyPrice,
+      sellPrice: defaultSellPrice,
+      expDate: addMonthsToDate(todayJST(), 3),
+      memo: ''
+    };
+  });
+
+  INSPECT_INDEX = 0;
+  openModal('batchInspectModal');
+  renderBatchInspectSlide(0);
+}
+
+function openModal(id) {
+  var m = document.getElementById(id);
+  if (m) m.classList.add('open');
+}
+
+function updateBatchInspField(field, val) {
+  if (!INSPECT_ITEMS[INSPECT_INDEX]) return;
+  
+  if (field === 'packs' || field === 'iri' || field === 'buyPrice' || field === 'sellPrice') {
+    INSPECT_ITEMS[INSPECT_INDEX][field] = parseFloat(val) || 0;
+  } else {
+    INSPECT_ITEMS[INSPECT_INDEX][field] = val;
+  }
+
+  calcBatchInspectTanka();
+}
+
+function batchInspAddMonths(months) {
+  if (!INSPECT_ITEMS[INSPECT_INDEX]) return;
+  var current = document.getElementById('batchInspExpDate').value || todayJST();
+  var nextDate = addMonthsToDate(current, months);
+  document.getElementById('batchInspExpDate').value = nextDate;
+  INSPECT_ITEMS[INSPECT_INDEX].expDate = nextDate;
+}
+
+function calcBatchInspectTanka() {
+  var item = INSPECT_ITEMS[INSPECT_INDEX];
+  if (!item) return;
+
+  var packs = item.packs || 1;
+  var iri = item.iri || 1;
+  var buyPrice = item.buyPrice || 0;
+  var taxMode = item.taxMode || 'incl';
+
+  var totalInclTax = buyPrice;
+  if (taxMode === 'ex8') totalInclTax = Math.round(buyPrice * 1.08);
+  else if (taxMode === 'ex10') totalInclTax = Math.round(buyPrice * 1.10);
+
+  var totalQty = packs * iri;
+  var unitCost = totalQty > 0 ? (totalInclTax / totalQty) : 0;
+  var unitCostRound = Math.round(unitCost * 10) / 10;
+
+  var tankaEl = document.getElementById('batchInspCalcTanka');
+  if (tankaEl) {
+    tankaEl.value = unitCostRound + ' 円 / 個 (合計' + totalQty + '個 | 税込¥' + totalInclTax.toLocaleString() + ')';
+  }
+
+  var sellPrice = item.sellPrice || 0;
+  var infoEl = document.getElementById('batchInspMarginInfo');
+  if (infoEl) {
+    if (sellPrice > 0 && unitCost > 0) {
+      var margin = ((sellPrice - unitCost) / sellPrice) * 100;
+      var marginRound = Math.round(margin * 10) / 10;
+      infoEl.textContent = '粗利益額: ' + (Math.round((sellPrice - unitCost)*10)/10) + '円 | 粗利益率: ' + marginRound + '%';
+      infoEl.style.color = marginRound >= 30 ? 'var(--grn)' : (marginRound > 0 ? 'var(--t2)' : 'var(--red)');
+    } else {
+      infoEl.textContent = '粗利益率: --%';
+    }
+  }
+}
+
+function renderBatchInspectSlide(index) {
+  if (index < 0) index = 0;
+  if (index >= INSPECT_ITEMS.length) index = INSPECT_ITEMS.length - 1;
+  INSPECT_INDEX = index;
+
+  var item = INSPECT_ITEMS[index];
+  if (!item) return;
+
+  // Title & step badge
+  var titleEl = document.getElementById('batchInspectModalTitle');
+  if (titleEl) titleEl.textContent = '🔍 仕入れ商品の一括検品 (' + (index + 1) + ' / ' + INSPECT_ITEMS.length + ' 商品目)';
+  
+  var stepBadge = document.getElementById('batchInspStepBadge');
+  if (stepBadge) stepBadge.textContent = (index + 1) + ' / ' + INSPECT_ITEMS.length + ' 商品目';
+
+  // Product Header Info
+  document.getElementById('batchInspName').textContent = item.name;
+  document.getElementById('batchInspSellMeta').textContent = '現在の店頭売価: ' + (item.sellPrice || 0) + '円';
+
+  var img = document.getElementById('batchInspImg');
+  var imgFallback = document.getElementById('batchInspImgFallback');
+  if (item.img_url) {
+    img.src = item.img_url;
+    img.style.display = 'block';
+    imgFallback.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    imgFallback.style.display = 'flex';
+  }
+
+  // Populate Store Select Options
+  var storeSel = document.getElementById('batchInspStore');
+  storeSel.innerHTML = ALL_SUPPLIERS.map(function(s) {
+    return '<option value="' + escapeHtml(s.name) + '" ' + (s.name === item.store ? 'selected' : '') + '>' + escapeHtml(s.name) + '</option>';
+  }).join('');
+  if (item.store && !ALL_SUPPLIERS.some(function(s) { return s.name === item.store; })) {
+    storeSel.innerHTML = '<option value="' + escapeHtml(item.store) + '" selected>' + escapeHtml(item.store) + '</option>' + storeSel.innerHTML;
+  }
+
+  // Populate Form Fields
+  document.getElementById('batchInspTaxMode').value = item.taxMode || 'incl';
+  document.getElementById('batchInspPacks').value = item.packs;
+  document.getElementById('batchInspIri').value = item.iri;
+  document.getElementById('batchInspBuyPrice').value = item.buyPrice;
+  document.getElementById('batchInspSellPrice').value = item.sellPrice;
+  document.getElementById('batchInspExpDate').value = item.expDate;
+  document.getElementById('batchInspMemo').value = item.memo || '';
+
+  calcBatchInspectTanka();
+
+  // Render Step Dots
+  var dotsContainer = document.getElementById('batchInspectDots');
+  if (dotsContainer) {
+    dotsContainer.innerHTML = INSPECT_ITEMS.map(function(it, i) {
+      var cls = 'slide-dot' + (i === index ? ' active' : (i < index ? ' completed' : ''));
+      return '<div class="' + cls + '" onclick="renderBatchInspectSlide(' + i + ')" title="' + escapeHtml(it.name) + '"></div>';
+    }).join('');
+  }
+
+  // Prev / Next Buttons UI
+  var prevBtn = document.getElementById('batchInspPrevBtn');
+  var nextBtn = document.getElementById('batchInspNextBtn');
+
+  if (prevBtn) {
+    prevBtn.disabled = (index === 0);
+    prevBtn.style.opacity = (index === 0) ? '0.5' : '1';
+  }
+
+  if (nextBtn) {
+    if (index === INSPECT_ITEMS.length - 1) {
+      nextBtn.className = 'btn btn-grn';
+      nextBtn.innerHTML = '🎉 全て確定して一括保存';
+    } else {
+      nextBtn.className = 'btn btn-blu';
+      nextBtn.innerHTML = '次の商品 ▶';
+    }
+  }
+}
+
+function prevBatchInspectSlide() {
+  if (INSPECT_INDEX > 0) {
+    renderBatchInspectSlide(INSPECT_INDEX - 1);
+  }
+}
+
+function nextBatchInspectSlide() {
+  if (INSPECT_INDEX < INSPECT_ITEMS.length - 1) {
+    renderBatchInspectSlide(INSPECT_INDEX + 1);
+  } else {
+    submitBatchInspect();
+  }
+}
+
+function submitBatchInspect() {
+  if (INSPECT_ITEMS.length === 0) return;
+
+  if (!confirm(INSPECT_ITEMS.length + ' 件の検品・仕入れ商品をデータベースへ確定保存しますか？')) return;
+
+  var promises = INSPECT_ITEMS.map(function(item) {
+    var store = item.store || '仕入れ先';
+    var taxMode = item.taxMode || 'incl';
+    var packs = item.packs || 1;
+    var iri = item.iri || 1;
+    var buyPrice = item.buyPrice || 0;
+    var sellPrice = item.sellPrice || 0;
+    var expDate = item.expDate || addMonthsToDate(todayJST(), 3);
+    var memo = item.memo || '';
+
+    var totalInclTax = buyPrice;
+    if (taxMode === 'ex8') totalInclTax = Math.round(buyPrice * 1.08);
+    else if (taxMode === 'ex10') totalInclTax = Math.round(buyPrice * 1.10);
+
+    var totalQty = packs * iri;
+    var tanka = totalQty > 0 ? (totalInclTax / totalQty) : 0;
+    var nmStr = '【' + store + '】' + item.name + (memo ? ' (' + memo + ')' : '');
+
+    var restockPromise = GAS.addRestock({
       productId: item.productId,
       nm: nmStr,
       iri: totalQty,
-      buy_price: item.buyPrice || 0,
-      tanka: (item.buyPrice && totalQty) ? item.buyPrice / totalQty : 0,
-      sell: item.sellPrice || 0,
+      buy_price: totalInclTax,
+      tanka: tanka,
+      sell: sellPrice,
       d: expDate,
       status: 'pending'
     });
+
+    var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(item.productId); });
+    var updateProdPromise = (prod && (sellPrice !== prod.sell_price || totalInclTax !== prod.buy_price || iri !== prod.buy_qty))
+      ? GAS.updateProduct({ id: item.productId, sell_price: sellPrice, buy_price: totalInclTax, buy_qty: iri })
+      : Promise.resolve();
+
+    return Promise.all([restockPromise, updateProdPromise]);
   });
 
   Promise.all(promises)
     .then(function() {
+      // Remove checked items from SHOPPING_LIST
       SHOPPING_LIST = SHOPPING_LIST.filter(function(x) { return !x.checked; });
       saveShoppingList();
-      alert('一括仕入れ記帳が完了しました！賞味期限一覧タブで確認できます。🎉');
+      closeModal('batchInspectModal');
+      alert('全 ' + INSPECT_ITEMS.length + ' 件の仕入れ検品および賞味期限の記帳が完了しました！🎉');
       initApp();
       switchTab('expTab');
     })
-    .catch(function(err) { alert('登録エラー: ' + err.message); });
+    .catch(function(err) {
+      alert('一括保存エラー: ' + err.message);
+    });
 }
 
 // ================= FAX ORDER SYSTEM =================
