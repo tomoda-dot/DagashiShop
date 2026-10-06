@@ -511,11 +511,11 @@ tr:hover td { background: #FDFBFAF0; }
         <table>
           <thead>
             <tr>
-              <th>商品名</th>
+              <th>商品名 (入数)</th>
               <th>現在の売価</th>
-              <th>購入店舗ごとの最新単価履歴</th>
+              <th>購入店舗ごとの仕入れ価格・最新単価履歴</th>
               <th>最安購入店舗 👑</th>
-              <th>最新の仕入れ単価</th>
+              <th>最新の最安仕入れ単価</th>
             </tr>
           </thead>
           <tbody id="priceTableBody">
@@ -1709,15 +1709,19 @@ function renderPriceComparison() {
       var supObj = ALL_SUPPLIERS.find(function(s) { return String(s.id) === String(ps.supplier_id); });
       var sName = supObj ? supObj.name : ('仕入先 #' + ps.supplier_id);
       
-      var qty = ps.buy_qty || 1;
+      var qty = ps.buy_qty || p.buy_qty || 1;
       var rawPrice = ps.buy_price || 0;
       var unitExcl = qty > 0 ? (rawPrice / qty) : 0;
       // 8%税込の単価を算定（端数は小数点以下2桁で表示）
       var unitIncl = Math.round(unitExcl * 1.08 * 100) / 100;
+      var totalPrice = rawPrice > 0 ? Math.round(rawPrice * 1.08) : 0;
 
       storeMap[sName] = {
         name: sName,
         unitPrice: unitIncl,
+        totalPrice: totalPrice,
+        rawPrice: rawPrice,
+        qty: qty,
         isPrimary: !!ps.is_primary,
         source: 'master'
       };
@@ -1730,14 +1734,18 @@ function renderPriceComparison() {
       if (!sName || sName === '店舗未記入' || sName === '購入先未記録') return;
 
       if (!storeMap[sName]) {
+        var qty = r.iri || p.buy_qty || 1;
+        var totalPrice = r.price || 0;
         var tanka = r.tanka || 0;
-        if (!tanka && r.iri > 0) {
-          tanka = (r.price / r.iri);
+        if (!tanka && qty > 0 && totalPrice > 0) {
+          tanka = (totalPrice / qty);
         }
         if (tanka > 0) {
           storeMap[sName] = {
             name: sName,
             unitPrice: Math.round(tanka * 100) / 100,
+            totalPrice: totalPrice,
+            qty: qty,
             isPrimary: false,
             source: 'log'
           };
@@ -1750,11 +1758,17 @@ function renderPriceComparison() {
     if (storeNames.length === 0) {
       if (p.buy_price && p.buy_price > 0) {
         var qty = p.buy_qty || 1;
-        var unitExcl = qty > 0 ? (p.buy_price / qty) : 0;
+        var rawPrice = p.buy_price || 0;
+        var unitExcl = qty > 0 ? (rawPrice / qty) : 0;
         var unitIncl = Math.round(unitExcl * 1.08 * 100) / 100;
+        var totalPrice = Math.round(rawPrice * 1.08);
+
         storeMap['登録仕入れ先'] = {
           name: '登録仕入れ先',
           unitPrice: unitIncl,
+          totalPrice: totalPrice,
+          rawPrice: rawPrice,
+          qty: qty,
           isPrimary: true,
           source: 'default'
         };
@@ -1763,6 +1777,10 @@ function renderPriceComparison() {
         return; // 価格データなし
       }
     }
+
+    // 商品の標準入数（個数）を取得
+    var defaultIri = p.buy_qty || p.iri || (pSups[0] && pSups[0].buy_qty) || (pRestocks[0] && pRestocks[0].iri) || null;
+    var iriBadgeHtml = defaultIri ? '<span style="font-size:11px; color:#555; font-weight:700; margin-left:6px; background:#eef2f7; padding:2px 7px; border-radius:10px; border:1px solid #cbd5e1; display:inline-block;">(' + defaultIri + '個入)</span>' : '';
 
     // 最安仕入れ先を特定
     var cheapestStore = '';
@@ -1775,22 +1793,31 @@ function renderPriceComparison() {
       }
     });
 
-    // 各店舗の仕入れ単価表示HTML
+    // 各店舗の仕入れ価格および仕入れ単価表示HTML
     var storesHtml = storeNames.map(function(sName) {
       var st = storeMap[sName];
       var isCheapest = (st.name === cheapestStore && storeNames.length > 1);
       var primaryTag = st.isPrimary ? ' <span style="color:#d9480f; font-weight:800; font-size:11px; white-space:nowrap;">★ 主</span>' : '';
       var cheapTag = isCheapest ? ' <span class="cheap-tag" style="white-space:nowrap;">最安</span>' : '';
-      return '<div style="margin-bottom:4px; white-space:nowrap; display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">' +
+
+      var priceDetailStr = '';
+      if (st.totalPrice > 0) {
+        priceDetailStr = '<span style="font-size:12px; color:#495057; font-weight:700;">仕入額: ' + st.totalPrice.toLocaleString() + '円</span> ' +
+                         '<span style="font-size:12px; color:#212529; font-weight:900;">(' + st.unitPrice + '円/個)</span>';
+      } else {
+        priceDetailStr = '<strong style="white-space:nowrap;">' + st.unitPrice + '円/個</strong>';
+      }
+
+      return '<div style="margin-bottom:6px; white-space:nowrap; display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">' +
         '<span class="store-pill" style="white-space:nowrap;">🏬 ' + escapeHtml(st.name) + '</span> ' +
-        '<strong style="white-space:nowrap;">' + st.unitPrice + '円/個</strong>' +
+        priceDetailStr +
         primaryTag + cheapTag +
         '</div>';
     }).join('');
 
     var tr = document.createElement('tr');
     tr.innerHTML = 
-      '<td style="white-space:nowrap;"><strong>' + escapeHtml(p.name) + '</strong></td>' +
+      '<td style="white-space:nowrap;"><strong>' + escapeHtml(p.name) + '</strong>' + iriBadgeHtml + '</td>' +
       '<td style="white-space:nowrap;">' + (p.sell_price || p.price || 0) + ' 円</td>' +
       '<td style="white-space:nowrap;">' + storesHtml + '</td>' +
       '<td style="white-space:nowrap;"><span style="font-weight:900; color:var(--grn); white-space:nowrap;">' + escapeHtml(cheapestStore || '-') + '</span></td>' +
