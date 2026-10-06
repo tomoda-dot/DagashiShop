@@ -1454,6 +1454,12 @@ function renderExpiryList() {
       return (a.id || 0) - (b.id || 0);
     });
 
+    var activeTopLot = lots.find(function(l) {
+      if (l.status === 'consumed') return false;
+      var dDays = l.d ? getDaysRemaining(l.d) : 999;
+      return dDays >= -7;
+    }) || lots[0];
+
     var topLot = lots[0]; // ①番のロット
     var prod = ALL_PRODUCTS.find(function(p) {
       return String(p.id) === String(pId) || (topLot.productId && String(p.id) === String(topLot.productId)) || (topLot.nm && (topLot.nm.includes(p.name) || p.name.includes(topLot.nm)));
@@ -1462,7 +1468,7 @@ function renderExpiryList() {
     var topDays = topLot.d ? getDaysRemaining(topLot.d) : 999;
     var topStore = parseStoreFromNm(topLot.nm);
     var topUnitCost = Math.round((topLot.tanka || 0) * 10) / 10;
-    var sellPrice = prod.sell_price || prod.price || 0;
+    var sellPrice = (activeTopLot && activeTopLot.sell && activeTopLot.sell > 0) ? activeTopLot.sell : (prod.sell_price || prod.price || 0);
 
     var cardClass = 'good';
     if (topLot.status === 'consumed') cardClass = 'consumed';
@@ -1701,7 +1707,13 @@ function openProductDetailModal(targetId) {
     });
   }
 
-  var sellPrice = prod ? (prod.sell_price || prod.price || 0) : 0;
+  var activeTopLot = lots.find(function(l) {
+    if (l.status === 'consumed') return false;
+    var dDays = l.d ? getDaysRemaining(l.d) : 999;
+    return dDays >= -7;
+  }) || lots[0];
+
+  var sellPrice = (activeTopLot && activeTopLot.sell && activeTopLot.sell > 0) ? activeTopLot.sell : (prod ? (prod.sell_price || prod.price || 0) : 0);
   var pStatus = prod ? (prod.status || 'active') : 'active';
 
   bodyEl.innerHTML = 
@@ -1825,6 +1837,37 @@ function toggleConsumedInModal(restockId, isConsumed, productId) {
     .then(function() {
       var item = ALL_RESTOCK.find(function(x) { return String(x.id) === String(restockId); });
       if (item) item.status = status;
+
+      // 新しいロット①（現在販売中の有効ロット）を判定して商品マスタ価格を同期
+      var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(productId); });
+      var prodLots = ALL_RESTOCK.filter(function(r) {
+        return (prod && String(r.productId) === String(prod.id)) || String(r.product_id) === String(productId);
+      });
+      prodLots.sort(function(a, b) {
+        if (a.status === 'consumed') return 1;
+        if (b.status === 'consumed') return -1;
+        var daysA = a.d ? getDaysRemaining(a.d) : 999;
+        var daysB = b.d ? getDaysRemaining(b.d) : 999;
+        if (daysA < -7 && daysB >= -7) return 1;
+        if (daysB < -7 && daysA >= -7) return -1;
+        var dateA = String(a.date || a.applied_at || a.created_at || '');
+        var dateB = String(b.date || b.applied_at || b.created_at || '');
+        if (dateA && dateB && dateA !== dateB) return new Date(dateA) - new Date(dateB);
+        return (a.id || 0) - (b.id || 0);
+      });
+
+      var newTop = prodLots[0];
+      if (prod && newTop && newTop.status !== 'consumed') {
+        var newSell = newTop.sell || prod.sell_price || prod.price;
+        var newBuy = newTop.price || newTop.buy_price || prod.buy_price;
+        var newIri = newTop.iri || prod.buy_qty;
+        prod.sell_price = newSell;
+        prod.price = newSell;
+        prod.buy_price = newBuy;
+        prod.buy_qty = newIri;
+        GAS.updateProduct({ id: productId, sell_price: newSell, price: newSell, buy_price: newBuy, buy_qty: newIri });
+      }
+
       renderStats();
       renderExpiryList();
       openProductDetailModal(productId);

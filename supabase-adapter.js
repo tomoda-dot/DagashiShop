@@ -252,18 +252,31 @@ GAS.setAllStockToTen = function() {
 
 // ─ addRestock ─
 GAS.addRestock = function(r) {
-  // 商品情報を更新
-  var pUpdate = {};
-  if (r.buy_price) pUpdate.buy_price = Number(r.buy_price);
-  if (r.buy_qty)   pUpdate.buy_qty   = Number(r.buy_qty);
-  if (r.sell) {
-    pUpdate.sell_price = Number(r.sell);
-    pUpdate.price      = Number(r.sell);
-  }
+  // 既存の有効ロット①が存在するか確認
+  var p1 = sbGet('restock', 'product_id=eq.' + r.productId + '&status=neq.consumed&select=id,d')
+    .then(function(existingLots) {
+      var activeLots = (existingLots || []).filter(function(lot) {
+        if (!lot.d) return true;
+        var today = new Date(todayJST());
+        var exp = new Date(lot.d);
+        var diffDays = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+        return diffDays >= -7;
+      });
 
-  var p1 = Object.keys(pUpdate).length > 0
-    ? sbPatch('products', 'id=eq.' + r.productId, pUpdate)
-    : Promise.resolve();
+      // 有効なロット①が存在しない（新規または前ロット完売済）場合のみメイン商品マスターの売価・仕入価格を更新
+      if (activeLots.length === 0) {
+        var pUpdate = {};
+        if (r.buy_price) pUpdate.buy_price = Number(r.buy_price);
+        if (r.buy_qty)   pUpdate.buy_qty   = Number(r.buy_qty);
+        if (r.sell) {
+          pUpdate.sell_price = Number(r.sell);
+          pUpdate.price      = Number(r.sell);
+        }
+        if (Object.keys(pUpdate).length > 0) {
+          return sbPatch('products', 'id=eq.' + r.productId, pUpdate);
+        }
+      }
+    });
 
   // candidate → active 昇格チェック
   var p2 = sbGet('products', 'id=eq.' + r.productId + '&select=status')
