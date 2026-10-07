@@ -1380,6 +1380,43 @@ function sortLots(lots) {
   });
 }
 
+function getLotsForProduct(target) {
+  if (!target) return [];
+
+  var prod = null;
+  var targetStr = '';
+
+  if (typeof target === 'object' && target !== null) {
+    prod = target;
+    targetStr = String(target.id || '').trim();
+  } else {
+    targetStr = String(target).trim();
+    prod = ALL_PRODUCTS.find(function(p) {
+      var pIdStr = String(p.id).trim();
+      var pNameStr = String(p.name || '').trim();
+      return (pIdStr && pIdStr === targetStr) || (pNameStr && pNameStr === targetStr);
+    });
+  }
+
+  var prodIdStr = prod ? String(prod.id).trim() : targetStr;
+  var prodNameStr = prod ? String(prod.name || '').trim().toLowerCase() : (targetStr ? targetStr.toLowerCase() : '');
+
+  return ALL_RESTOCK.filter(function(r) {
+    var rPid = String(r.productId || r.product_id || '').trim();
+    
+    // 1. Direct product ID match
+    if (prodIdStr && rPid && rPid === prodIdStr) return true;
+    
+    // 2. Name match (if r.nm contains product name or product name contains r.nm)
+    if (r.nm && prodNameStr) {
+      var rNmStr = String(r.nm).trim().toLowerCase();
+      if (rNmStr && (rNmStr.includes(prodNameStr) || prodNameStr.includes(rNmStr))) return true;
+    }
+    
+    return false;
+  });
+}
+
 function renderExpiryList() {
   renderStats();
   var container = document.getElementById('expContainer');
@@ -1388,103 +1425,92 @@ function renderExpiryList() {
   var query = document.getElementById('expSearch').value.toLowerCase().trim();
   var filter = document.getElementById('expFilter').value;
 
-  // 1. アクティブ/フィルタ対象の仕入れロットを抽出
-  var activeRestock = ALL_RESTOCK.filter(function(r) {
-    var days = getDaysRemaining(r.d);
-    var rPid = r.productId || r.product_id;
-    var prod = rPid ? ALL_PRODUCTS.find(function(p) { return String(p.id) === String(rPid); }) : null;
-    if (!prod && r.nm) {
-      prod = ALL_PRODUCTS.find(function(p) { return p.name && (r.nm.includes(p.name) || p.name.includes(r.nm)); });
-    }
-    var pStatus = prod ? (prod.status || 'active') : 'active';
+  var productsToRender = [];
+  var seenProductIds = {};
 
-    if (filter === 'active') {
-      if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
-      if (r.status === 'consumed') return false;
-    } else if (filter === 'expired') {
-      if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
-      if (days >= 0 || r.status === 'consumed') return false;
-    } else if (filter === 'warn') {
-      if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
-      if (days < 0 || days > 30 || r.status === 'consumed') return false;
-    } else if (filter === 'consumed') {
-      if (r.status !== 'consumed') return false;
-    } else if (filter === 'hidden') {
-      if (pStatus !== 'hidden') return false;
-    } else if (filter === 'discontinued') {
-      if (pStatus !== 'discontinued') return false;
-    }
+  ALL_PRODUCTS.forEach(function(p) {
+    seenProductIds[String(p.id)] = true;
+    productsToRender.push(p);
+  });
 
-    // 賞味期限を1週間(7日)以上過ぎたものは自動非表示 (expired/hidden/discontinued/allタブ以外)
-    if (filter !== 'expired' && filter !== 'hidden' && filter !== 'discontinued' && filter !== 'all' && r.status !== 'consumed' && days !== null && days < -7) {
-      return false;
+  ALL_RESTOCK.forEach(function(r) {
+    var rPid = String(r.productId || r.product_id || '').trim();
+    var matchedProd = ALL_PRODUCTS.find(function(p) {
+      return (rPid && String(p.id) === rPid) || (r.nm && p.name && (r.nm.includes(p.name) || p.name.includes(r.nm)));
+    });
+
+    if (!matchedProd) {
+      var dummyId = rPid || r.nm || 'other';
+      if (!seenProductIds[String(dummyId)]) {
+        seenProductIds[String(dummyId)] = true;
+        productsToRender.push({
+          id: dummyId,
+          name: r.nm || '未登録商品',
+          img_url: '',
+          price: 0,
+          status: 'active'
+        });
+      }
+    }
+  });
+
+  var circNums = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
+  var renderedCount = 0;
+
+  productsToRender.forEach(function(prod) {
+    var allLots = getLotsForProduct(prod);
+
+    var filteredLots = allLots.filter(function(r) {
+      var days = getDaysRemaining(r.d);
+      var pStatus = prod.status || 'active';
+
+      if (filter === 'active') {
+        if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
+        if (r.status === 'consumed') return false;
+      } else if (filter === 'expired') {
+        if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
+        if (days >= 0 || r.status === 'consumed') return false;
+      } else if (filter === 'warn') {
+        if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
+        if (days < 0 || days > 30 || r.status === 'consumed') return false;
+      } else if (filter === 'consumed') {
+        if (r.status !== 'consumed') return false;
+      } else if (filter === 'hidden') {
+        if (pStatus !== 'hidden') return false;
+      } else if (filter === 'discontinued') {
+        if (pStatus !== 'discontinued') return false;
+      }
+
+      if (filter !== 'expired' && filter !== 'hidden' && filter !== 'discontinued' && filter !== 'all' && r.status !== 'consumed' && days !== null && days < -7) {
+        return false;
+      }
+      return true;
+    });
+
+    if (filteredLots.length === 0 && (filter === 'active' || filter === 'expired' || filter === 'warn' || filter === 'consumed')) {
+      return;
     }
 
     if (query) {
-      var pName = prod ? prod.name.toLowerCase() : '';
-      var rNm = (r.nm || '').toLowerCase();
-      if (!pName.includes(query) && !rNm.includes(query)) return false;
+      var pName = (prod.name || '').toLowerCase();
+      var matchQuery = pName.includes(query) || filteredLots.some(function(r) {
+        return (r.nm || '').toLowerCase().includes(query);
+      });
+      if (!matchQuery) return;
     }
-    return true;
-  });
 
-  // 2. 商品ごとにロットをグループ化
-  var productMap = {};
-  activeRestock.forEach(function(r) {
-    var rPid = r.productId || r.product_id;
-    var prod = rPid ? ALL_PRODUCTS.find(function(p) { return String(p.id) === String(rPid); }) : null;
-    if (!prod && r.nm) {
-      prod = ALL_PRODUCTS.find(function(p) { return p.name && (r.nm.includes(p.name) || p.name.includes(r.nm)); });
-    }
-    var key = prod ? String(prod.id) : (rPid ? String(rPid) : (r.nm || 'other'));
-    if (!productMap[key]) {
-      productMap[key] = [];
-    }
-    productMap[key].push(r);
-  });
+    var lotsToDisplay = filteredLots.length > 0 ? filteredLots : [{
+      productId: prod.id,
+      nm: prod.name,
+      d: '',
+      tanka: prod.buy_price || 0,
+      price: prod.buy_price || 0,
+      status: 'active'
+    }];
 
-  // 一時販売終了・販売終了・全て表示の場合、仕入れロットが現在無い対象商品もリストアップ
-  if (filter === 'hidden' || filter === 'discontinued' || filter === 'all') {
-    ALL_PRODUCTS.forEach(function(p) {
-      var pSt = p.status || 'active';
-      if ((filter === 'hidden' && pSt === 'hidden') ||
-          (filter === 'discontinued' && pSt === 'discontinued') ||
-          (filter === 'all')) {
-        if (!productMap[p.id]) {
-          if (query && !p.name.toLowerCase().includes(query)) return;
-          productMap[p.id] = [{
-            productId: p.id,
-            nm: p.name,
-            d: '',
-            tanka: p.buy_price || 0,
-            price: p.buy_price || 0,
-            status: 'active'
-          }];
-        }
-      }
-    });
-  }
+    sortLots(lotsToDisplay);
 
-  if (Object.keys(productMap).length === 0) {
-    container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--t3); background: var(--sf); border-radius: var(--r); border: 1px solid var(--bd);">該当する賞味期限・仕入れデータはありません</div>';
-    return;
-  }
-
-  var circNums = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
-
-  // 3. 商品ごとに1つのカードを作成
-  Object.keys(productMap).forEach(function(pId) {
-    var lots = productMap[pId];
-
-    // 仕入れ順（仕入れ日時・登録ID順）で並び替え（①番が最も古い仕入れ＝現在のメイン情報）
-    sortLots(lots);
-
-    var topLot = lots[0]; // ①番のロット
-    var topLotPid = topLot.productId || topLot.product_id;
-    var prod = ALL_PRODUCTS.find(function(p) {
-      return String(p.id) === String(pId) || (topLotPid && String(p.id) === String(topLotPid)) || (topLot.nm && (topLot.nm.includes(p.name) || p.name.includes(topLot.nm)));
-    }) || { name: topLot.nm || '商品名なし', img_url: '', price: 0 };
-    
+    var topLot = lotsToDisplay[0];
     var topDays = topLot.d ? getDaysRemaining(topLot.d) : 999;
     var topStore = parseStoreFromNm(topLot.nm);
     var topUnitCost = Math.round(((topLot.tanka && topLot.tanka > 0 ? topLot.tanka : (topLot.iri ? (topLot.price || 0) / topLot.iri : 0)) || 0) * 10) / 10;
@@ -1499,9 +1525,8 @@ function renderExpiryList() {
     if (prod.status === 'hidden') cardClass += ' st-hidden';
     if (prod.status === 'discontinued') cardClass += ' st-disc';
 
-    // 点線の下：賞味期限リスト（①、②、③...）
     var listHtml = '';
-    lots.forEach(function(r, idx) {
+    lotsToDisplay.forEach(function(r, idx) {
       var numLabel = circNums[idx] || ('(' + (idx + 1) + ')');
       var badgeClass = 'grn';
       var expText = '';
@@ -1531,12 +1556,25 @@ function renderExpiryList() {
         }
       }
 
+      var lotStoreName = parseStoreFromNm(r.nm);
+      var lotQty = r.iri || 0;
+      var lotUnitCost = Math.round(((r.tanka && r.tanka > 0 ? r.tanka : (r.iri ? (r.price || r.buy_price || 0) / r.iri : 0)) || 0) * 10) / 10;
+      var lotSellPrice = r.sell && r.sell > 0 ? r.sell : sellPrice;
+
       listHtml += 
-        '<div style="display:flex; align-items:center; justify-content:center; padding:5px 0; border-bottom:1px solid #f0e6d8; font-size:13px; width:100%;">' +
-          '<div style="display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;">' +
-            '<span style="font-weight:900; color:var(--red); font-size:14px; min-width:18px; text-align:center;">' + numLabel + '</span>' +
-            '<span style="font-weight:700; color:var(--tx);">' + escapeHtml(expFormatted) + '</span>' +
-            '<span class="badge-exp ' + badgeClass + '" style="font-size:11px; margin-top:0;">' + expText + '</span>' +
+        '<div style="display:flex; flex-direction:column; padding:6px 0; border-bottom:1px dashed #f0e6d8; font-size:13px; width:100%;">' +
+          '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">' +
+            '<div style="display:flex; align-items:center; gap:6px;">' +
+              '<span style="font-weight:900; color:var(--red); font-size:14px; min-width:18px;">' + numLabel + '</span>' +
+              '<span style="font-weight:700; color:var(--tx);">' + escapeHtml(expFormatted) + '</span>' +
+              '<span class="badge-exp ' + badgeClass + '" style="font-size:11px; margin-top:0;">' + expText + '</span>' +
+            '</div>' +
+            '<div style="font-size:11px; color:var(--t2); font-weight:600;">' +
+              (lotStoreName && lotStoreName !== '店舗未記入' && lotStoreName !== '購入先未記録' ? '🏬' + escapeHtml(lotStoreName) + ' ' : '') +
+              (lotQty ? '📦' + lotQty + '個 ' : '') +
+              (lotUnitCost ? '仕単:' + lotUnitCost + '円 ' : '') +
+              (lotSellPrice ? '売:<strong style="color:#2b8a3e;">' + lotSellPrice + '円</strong>' : '') +
+            '</div>' +
           '</div>' +
         '</div>';
     });
@@ -1548,7 +1586,7 @@ function renderExpiryList() {
       statusBadgeHtml = '<span style="font-size:11px; background:#FFE3E3; color:#E03131; border:1px solid #FFC9C9; padding:2px 8px; border-radius:10px; font-weight:800; margin-left:6px;">❌ 販売終了</span>';
     }
 
-    var cardId = (prod && prod.id) ? prod.id : (topLot.productId ? topLot.productId : pId);
+    var cardId = prod.id;
     var card = document.createElement('div');
     card.className = 'lot-card ' + cardClass;
     card.dataset.pid = cardId;
@@ -1571,8 +1609,8 @@ function renderExpiryList() {
               '<span class="store-pill" style="' + getStorePillStyle(topStore) + ' font-size:11px; padding:2px 8px;">🏬 ' + escapeHtml(topStore) + '</span>' +
             '</div>' +
             '<div style="display:flex; flex-wrap:wrap; gap:12px; font-size:13px; font-weight:800; margin-top:4px; color:var(--tx);">' +
-              '<span>💰 仕入額: <strong style="color:var(--red);">' + (topLot.price || 0) + '円</strong> <span style="font-size:11px; font-weight:500; color:var(--t2);">(' + topUnitCost + '円/個)</span></span>' +
-              '<span>🏷️ 1個の販売価格: <strong style="color:#2b8a3e;">' + (sellPrice ? sellPrice + '円' : '未設定') + '</strong></span>' +
+              '<span>💰 最新仕入額: <strong style="color:var(--red);">' + (topLot.price || topLot.buy_price || prod.buy_price || 0) + '円</strong> <span style="font-size:11px; font-weight:500; color:var(--t2);">(' + topUnitCost + '円/個)</span></span>' +
+              '<span>🏷️ 1個の販売価格: <strong style="color:#2b8a3e;">' + (prod.sell_price || prod.price || sellPrice ? (prod.sell_price || prod.price || sellPrice) + '円' : '未設定') + '</strong></span>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -1584,7 +1622,7 @@ function renderExpiryList() {
       '<!-- 点線の下：賞味期限リスト -->' +
       '<div>' +
         '<div style="font-size:11px; font-weight:800; color:var(--t3); margin-bottom:6px; text-align:center;">' +
-          '<span>📅 賞味期限リスト （仕入れ順）</span>' +
+          '<span>📅 賞味期限リスト （仕入れ順 ・ 全 ' + lotsToDisplay.length + ' ロット）</span>' +
         '</div>' +
         '<div class="exp-lot-list" style="display:flex; flex-direction:column; align-items:center;">' +
           listHtml +
@@ -1592,7 +1630,12 @@ function renderExpiryList() {
       '</div>';
 
     container.appendChild(card);
+    renderedCount++;
   });
+
+  if (renderedCount === 0) {
+    container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--t3); background: var(--sf); border-radius: var(--r); border: 1px solid var(--bd);">該当する賞味期限・仕入れデータはありません</div>';
+  }
 }
 
 function openProductDetailModal(targetId) {
@@ -1612,15 +1655,7 @@ function openProductDetailModal(targetId) {
   var productId = prod ? prod.id : targetId;
   var prodName = prod ? prod.name : targetStr;
 
-  var lots = ALL_RESTOCK.filter(function(r) {
-    var rPid = r.productId || r.product_id;
-    if (prod && rPid && String(rPid) === String(prod.id)) return true;
-    if (rPid && String(rPid) === targetStr) return true;
-    if (prodName && r.nm && (r.nm.includes(prodName) || prodName.includes(r.nm))) return true;
-    if (targetStr && r.nm && (r.nm.includes(targetStr) || targetStr.includes(r.nm))) return true;
-    return false;
-  });
-
+  var lots = getLotsForProduct(prod || targetId);
   sortLots(lots);
 
   var titleEl = document.getElementById('pdetModalTitle');
@@ -1855,13 +1890,12 @@ function syncProductToActiveLot(productId) {
     return true;
   });
 
-  sortLots(activeLots);
-
   if (activeLots.length > 0) {
-    var topLot = activeLots[0];
-    var sellPrice = (topLot.sell && topLot.sell > 0) ? topLot.sell : (prod.sell_price || prod.price || 0);
-    var buyPrice = (topLot.price && topLot.price > 0) ? topLot.price : (prod.buy_price || 0);
-    var buyQty = (topLot.iri && topLot.iri > 0) ? topLot.iri : (prod.buy_qty || 30);
+    // 最新のロット(ID昇順・登録日時順で最新)から価格情報を反映
+    var latestLot = activeLots.slice().sort(function(a, b) { return Number(b.id) - Number(a.id); })[0];
+    var sellPrice = (latestLot && latestLot.sell && latestLot.sell > 0) ? latestLot.sell : (prod.sell_price || prod.price || 0);
+    var buyPrice = (latestLot && (latestLot.price || latestLot.buy_price) > 0) ? (latestLot.price || latestLot.buy_price) : (prod.buy_price || 0);
+    var buyQty = (latestLot && latestLot.iri && latestLot.iri > 0) ? latestLot.iri : (prod.buy_qty || 30);
 
     prod.sell_price = sellPrice;
     prod.price = sellPrice;
@@ -1889,16 +1923,14 @@ function syncAllProductsToActiveLots() {
       return true;
     });
 
-    sortLots(activeLots);
-
     if (activeLots.length > 0) {
-      var topLot = activeLots[0];
-      if (topLot.sell && topLot.sell > 0) {
-        prod.sell_price = topLot.sell;
-        prod.price = topLot.sell;
+      var latestLot = activeLots.slice().sort(function(a, b) { return Number(b.id) - Number(a.id); })[0];
+      if (latestLot.sell && latestLot.sell > 0) {
+        prod.sell_price = latestLot.sell;
+        prod.price = latestLot.sell;
       }
-      if (topLot.iri && topLot.iri > 0) prod.buy_qty = topLot.iri;
-      if (topLot.price && topLot.price > 0) prod.buy_price = topLot.price;
+      if (latestLot.iri && latestLot.iri > 0) prod.buy_qty = latestLot.iri;
+      if ((latestLot.price || latestLot.buy_price) > 0) prod.buy_price = (latestLot.price || latestLot.buy_price);
     }
   });
 }
@@ -2101,17 +2133,28 @@ function handleSavePurchase(e) {
   };
 
   GAS.addRestock(rsData)
-    .then(function() {
-      return syncProductToActiveLot(productId);
+    .then(function(res) {
+      var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(productId); });
+      if (prod) {
+        if (sellPrice > 0) {
+          prod.sell_price = sellPrice;
+          prod.price = sellPrice;
+        }
+        prod.buy_price = totalInclTax;
+        prod.buy_qty = totalQty;
+      }
+      return syncProductToActiveLot(productId).then(function() { return res; });
     })
-    .then(function() {
-
+    .then(function(res) {
+      var createdId = (res && res.data && res.data.id) ? res.data.id : Date.now();
       ALL_RESTOCK.unshift({
-        id: Date.now(),
+        id: createdId,
         productId: productId,
+        product_id: productId,
         nm: nmStr,
         iri: totalQty,
         price: totalInclTax,
+        buy_price: totalInclTax,
         tanka: tanka,
         sell: sellPrice,
         d: expDate,
@@ -2259,8 +2302,9 @@ function renderPriceComparison() {
       }
 
       var escName = escapeHtml(st.name).replace(/'/g, "\\'");
+      var pIdStr = String(p.id).replace(/'/g, "\\'");
       return '<div style="margin-bottom:6px; white-space:nowrap; display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">' +
-        '<span class="store-pill" onclick="openEditStoreByName(\'' + escName + '\')" title="タップして『' + escapeHtml(st.name) + '』の情報を編集" style="' + getStorePillStyle(st.name) + ' white-space:nowrap; cursor:pointer;">🏬 ' + escapeHtml(st.name) + ' ✏️</span> ' +
+        '<span class="store-pill" onclick="openEditStorePriceModal(\'' + pIdStr + '\', \'' + escName + '\')" title="タップして『' + escapeHtml(p.name) + '』の『' + escapeHtml(st.name) + '』での仕入れ価格・単価を変更" style="' + getStorePillStyle(st.name) + ' white-space:nowrap; cursor:pointer;">🏬 ' + escapeHtml(st.name) + ' ✏️</span> ' +
         priceDetailStr +
         primaryTag + cheapTag +
         '</div>';
@@ -2272,7 +2316,7 @@ function renderPriceComparison() {
       '<td style="white-space:nowrap;"><strong>' + escapeHtml(p.name) + '</strong>' + iriBadgeHtml + '</td>' +
       '<td style="white-space:nowrap;">' + (p.sell_price || p.price || 0) + ' 円</td>' +
       '<td style="white-space:nowrap;">' + storesHtml + '</td>' +
-      '<td style="white-space:nowrap;">' + (cheapestStore ? '<span class="store-pill" onclick="openEditStoreByName(\'' + cheapEscName + '\')" title="タップして『' + escapeHtml(cheapestStore) + '』の情報を編集" style="' + getStorePillStyle(cheapestStore) + ' white-space:nowrap; font-weight:800; cursor:pointer;">🏬 ' + escapeHtml(cheapestStore) + ' ✏️</span>' : '-') + '</td>';
+      '<td style="white-space:nowrap;">' + (cheapestStore ? '<span class="store-pill" style="' + getStorePillStyle(cheapestStore) + ' white-space:nowrap; font-weight:800;">🏬 ' + escapeHtml(cheapestStore) + '</span>' : '-') + '</td>';
 
     tbody.appendChild(tr);
   });
@@ -3034,6 +3078,191 @@ function clearProdImg() {
     })
     .catch(function(err) { alert('削除エラー: ' + err.message); });
 }
+
+// ================= STORE PRICE EDIT MODAL =================
+function openEditStorePriceModal(productId, storeName) {
+  var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(productId); });
+  if (!prod) return;
+
+  document.getElementById('editStorePriceProductId').value = productId;
+  document.getElementById('editStorePriceStoreName').value = storeName;
+
+  document.getElementById('editStorePriceModalTitle').textContent = '✏️ 『' + prod.name + '』の仕入れ価格変更';
+  document.getElementById('editStorePriceModalSub').textContent = '店舗・仕入れ先: 🏬 ' + storeName;
+
+  var targetLot = ALL_RESTOCK.find(function(r) {
+    var rPid = r.productId || r.product_id;
+    var matchesProduct = (rPid && String(rPid) === String(productId)) || (r.nm && (r.nm.includes(prod.name) || prod.name.includes(r.nm)));
+    var sName = parseStoreFromNm(r.nm);
+    return matchesProduct && sName === storeName;
+  });
+
+  var targetSup = ALL_PRODUCT_SUPPLIERS.find(function(ps) {
+    if (String(ps.product_id) !== String(productId)) return false;
+    var sObj = ALL_SUPPLIERS.find(function(s) { return String(s.id) === String(ps.supplier_id); });
+    return sObj && sObj.name === storeName;
+  });
+
+  var buyPrice = (targetLot && (targetLot.price || targetLot.buy_price) > 0)
+    ? (targetLot.price || targetLot.buy_price)
+    : (targetSup && targetSup.buy_price ? targetSup.buy_price : (prod.buy_price || 0));
+
+  var iri = (targetLot && targetLot.iri > 0)
+    ? targetLot.iri
+    : (targetSup && targetSup.buy_qty ? targetSup.buy_qty : (prod.buy_qty || 30));
+
+  var sellPrice = (targetLot && targetLot.sell > 0)
+    ? targetLot.sell
+    : (prod.sell_price || prod.price || 0);
+
+  document.getElementById('editStorePriceBuyPrice').value = buyPrice;
+  document.getElementById('editStorePriceIri').value = iri;
+  document.getElementById('editStorePriceSellPrice').value = sellPrice;
+
+  calcEditStorePriceTanka();
+
+  var modal = document.getElementById('editStorePriceModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeEditStorePriceModal() {
+  var modal = document.getElementById('editStorePriceModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function calcEditStorePriceTanka() {
+  var bp = parseFloat(document.getElementById('editStorePriceBuyPrice').value) || 0;
+  var iri = parseInt(document.getElementById('editStorePriceIri').value) || 1;
+  var tanka = iri > 0 ? (bp / iri) : 0;
+  var tankaFormatted = Math.round(tanka * 100) / 100;
+  document.getElementById('editStorePriceCalcTanka').value = tankaFormatted + ' 円 / 個';
+}
+
+function handleSaveStorePrice(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  var productId = document.getElementById('editStorePriceProductId').value;
+  var storeName = document.getElementById('editStorePriceStoreName').value;
+  var buyPrice = parseFloat(document.getElementById('editStorePriceBuyPrice').value) || 0;
+  var iri = parseInt(document.getElementById('editStorePriceIri').value) || 1;
+  var sellPrice = parseFloat(document.getElementById('editStorePriceSellPrice').value) || 0;
+
+  var tanka = iri > 0 ? (buyPrice / iri) : 0;
+
+  var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(productId); });
+  if (!prod) return;
+
+  var targetLot = ALL_RESTOCK.find(function(r) {
+    var rPid = r.productId || r.product_id;
+    var matchesProduct = (rPid && String(rPid) === String(productId)) || (r.nm && (r.nm.includes(prod.name) || prod.name.includes(r.nm)));
+    var sName = parseStoreFromNm(r.nm);
+    return matchesProduct && sName === storeName;
+  });
+
+  var updatePromise = Promise.resolve();
+
+  if (targetLot) {
+    updatePromise = GAS.updateRestock({
+      id: targetLot.id,
+      nm: '【' + storeName + '】' + prod.name,
+      iri: iri,
+      buy_price: buyPrice,
+      tanka: tanka,
+      sell: sellPrice,
+      d: targetLot.d || ''
+    }).then(function() {
+      targetLot.iri = iri;
+      targetLot.price = buyPrice;
+      targetLot.buy_price = buyPrice;
+      targetLot.tanka = tanka;
+      targetLot.sell = sellPrice;
+    });
+  } else {
+    var newNm = '【' + storeName + '】' + prod.name;
+    updatePromise = GAS.addRestock({
+      productId: productId,
+      nm: newNm,
+      iri: iri,
+      buy_price: buyPrice,
+      tanka: tanka,
+      sell: sellPrice,
+      d: todayJST(),
+      status: 'pending'
+    }).then(function(res) {
+      ALL_RESTOCK.unshift({
+        id: (res && res.data && res.data.id) ? res.data.id : Date.now(),
+        productId: productId,
+        product_id: productId,
+        nm: newNm,
+        iri: iri,
+        price: buyPrice,
+        buy_price: buyPrice,
+        tanka: tanka,
+        sell: sellPrice,
+        d: todayJST(),
+        status: 'pending'
+      });
+    });
+  }
+
+  updatePromise
+    .then(function() {
+      return syncProductToActiveLot(productId);
+    })
+    .then(function() {
+      renderStats();
+      renderExpiryList();
+      renderPriceComparison();
+      closeEditStorePriceModal();
+      alert('「' + prod.name + '」（店舗: ' + storeName + '）の仕入れ価格・単価を更新しました！');
+    })
+    .catch(function(err) {
+      alert('更新エラー: ' + (err.message || String(err)));
+    });
+}
 </script>
+
+<!-- 店舗別・仕入れ価格編集モーダル -->
+<div id="editStorePriceModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+  <div class="modal-box" style="background:#fff; padding:22px; border-radius:16px; width:90%; max-width:440px; box-shadow:0 10px 25px rgba(0,0,0,0.25);">
+    <div style="font-size:16px; font-weight:900; color:var(--tx); margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
+      <span id="editStorePriceModalTitle">✏️ 仕入れ価格・単価の変更</span>
+      <button type="button" onclick="closeEditStorePriceModal()" style="background:none; border:none; font-size:20px; cursor:pointer; color:#888;">✕</button>
+    </div>
+    <div id="editStorePriceModalSub" style="font-size:12px; color:var(--t2); font-weight:700; margin-bottom:14px; padding-bottom:8px; border-bottom:1px dashed var(--bd);">
+      --
+    </div>
+
+    <form onsubmit="handleSaveStorePrice(event)" style="display:flex; flex-direction:column; gap:12px;">
+      <input type="hidden" id="editStorePriceProductId">
+      <input type="hidden" id="editStorePriceStoreName">
+
+      <div class="form-group" style="margin-bottom:0;">
+        <label style="font-size:12px; font-weight:800; color:var(--tx); display:block; margin-bottom:4px;">💰 仕入れ総額 (伝票・レシート等の税込金額)</label>
+        <input type="number" id="editStorePriceBuyPrice" class="inp" min="0" required oninput="calcEditStorePriceTanka()" style="font-size:14px; font-weight:700;">
+      </div>
+
+      <div class="form-group" style="margin-bottom:0;">
+        <label style="font-size:12px; font-weight:800; color:var(--tx); display:block; margin-bottom:4px;">📦 入数 (1箱・1セットあたりの個数)</label>
+        <input type="number" id="editStorePriceIri" class="inp" min="1" required oninput="calcEditStorePriceTanka()" style="font-size:14px; font-weight:700;">
+      </div>
+
+      <div class="form-group" style="margin-bottom:0;">
+        <label style="font-size:12px; font-weight:800; color:var(--tx); display:block; margin-bottom:4px;">🧮 計算仕入単価 (1個あたり)</label>
+        <input type="text" id="editStorePriceCalcTanka" class="inp" readonly style="background:#f5f5f5; font-weight:900; color:var(--red); font-size:14px;" value="0 円 / 個">
+      </div>
+
+      <div class="form-group" style="margin-bottom:0;">
+        <label style="font-size:12px; font-weight:800; color:var(--tx); display:block; margin-bottom:4px;">🏷️ 1個の店頭販売価格 (円)</label>
+        <input type="number" id="editStorePriceSellPrice" class="inp" min="0" required style="font-size:14px; font-weight:700; color:#2b8a3e;">
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
+        <button type="button" class="btn btn-sub btn-sm" onclick="closeEditStorePriceModal()">キャンセル</button>
+        <button type="submit" class="btn btn-grn btn-sm" style="font-weight:800; padding:8px 16px;">💾 変更内容を保存</button>
+      </div>
+    </form>
+  </div>
+</div>
 </body>
 </html>

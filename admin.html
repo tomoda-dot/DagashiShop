@@ -21,8 +21,22 @@
     .regi-container .step-btn-plus { color: #2563eb; background: #dbeafe; }
     .regi-container .step-btn-plus:hover { background: #bfdbfe; }
 
-    /* レジ締め タブレット・レスポンシブ最適化 */
+    /* レジ締め・明細管理 タブレット・レスポンシブ最適化 */
     @media (max-width: 1024px) {
+      nav {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap !important;
+        display: flex !important;
+        justify-content: flex-start !important;
+      }
+      nav button {
+        flex: 0 0 auto !important;
+        padding: 12px 18px !important;
+        font-size: 14px !important;
+        white-space: nowrap !important;
+      }
+
       #content-regi {
         flex-direction: column !important;
         overflow-y: auto !important;
@@ -40,6 +54,15 @@
         max-height: none !important;
         overflow-y: visible !important;
         gap: 8px !important;
+      }
+
+      #content-detail {
+        padding: 10px !important;
+        overflow-y: auto !important;
+      }
+      .summary-detail-table {
+        table-layout: auto !important;
+        min-width: 860px;
       }
     }
     #notification { display: none; position: fixed; top: 20px; right: 20px; z-index: 1000; min-width: 250px; }
@@ -2289,6 +2312,15 @@
       initInputs();
       loadData();
       setInterval(updateClock, 1000);
+
+      // URLパラメータ(?tab=regi)またはハッシュ(#regi)でタブが指定されていたら自動切り替え
+      try {
+        var params = new URLSearchParams(location.search);
+        var requestedTab = params.get('tab') || location.hash.replace('#', '');
+        if (requestedTab && ['summary','regi','detail','savings','pettycash','config'].indexOf(requestedTab) >= 0) {
+          switchTab(requestedTab);
+        }
+      } catch(e){}
     };
 </script>
 </body>

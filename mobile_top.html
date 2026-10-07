@@ -259,7 +259,43 @@
 
         <!-- メニューカードリスト -->
         <div class="menu-list">
-            <!-- 1. マイページ -->
+            <!-- 1. レジ締め入力 -->
+            <div class="menu-card" onclick="openApp('admin.html?tab=regi')">
+                <div class="icon-wrap">
+                    <img src="icon-pos.png" alt="レジ締め入力">
+                </div>
+                <div class="card-content">
+                    <div class="card-title">🧮 レジ締め入力</div>
+                    <div class="card-desc">金種枚数入力・現金照合<br>毎日の過不足チェック</div>
+                </div>
+                <div class="arrow-icon">➔</div>
+            </div>
+
+            <!-- 2. 明細管理 -->
+            <div class="menu-card" onclick="openApp('admin.html?tab=detail')">
+                <div class="icon-wrap">
+                    <img src="icon-management.png" alt="明細管理">
+                </div>
+                <div class="card-content">
+                    <div class="card-title">📋 明細管理</div>
+                    <div class="card-desc">購入明細・注文履歴<br>データの検索・修正</div>
+                </div>
+                <div class="arrow-icon">➔</div>
+            </div>
+
+            <!-- 3. 売上管理・日計表 -->
+            <div class="menu-card" onclick="openApp('admin.html')">
+                <div class="icon-wrap">
+                    <img src="icon-sales.png" alt="売上管理">
+                </div>
+                <div class="card-content">
+                    <div class="card-title">📊 売上管理・日計表</div>
+                    <div class="card-desc">日計表・積立金・小口現金<br>各種帳票・売上管理全般</div>
+                </div>
+                <div class="arrow-icon">➔</div>
+            </div>
+
+            <!-- 4. マイページ -->
             <div class="menu-card" onclick="openApp('../Porte/mypage.html')">
                 <div class="icon-wrap">
                     <img src="kuma.png" alt="マイページ">
@@ -271,7 +307,7 @@
                 <div class="arrow-icon">➔</div>
             </div>
 
-            <!-- 2. タブレット入力 -->
+            <!-- 5. タブレット入力 -->
             <div class="menu-card" onclick="openApp('../Porte/tablet.html')">
                 <div class="icon-wrap">
                     <img src="kiroku.jpg" alt="タブレット入力" class="rounded">
@@ -283,7 +319,7 @@
                 <div class="arrow-icon">➔</div>
             </div>
 
-            <!-- 3. バーコードスキャナー -->
+            <!-- 6. バーコードスキャナー -->
             <div class="menu-card" onclick="openApp('scanner.html')">
                 <div class="icon-wrap">
                     <img src="icon-pos2.png" alt="バーコードスキャナー">
@@ -295,7 +331,7 @@
                 <div class="arrow-icon">➔</div>
             </div>
 
-            <!-- 4. 仕入れ・賞味期限管理 -->
+            <!-- 7. 仕入れ・賞味期限管理 -->
             <div class="menu-card" onclick="openApp('purchase-log.html')">
                 <div class="icon-wrap">
                     <img src="icon-stock.png" alt="仕入れ・賞味期限">

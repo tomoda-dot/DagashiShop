@@ -252,49 +252,45 @@ GAS.setAllStockToTen = function() {
 
 // ─ addRestock ─
 GAS.addRestock = function(r) {
-  return sbGet('restock', 'product_id=eq.' + r.productId + '&status=neq.consumed')
-    .then(function(activeLots) {
-      activeLots = activeLots || [];
-      var hasActiveLot = activeLots.length > 0;
+  var pUpdate = {};
+  if (r.buy_price) pUpdate.buy_price = Number(r.buy_price);
+  if (r.iri)       pUpdate.buy_qty   = Number(r.iri);
+  else if (r.buy_qty) pUpdate.buy_qty = Number(r.buy_qty);
 
-      // 既に進行中(未完売)のロット①が存在する場合は商品マスタの価格を上書きしない
-      var pUpdate = {};
-      if (!hasActiveLot) {
-        if (r.buy_price) pUpdate.buy_price = Number(r.buy_price);
-        if (r.buy_qty)   pUpdate.buy_qty   = Number(r.buy_qty);
-        if (r.sell) {
-          pUpdate.sell_price = Number(r.sell);
-          pUpdate.price      = Number(r.sell);
-        }
+  if (r.sell && Number(r.sell) > 0) {
+    pUpdate.sell_price = Number(r.sell);
+    pUpdate.price      = Number(r.sell);
+  }
+
+  var p1 = Object.keys(pUpdate).length > 0
+    ? sbPatch('products', 'id=eq.' + r.productId, pUpdate)
+    : Promise.resolve();
+
+  // candidate → active 昇格チェック
+  var p2 = sbGet('products', 'id=eq.' + r.productId + '&select=status')
+    .then(function(rows) {
+      if (rows && rows[0] && rows[0].status === 'candidate') {
+        return sbPatch('products', 'id=eq.' + r.productId, { status: 'active' });
       }
+    });
 
-      var p1 = Object.keys(pUpdate).length > 0
-        ? sbPatch('products', 'id=eq.' + r.productId, pUpdate)
-        : Promise.resolve();
+  // 仕入れ履歴追加
+  var restockBody = {
+    product_id: Number(r.productId),
+    nm:         r.nm        || '',
+    iri:        Number(r.iri)       || 0,
+    buy_price:  Number(r.buy_price) || 0,
+    tanka:      Number(r.tanka)     || 0,
+    sell:       Number(r.sell)      || 0,
+    d:          r.d || todayJST(),
+    status:     'pending'
+  };
 
-      // candidate → active 昇格チェック
-      var p2 = sbGet('products', 'id=eq.' + r.productId + '&select=status')
-        .then(function(rows) {
-          if (rows && rows[0] && rows[0].status === 'candidate') {
-            return sbPatch('products', 'id=eq.' + r.productId, { status: 'active' });
-          }
-        });
-
-      // 仕入れ履歴追加
-      var restockBody = {
-        product_id: Number(r.productId),
-        nm:         r.nm        || '',
-        iri:        Number(r.iri)       || 0,
-        buy_price:  Number(r.buy_price) || 0,
-        tanka:      Number(r.tanka)     || 0,
-        sell:       Number(r.sell)      || 0,
-        d:          r.d || todayJST(),
-        status:     'pending'
-      };
-
-      return Promise.all([p1, p2])
-        .then(function() { return sbPost('restock', restockBody); })
-        .then(function() { return { ok: true }; });
+  return Promise.all([p1, p2])
+    .then(function() { return sbPost('restock', restockBody); })
+    .then(function(res) {
+      var created = Array.isArray(res) ? res[0] : res;
+      return { ok: true, data: created };
     });
 };
 
