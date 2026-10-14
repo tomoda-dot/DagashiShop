@@ -428,7 +428,10 @@ tr:hover td { background: #FDFBFAF0; }
     <div class="card-sec">
       <div class="sec-title">
         <span>🔍 仕入れ商品の検品・売価設定（店頭出し時）</span>
-        <button class="btn btn-sub btn-sm" onclick="openProductSelectModal()">🔍 商品マスターから選択</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-grn" onclick="openNewProductModal()">➕ 新規お菓子の追加</button>
+          <button class="btn btn-sub btn-sm" onclick="openProductSelectModal()">🔍 商品マスターから選択</button>
+        </div>
       </div>
 
       <!-- Selected Product Preview -->
@@ -638,7 +641,10 @@ tr:hover td { background: #FDFBFAF0; }
   <div class="modal-box">
     <div class="modal-head">
       <div class="modal-title">📦 商品を選択</div>
-      <button class="close-btn" onclick="closeModal('productModal')">×</button>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button class="btn btn-sm btn-grn" onclick="openNewProductModal()">➕ 新規お菓子を追加</button>
+        <button class="close-btn" onclick="closeModal('productModal')">×</button>
+      </div>
     </div>
     <div style="margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
       <input type="text" id="modalSearch" class="inp" placeholder="🔍 商品名・かな・バーコードで検索..." oninput="filterModalProducts()">
@@ -650,6 +656,64 @@ tr:hover td { background: #FDFBFAF0; }
     <div id="modalProdGrid" class="prod-select-grid">
       <!-- Dynamic products inside modal -->
     </div>
+  </div>
+</div>
+
+<!-- New Product Create Modal -->
+<div id="newProductModal" class="modal-overlay">
+  <div class="modal-box" style="max-width: 520px;">
+    <div class="modal-head">
+      <div class="modal-title">🍬 新しいお菓子を登録</div>
+      <button class="close-btn" onclick="closeModal('newProductModal')">×</button>
+    </div>
+    <form onsubmit="handleSaveNewProduct(event)">
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label>商品名 <span class="req">*</span></label>
+        <input type="text" id="newProdName" class="inp" placeholder="例: うまい棒 めんたい味" required>
+      </div>
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label>ふりがな（検索用）</label>
+        <input type="text" id="newProdKana" class="inp" placeholder="例: うまいぼう めんたいあじ">
+      </div>
+      <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+        <div class="form-group">
+          <label>カテゴリ</label>
+          <select id="newProdCat" class="select">
+            <option value="駄菓子">駄菓子</option>
+            <option value="スナック">スナック</option>
+            <option value="チョコ">チョコ</option>
+            <option value="グミ・キャンディ">グミ・キャンディ</option>
+            <option value="ラムネ">ラムネ</option>
+            <option value="珍味・イカ">珍味・イカ</option>
+            <option value="飲料">飲料</option>
+            <option value="玩具">玩具 (税率10%)</option>
+            <option value="その他" selected>その他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>バーコード (JANコード)</label>
+          <input type="text" id="newProdBarcode" class="inp" placeholder="バーコード番号">
+        </div>
+      </div>
+      <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+        <div class="form-group">
+          <label>標準の1箱入数 (個)</label>
+          <input type="number" id="newProdIri" class="inp" min="1" value="30" placeholder="例: 30">
+        </div>
+        <div class="form-group">
+          <label>店頭販売単価 (円)</label>
+          <input type="number" id="newProdPrice" class="inp" min="0" placeholder="例: 40">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label>メーカー・備考 (任意)</label>
+        <input type="text" id="newProdMaker" class="inp" placeholder="例: やおきん">
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn btn-sub" style="flex: 1;" onclick="closeModal('newProductModal')">キャンセル</button>
+        <button type="submit" id="saveNewProdBtn" class="btn btn-grn" style="flex: 2;">💾 お菓子を登録して仕入れへ</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -2010,6 +2074,86 @@ function toggleConsumed(restockId, isConsumed) {
       renderExpiryList();
     })
     .catch(function(err) { alert('更新エラー: ' + err.message); });
+}
+
+// ================= NEW PRODUCT MODAL =================
+function openNewProductModal() {
+  closeModal('productModal');
+  document.getElementById('newProdName').value = '';
+  document.getElementById('newProdKana').value = '';
+  document.getElementById('newProdCat').value = '駄菓子';
+  document.getElementById('newProdBarcode').value = '';
+  document.getElementById('newProdIri').value = '30';
+  document.getElementById('newProdPrice').value = '';
+  document.getElementById('newProdMaker').value = '';
+  document.getElementById('newProductModal').classList.add('open');
+  setTimeout(function() {
+    var inp = document.getElementById('newProdName');
+    if (inp) inp.focus();
+  }, 100);
+}
+
+function handleSaveNewProduct(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  var name = document.getElementById('newProdName').value.trim();
+  if (!name) return alert('商品名を入力してください');
+
+  var kana = document.getElementById('newProdKana').value.trim();
+  var cat = document.getElementById('newProdCat').value;
+  var barcode = document.getElementById('newProdBarcode').value.trim();
+  var iri = parseInt(document.getElementById('newProdIri').value) || 30;
+  var price = parseFloat(document.getElementById('newProdPrice').value) || 0;
+  var maker = document.getElementById('newProdMaker').value.trim();
+
+  // 重複チェック
+  var dup = ALL_PRODUCTS.find(function(p) {
+    return p.name.trim().toLowerCase() === name.toLowerCase() && p.status !== 'discontinued';
+  });
+  if (dup) {
+    if (!confirm('「' + name + '」は既に登録されています。\nそのまま新規登録を続けますか？')) {
+      return;
+    }
+  }
+
+  var btn = document.getElementById('saveNewProdBtn');
+  var origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ 登録中...';
+
+  var pData = {
+    name: name,
+    name_kana: kana,
+    cat: cat,
+    barcode: barcode,
+    unit: '個',
+    min: 5,
+    stock: 0,
+    price: price,
+    sell_price: price,
+    buy_qty: iri,
+    buy_price: 0,
+    maker: maker,
+    status: 'active'
+  };
+
+  GAS.addProduct(pData)
+    .then(function(res) {
+      var newId = (res && res.id) ? res.id : Date.now();
+      var createdProd = Object.assign({}, pData, { id: newId });
+      ALL_PRODUCTS.unshift(createdProd);
+
+      closeModal('newProductModal');
+      // 仕入れ検品画面に対象商品として自動選択
+      selectProductForPurchase(createdProd);
+      alert('「' + name + '」を新商品として登録しました！🎉\nそのまま仕入れ・検品情報を入力してください。');
+    })
+    .catch(function(err) {
+      alert('商品の登録に失敗しました: ' + (err.message || err));
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.textContent = origText;
+    });
 }
 
 // ================= PRODUCT SELECT MODAL =================
