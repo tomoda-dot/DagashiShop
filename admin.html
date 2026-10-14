@@ -20,8 +20,16 @@
     .regi-container .step-btn-minus:hover { background: #fca5a5; }
     .regi-container .step-btn-plus { color: #2563eb; background: #dbeafe; }
     .regi-container .step-btn-plus:hover { background: #bfdbfe; }
+    /* レジ締め金種コンテナ（PC用ベース設定：左列=10,000〜100、右列=50〜1の完全2列配置） */
+    #denom-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-auto-flow: column;
+      grid-template-rows: repeat(5, auto);
+      gap: 8px 24px;
+    }
 
-    /* レジ締め・明細管理 タブレット・レスポンシブ最適化 */
+    /* レジ締め・明細管理 タブレット・レスポンシブ最適化 (1024px以下) */
     @media (max-width: 1024px) {
       nav {
         overflow-x: auto !important;
@@ -29,6 +37,10 @@
         white-space: nowrap !important;
         display: flex !important;
         justify-content: flex-start !important;
+        scrollbar-width: none;
+      }
+      nav::-webkit-scrollbar {
+        display: none;
       }
       nav button {
         flex: 0 0 auto !important;
@@ -37,32 +49,142 @@
         white-space: nowrap !important;
       }
 
+      /* スクロール修正：height: auto ではなく height: 100% と max-height: 100% で内部スクロールを確実に動作させる */
       #content-regi {
         flex-direction: column !important;
         overflow-y: auto !important;
-        padding: 12px !important;
+        -webkit-overflow-scrolling: touch;
+        padding: 12px 12px 90px 12px !important;
         gap: 16px !important;
-        height: auto !important;
-        min-height: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
       }
       #content-regi > div {
         width: 100% !important;
         flex: none !important;
       }
       #denom-container {
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        grid-auto-flow: column !important;
+        grid-template-rows: repeat(5, auto) !important;
         max-height: none !important;
         overflow-y: visible !important;
-        gap: 8px !important;
+        gap: 8px 16px !important;
       }
 
       #content-detail {
         padding: 10px !important;
         overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        height: 100% !important;
+        max-height: 100% !important;
       }
       .summary-detail-table {
         table-layout: auto !important;
         min-width: 860px;
+      }
+      .pettycash-table, .savings-table {
+        table-layout: auto !important;
+        min-width: 680px;
+      }
+      #content-savings > .no-print,
+      #content-pettycash > .no-print {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+      }
+      #content-savings, #content-pettycash {
+        height: 100% !important;
+        max-height: 100% !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+
+    /* スマホ表示最適化（640px以下：1列並び・文字あふれ防止・タッチ操作性維持） */
+    @media (max-width: 640px) {
+      header {
+        padding: 8px 12px !important;
+      }
+      header h1 {
+        font-size: 1rem !important;
+      }
+      #denom-container {
+        grid-template-columns: 1fr !important;
+        grid-auto-flow: row !important;
+        grid-template-rows: none !important;
+        gap: 6px !important;
+      }
+      #content-regi {
+        padding: 8px 8px 90px 8px !important;
+        gap: 12px !important;
+      }
+      .denom-row {
+        padding: 6px 8px !important;
+      }
+      .regi-container .denom-label {
+        font-size: 0.88rem !important;
+        min-width: 58px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+      }
+      .denom-controls {
+        gap: 4px !important;
+      }
+      .roll-select {
+        width: 48px !important;
+        height: 36px !important;
+        font-size: 11px !important;
+        padding: 0 2px !important;
+        flex-shrink: 0 !important;
+      }
+      .roll-spacer {
+        width: 48px !important;
+        height: 36px !important;
+        flex-shrink: 0 !important;
+      }
+      .regi-container .step-btn {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 1.2rem !important;
+        border-radius: 8px !important;
+        flex-shrink: 0 !important;
+      }
+      .regi-container .input-box {
+        width: 56px !important;
+        height: 36px !important;
+        font-size: 1rem !important;
+        padding: 0 2px !important;
+        border-radius: 6px !important;
+        flex-shrink: 0 !important;
+      }
+      .top-back-btn {
+        padding: 8px 16px !important;
+        font-size: 12px !important;
+        bottom: 12px !important;
+        right: 12px !important;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2) !important;
+      }
+    }
+
+    /* 極小画面（380px以下） */
+    @media (max-width: 380px) {
+      .regi-container .denom-label {
+        font-size: 0.82rem !important;
+        min-width: 52px !important;
+      }
+      .roll-select, .roll-spacer {
+        width: 42px !important;
+      }
+      .regi-container .step-btn {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 1.1rem !important;
+      }
+      .regi-container .input-box {
+        width: 48px !important;
+        height: 32px !important;
+        font-size: 0.95rem !important;
       }
     }
     #notification { display: none; position: fixed; top: 20px; right: 20px; z-index: 1000; min-width: 250px; }
@@ -340,7 +462,7 @@
               </select>
             </div>
           </div>
-          <div id="denom-container" class="grid grid-cols-2 gap-x-6 gap-y-2 overflow-y-auto pr-1"></div>
+          <div id="denom-container" class="overflow-y-auto pr-1"></div>
           <div class="pt-3 mt-1 border-t border-slate-100 flex justify-between items-end">
             <div class="text-slate-400 font-bold text-xs tracking-widest uppercase">レジ内現金 合計</div>
             <div id="total-actual" class="text-3xl font-black text-slate-800 font-mono tracking-tighter">¥0</div>
@@ -1106,10 +1228,10 @@
     // ── レジ締め ─────────────────────────────────
     function initInputs() {
       const container = document.getElementById('denom-container');
-      container.innerHTML = DISPLAY_ORDER.map(v => {
+      container.innerHTML = ALL_DENOMS.map(v => {
         const isCoin = v <= 500;
         const rollSelectHtml = isCoin ? `
-          <select id="roll-${v}" class="border-2 border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none px-1 py-1 bg-white hover:bg-slate-50 cursor-pointer w-16 h-9" onchange="calculate()">
+          <select id="roll-${v}" class="roll-select border-2 border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none px-1 py-1 bg-white hover:bg-slate-50 cursor-pointer w-16 h-9" onchange="calculate()">
             <option value="0">0本</option>
             <option value="1">1本</option>
             <option value="2">2本</option>
@@ -1122,12 +1244,12 @@
             <option value="9">9本</option>
             <option value="10">10本</option>
           </select>
-        ` : '<div class="w-16 h-9"></div>';
+        ` : '<div class="roll-spacer w-16 h-9"></div>';
 
         return `
           <div class="denom-row flex items-center justify-between p-2 bg-slate-50 hover:bg-blue-50/50 rounded-xl border border-slate-200 transition">
             <label class="denom-label font-bold text-slate-700 text-sm md:text-base min-w-[70px] text-right font-mono">${v.toLocaleString()}円</label>
-            <div class="flex items-center gap-1.5 md:gap-2 ml-auto">
+            <div class="denom-controls flex items-center gap-1.5 md:gap-2 ml-auto">
               ${rollSelectHtml}
               <button type="button" class="step-btn step-btn-minus" onpointerdown="startStepRepeat(${v}, -1, event)" onpointerup="stopStepRepeat()" onpointerleave="stopStepRepeat()" onclick="if(!window.PointerEvent) step(${v}, -1)">−</button>
               <input type="number" id="in-${v}" class="input-box" value="0" min="0" oninput="calculate()" inputmode="numeric" pattern="[0-9]*">
