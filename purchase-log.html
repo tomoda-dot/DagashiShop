@@ -406,6 +406,9 @@ tr:hover td { background: #FDFBFAF0; }
       <div class="search-box">
         <input type="text" id="expSearch" class="inp" placeholder="🔍 商品名・店舗名で検索..." oninput="renderExpiryList()">
       </div>
+      <select id="expCategoryFilter" class="select" style="width: auto; min-width: 130px; font-weight: 700;" onchange="renderExpiryList()">
+        <option value="">全カテゴリ</option>
+      </select>
       <select id="expFilter" class="select" style="width: auto;" onchange="renderExpiryList()">
         <option value="active">🟢 保有中（通常販売）</option>
         <option value="expired">🚨 期限切れ（赤カード）のみ</option>
@@ -1016,6 +1019,7 @@ function initApp() {
 
       updateSyncStatus(true);
       populateStoreDropdown();
+      loadCategoriesForExpiry();
       renderStats();
       renderExpiryList();
       renderPriceComparison();
@@ -1260,6 +1264,46 @@ function populateStoreDropdown() {
   });
 }
 
+var ALL_CATEGORIES = [];
+
+function loadCategoriesForExpiry() {
+  var p = (typeof GAS.getCategories === 'function') ? GAS.getCategories() : Promise.resolve([]);
+  return p.then(function(rows) {
+    var catNames = [];
+    if (rows && rows.length > 0) {
+      catNames = rows.map(function(c) { return c.name; }).filter(Boolean);
+    }
+    // 商品データ内にあってcategoriesテーブルにないものも追加
+    (ALL_PRODUCTS || []).forEach(function(prod) {
+      if (prod.cat && catNames.indexOf(prod.cat) === -1) {
+        catNames.push(prod.cat);
+      }
+    });
+    ALL_CATEGORIES = catNames;
+    populateCategoryDropdown();
+  }).catch(function(e) {
+    console.warn('loadCategories error:', e);
+    var set = {};
+    (ALL_PRODUCTS || []).forEach(function(prod) {
+      if (prod.cat) set[prod.cat] = true;
+    });
+    ALL_CATEGORIES = Object.keys(set);
+    populateCategoryDropdown();
+  });
+}
+
+function populateCategoryDropdown() {
+  var sel = document.getElementById('expCategoryFilter');
+  if (!sel) return;
+  var cur = sel.value;
+  var html = '<option value="">全カテゴリ</option>';
+  ALL_CATEGORIES.forEach(function(cat) {
+    html += '<option value="' + escapeHtml(cat) + '"' + (cat === cur ? ' selected' : '') + '>' + escapeHtml(cat) + '</option>';
+  });
+  sel.innerHTML = html;
+  if (cur) sel.value = cur;
+}
+
 function renderStoreTable() {
   var tbody = document.getElementById('storeTableBody');
   if (!tbody) return;
@@ -1481,6 +1525,7 @@ function renderExpiryList() {
 
   var query = document.getElementById('expSearch').value.toLowerCase().trim();
   var filter = document.getElementById('expFilter').value;
+  var selectedCat = (document.getElementById('expCategoryFilter') ? document.getElementById('expCategoryFilter').value : '').trim();
 
   var productsToRender = [];
   var seenProductIds = {};
@@ -1515,6 +1560,9 @@ function renderExpiryList() {
   var renderedCount = 0;
 
   productsToRender.forEach(function(prod) {
+    if (selectedCat && (prod.cat || 'その他') !== selectedCat) {
+      return;
+    }
     var allLots = getLotsForProduct(prod);
 
     var filteredLots = allLots.filter(function(r) {
