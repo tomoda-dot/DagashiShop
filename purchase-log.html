@@ -278,11 +278,113 @@ tr:hover td { background: #FDFBFAF0; }
 .shop-left { display: flex; align-items: center; gap: 12px; }
 .chk-box { width: 22px; height: 22px; cursor: pointer; accent-color: var(--grn); }
 
-/* Printable FAX Area */
+/* Printable Area & Print Styles */
 @media print {
-  body * { visibility: hidden; }
-  #printableFaxArea, #printableFaxArea * { visibility: visible; }
-  #printableFaxArea { position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: #fff; padding: 20px; }
+  /* FAX Document Printing */
+  body.printing-fax * { visibility: hidden; }
+  body.printing-fax #printableFaxArea, body.printing-fax #printableFaxArea * { visibility: visible; }
+  body.printing-fax #printableFaxArea { position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: #fff; padding: 20px; }
+
+  /* Price Ledger Printing */
+  body.printing-pricelist * { visibility: hidden; }
+  body.printing-pricelist #priceTab, body.printing-pricelist #priceTab * { visibility: visible; }
+  body.printing-pricelist #priceTab {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #fff;
+    padding: 0;
+    margin: 0;
+    display: block !important;
+  }
+  body.printing-pricelist .no-print {
+    display: none !important;
+  }
+  body.printing-pricelist .print-only {
+    display: block !important;
+  }
+  body.printing-pricelist .card-sec {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+  body.printing-pricelist .table-wrap {
+    overflow: visible !important;
+  }
+  body.printing-pricelist table.price-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9.5pt !important;
+  }
+  body.printing-pricelist table.price-table th,
+  body.printing-pricelist table.price-table td {
+    border: 1px solid #444 !important;
+    padding: 5px 6px !important;
+    color: #000 !important;
+  }
+  body.printing-pricelist table.price-table th {
+    background: #f0f0f0 !important;
+    font-weight: bold !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body.printing-pricelist table.price-table tr {
+    page-break-inside: avoid !important;
+  }
+  body.printing-pricelist table.price-table input,
+  body.printing-pricelist table.price-table select {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    padding: 0 !important;
+    font-size: 9.5pt !important;
+    font-weight: 600 !important;
+    color: #000 !important;
+    width: 100% !important;
+  }
+}
+
+/* Price Table UI Styles */
+.price-table th {
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 10px 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+.price-table td {
+  vertical-align: middle;
+  padding: 7px 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.price-table .row-inp {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  transition: all 0.15s;
+  box-sizing: border-box;
+}
+.price-table .row-inp:focus {
+  border-color: #3b82f6;
+  outline: none;
+  background: #f8fafc;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+.price-table tr.row-changed {
+  background: #fffbeb !important;
+}
+.price-table tr.row-changed .row-inp {
+  border-color: #f59e0b;
+  background: #fffdf5;
 }
 
 @media (max-width: 600px) {
@@ -388,7 +490,7 @@ tr:hover td { background: #FDFBFAF0; }
         🔍 仕入れ検品・売価決定記帳
       </button>
       <button class="tab" onclick="switchTab('priceTab')">
-        💰 店舗別・価格比較
+        💰 最安仕入れ・価格台帳
       </button>
       <button class="tab" onclick="switchTab('shopTab')">
         📝 買い物・FAX発注
@@ -585,22 +687,58 @@ tr:hover td { background: #FDFBFAF0; }
     </div>
   </div>
 
-  <!-- ================= TAB 3: 店舗別・価格比較 ================= -->
+  <!-- ================= TAB 3: 最安仕入れ・価格台帳 ================= -->
   <div id="priceTab" class="tab-content" style="display: none;">
-    <div class="card-sec">
-      <div class="sec-title">
-        <span>💰 店舗別・仕入れ価格比較テーブル</span>
-        <input type="text" id="priceSearch" class="inp" style="max-width: 250px;" placeholder="🔍 商品名で絞り込み..." oninput="renderPriceComparison()">
+    <!-- 印刷専用ヘッダー (通常画面では非表示、印刷時のみ出現) -->
+    <div id="pricePrintHeader" class="print-only" style="display:none; margin-bottom: 12px; border-bottom: 2px solid #222; padding-bottom: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+          <h2 style="margin: 0; font-size: 16pt; font-weight: 900; color: #111;">駄菓子 商品別・最安仕入れ＆販売価格台帳</h2>
+          <p style="margin: 3px 0 0; font-size: 9pt; color: #555;">※最安取引店・仕入れ値・入数・店頭売価の一覧</p>
+        </div>
+        <div style="text-align: right; font-size: 9pt; color: #333;">
+          <div>出力日時: <span id="pricePrintDate">--</span></div>
+          <div>対象件数: <span id="pricePrintCount">0</span>件</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sec" id="priceCardSec">
+      <div class="sec-title no-print" style="flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>💰 商品・最安仕入れ＆売価台帳</span>
+          <span id="priceProductCountBadge" style="font-size: 11px; background: #eef2f7; color: #475569; font-weight: 700; padding: 2px 8px; border-radius: 12px; border: 1px solid #cbd5e1;">0件</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <input type="text" id="priceSearch" class="inp" style="max-width: 170px; font-size: 13px; padding: 6px 10px;" placeholder="🔍 商品名で絞り込み..." oninput="renderPriceComparison()">
+          <select id="priceCatFilter" class="select" style="max-width: 140px; font-size: 13px; padding: 6px 8px; border-color: var(--bd);" onchange="renderPriceComparison()">
+            <option value="">全カテゴリ ▼</option>
+          </select>
+          <button type="button" class="btn btn-amb btn-sm" onclick="saveAllPriceChanges()" style="font-weight: 800; padding: 6px 12px;" title="変更された全行を一括保存">
+            💾 全変更を一括保存
+          </button>
+          <button type="button" class="btn btn-blu btn-sm" onclick="printPriceList()" style="font-weight: 800; padding: 6px 14px;" title="この台帳を印刷">
+            🖨️ 印刷
+          </button>
+        </div>
       </div>
 
+      <p class="no-print" style="font-size: 12px; color: var(--t2); margin-bottom: 12px;">
+        💡 各商品の「商品名」「最安仕入れ先」「仕入れ値」「入数」「現在の販売価格」を直接編集して保存できます（最安取引店のみ表示）。「🖨️ 印刷」ボタンを押すと綺麗なA4台帳として印刷できます。
+      </p>
+
       <div class="table-wrap">
-        <table>
+        <table class="price-table">
           <thead>
             <tr>
-              <th>商品名 (入数)</th>
-              <th>現在の売価</th>
-              <th>購入店舗ごとの仕入れ価格・最新単価履歴</th>
-              <th>最安購入店舗 👑</th>
+              <th style="min-width: 170px;">商品名</th>
+              <th style="min-width: 160px;">最安仕入れ先 👑</th>
+              <th style="min-width: 130px; text-align: right;">仕入れ値(税込)</th>
+              <th style="min-width: 85px; text-align: right;">入数</th>
+              <th style="min-width: 100px; text-align: right;">計算単価</th>
+              <th style="min-width: 110px; text-align: right;">現在の販売価格</th>
+              <th style="min-width: 90px; text-align: right;">粗利 (目安)</th>
+              <th class="no-print" style="min-width: 80px; text-align: center;">操作</th>
             </tr>
           </thead>
           <tbody id="priceTableBody">
@@ -2644,49 +2782,80 @@ function handleSavePurchase(e) {
     });
 }
 
-// ================= TAB 3: PRICE COMPARISON =================
+// ================= TAB 3: 最安仕入れ・価格台帳 =================
+var CHANGED_PRICE_ROWS = {};
+
+function populatePriceCategoryFilter() {
+  var sel = document.getElementById('priceCatFilter');
+  if (!sel) return;
+  var currentVal = sel.value;
+  sel.innerHTML = '<option value="">全カテゴリ ▼</option>';
+  
+  var cats = [];
+  ALL_PRODUCTS.forEach(function(p) {
+    if (p.cat && !cats.includes(p.cat)) {
+      cats.push(p.cat);
+    }
+  });
+  cats.sort();
+
+  cats.forEach(function(cat) {
+    var opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat;
+    if (cat === currentVal) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
 function renderPriceComparison() {
   var tbody = document.getElementById('priceTableBody');
   if (!tbody) return;
   tbody.innerHTML = '';
 
-  var query = document.getElementById('priceSearch').value.toLowerCase().trim();
+  var query = (document.getElementById('priceSearch') ? document.getElementById('priceSearch').value : '').toLowerCase().trim();
+  var catFilter = (document.getElementById('priceCatFilter') ? document.getElementById('priceCatFilter').value : '');
+
+  populatePriceCategoryFilter();
+
+  var count = 0;
 
   ALL_PRODUCTS.forEach(function(p) {
     if (query && !p.name.toLowerCase().includes(query)) return;
+    if (catFilter && p.cat !== catFilter) return;
 
+    count++;
+
+    // 1. 各店舗ごとの仕入れ情報を集約
     var storeMap = {};
 
-    // 1. product_suppliers (仕入れ先・問屋マスタ) からのデータを抽出
+    // 1-1. product_suppliers (仕入れ先マスタ) からのデータを抽出
     var pSups = ALL_PRODUCT_SUPPLIERS.filter(function(ps) { return String(ps.product_id) === String(p.id); });
     pSups.forEach(function(ps) {
       var supObj = ALL_SUPPLIERS.find(function(s) { return String(s.id) === String(ps.supplier_id); });
       var sName = supObj ? supObj.name : ('仕入先 #' + ps.supplier_id);
-      
       var qty = ps.buy_qty || p.buy_qty || 1;
       var rawPrice = ps.buy_price || 0;
       var unitExcl = qty > 0 ? (rawPrice / qty) : 0;
-      // 8%税込の単価を算定（端数は小数点以下2桁で表示）
       var unitIncl = Math.round(unitExcl * 1.08 * 100) / 100;
       var totalPrice = rawPrice > 0 ? Math.round(rawPrice * 1.08) : 0;
 
       storeMap[sName] = {
         name: sName,
+        supplierId: ps.supplier_id,
         unitPrice: unitIncl,
         totalPrice: totalPrice,
-        rawPrice: rawPrice,
         qty: qty,
         isPrimary: !!ps.is_primary,
         source: 'master'
       };
     });
 
-    // 2. ALL_RESTOCK (仕入れ記録ログ) からのデータを抽出 (マスタ未登録の店舗補完)
+    // 1-2. ALL_RESTOCK (仕入れ記録ログ) からのデータを抽出
     var pRestocks = ALL_RESTOCK.filter(function(r) { return String(r.productId) === String(p.id); });
     pRestocks.forEach(function(r) {
       var sName = parseStoreFromNm(r.nm);
       if (!sName || sName === '店舗未記入' || sName === '購入先未記録') return;
-
       if (!storeMap[sName]) {
         var qty = r.iri || p.buy_qty || 1;
         var totalPrice = r.price || 0;
@@ -2695,8 +2864,10 @@ function renderPriceComparison() {
           tanka = (totalPrice / qty);
         }
         if (tanka > 0) {
+          var supObj = ALL_SUPPLIERS.find(function(s) { return s.name === sName; });
           storeMap[sName] = {
             name: sName,
+            supplierId: supObj ? supObj.id : null,
             unitPrice: Math.round(tanka * 100) / 100,
             totalPrice: totalPrice,
             qty: qty,
@@ -2707,80 +2878,339 @@ function renderPriceComparison() {
       }
     });
 
-    // 3. マスタにもログにも無いが、商品情報の buy_price がある場合
+    // 1-3. マスタにもログにもない場合、商品情報のデフォルト値
     var storeNames = Object.keys(storeMap);
     if (storeNames.length === 0) {
-      if (p.buy_price && p.buy_price > 0) {
-        var qty = p.buy_qty || 1;
-        var rawPrice = p.buy_price || 0;
-        var unitExcl = qty > 0 ? (rawPrice / qty) : 0;
-        var unitIncl = Math.round(unitExcl * 1.08 * 100) / 100;
-        var totalPrice = Math.round(rawPrice * 1.08);
+      var qty = p.buy_qty || 1;
+      var rawPrice = p.buy_price || 0;
+      var unitExcl = qty > 0 ? (rawPrice / qty) : 0;
+      var unitIncl = Math.round(unitExcl * 1.08 * 100) / 100;
+      var totalPrice = Math.round(rawPrice * 1.08);
 
-        storeMap['登録仕入れ先'] = {
-          name: '登録仕入れ先',
-          unitPrice: unitIncl,
-          totalPrice: totalPrice,
-          rawPrice: rawPrice,
-          qty: qty,
-          isPrimary: true,
-          source: 'default'
-        };
-        storeNames = ['登録仕入れ先'];
-      } else {
-        return; // 価格データなし
-      }
+      var defaultStoreName = (ALL_SUPPLIERS.length > 0) ? ALL_SUPPLIERS[0].name : '未設定';
+      storeMap[defaultStoreName] = {
+        name: defaultStoreName,
+        supplierId: (ALL_SUPPLIERS.length > 0) ? ALL_SUPPLIERS[0].id : null,
+        unitPrice: unitIncl,
+        totalPrice: totalPrice,
+        qty: qty,
+        isPrimary: true,
+        source: 'default'
+      };
+      storeNames = [defaultStoreName];
     }
 
-    // 商品の標準入数（個数）を取得
-    var defaultIri = p.buy_qty || p.iri || (pSups[0] && pSups[0].buy_qty) || (pRestocks[0] && pRestocks[0].iri) || null;
-    var iriBadgeHtml = defaultIri ? '<span style="font-size:11px; color:#555; font-weight:700; margin-left:6px; background:#eef2f7; padding:2px 7px; border-radius:10px; border:1px solid #cbd5e1; display:inline-block;">(' + defaultIri + '個入)</span>' : '';
-
-    // 最安仕入れ先を特定
+    // 2. 最安仕入れ先（最安取引店のみ）を特定
     var cheapestStore = '';
-    var minPrice = 999999;
+    var minPrice = 9999999;
+    var bestStoreData = null;
+
     storeNames.forEach(function(sName) {
       var st = storeMap[sName];
       if (st.unitPrice > 0 && st.unitPrice < minPrice) {
         minPrice = st.unitPrice;
         cheapestStore = st.name;
+        bestStoreData = st;
       }
     });
+    if (!bestStoreData) {
+      bestStoreData = storeMap[storeNames[0]];
+      cheapestStore = bestStoreData ? bestStoreData.name : '';
+    }
 
-    // 各店舗の仕入れ価格および仕入れ単価表示HTML
-    var storesHtml = storeNames.map(function(sName) {
-      var st = storeMap[sName];
-      var isCheapest = (st.name === cheapestStore && storeNames.length > 1);
-      var primaryTag = st.isPrimary ? ' <span style="color:#d9480f; font-weight:800; font-size:11px; white-space:nowrap;">★ 主</span>' : '';
-      var cheapTag = isCheapest ? ' <span class="cheap-tag" style="white-space:nowrap;">最安</span>' : '';
+    // 3. 表示値の決定（未保存の入力変更があればそれを優先）
+    var pIdStr = String(p.id);
+    var changed = CHANGED_PRICE_ROWS[pIdStr];
 
-      var priceDetailStr = '';
-      if (st.totalPrice > 0) {
-        priceDetailStr = '<span style="font-size:12px; color:#495057; font-weight:700;">仕入額: ' + st.totalPrice.toLocaleString() + '円</span> ' +
-                         '<span style="font-size:12px; color:#212529; font-weight:900;">(' + st.unitPrice + '円/個)</span>';
-      } else {
-        priceDetailStr = '<strong style="white-space:nowrap;">' + st.unitPrice + '円/個</strong>';
-      }
+    var curName = changed ? changed.name : p.name;
+    var curStoreName = changed ? changed.storeName : cheapestStore;
+    var curBuyPrice = changed ? changed.buyPrice : (bestStoreData.totalPrice || p.buy_price || 0);
+    var curBuyQty = changed ? changed.buyQty : (bestStoreData.qty || p.buy_qty || 1);
+    var curSellPrice = changed ? changed.sellPrice : (p.sell_price || p.price || 0);
 
-      var escName = escapeHtml(st.name).replace(/'/g, "\\'");
-      var pIdStr = String(p.id).replace(/'/g, "\\'");
-      return '<div style="margin-bottom:6px; white-space:nowrap; display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">' +
-        '<span class="store-pill" onclick="openEditStorePriceModal(\'' + pIdStr + '\', \'' + escName + '\')" title="タップして『' + escapeHtml(p.name) + '』の『' + escapeHtml(st.name) + '』での仕入れ価格・単価を変更" style="' + getStorePillStyle(st.name) + ' white-space:nowrap; cursor:pointer;">🏬 ' + escapeHtml(st.name) + ' ✏️</span> ' +
-        priceDetailStr +
-        primaryTag + cheapTag +
-        '</div>';
+    var curUnit = curBuyQty > 0 ? Math.round((curBuyPrice / curBuyQty) * 100) / 100 : 0;
+    var arari = Math.round((curSellPrice - curUnit) * 100) / 100;
+    var arariRate = curSellPrice > 0 ? Math.round((arari / curSellPrice) * 100) : 0;
+
+    // 店舗ドロップダウンオプションの生成
+    var storeOptionsHtml = ALL_SUPPLIERS.map(function(s) {
+      return '<option value="' + escapeHtml(s.name) + '" ' + (s.name === curStoreName ? 'selected' : '') + '>' + escapeHtml(s.name) + '</option>';
     }).join('');
+    if (!ALL_SUPPLIERS.some(function(s) { return s.name === curStoreName; }) && curStoreName) {
+      storeOptionsHtml += '<option value="' + escapeHtml(curStoreName) + '" selected>' + escapeHtml(curStoreName) + '</option>';
+    }
 
-    var cheapEscName = cheapestStore ? escapeHtml(cheapestStore).replace(/'/g, "\\'") : '';
     var tr = document.createElement('tr');
+    tr.id = 'priceRow_' + pIdStr;
+    if (changed) tr.className = 'row-changed';
+
     tr.innerHTML = 
-      '<td style="white-space:nowrap;"><strong>' + escapeHtml(p.name) + '</strong>' + iriBadgeHtml + '</td>' +
-      '<td style="white-space:nowrap;">' + (p.sell_price || p.price || 0) + ' 円</td>' +
-      '<td style="white-space:nowrap;">' + storesHtml + '</td>' +
-      '<td style="white-space:nowrap;">' + (cheapestStore ? '<span class="store-pill" style="' + getStorePillStyle(cheapestStore) + ' white-space:nowrap; font-weight:800;">🏬 ' + escapeHtml(cheapestStore) + '</span>' : '-') + '</td>';
+      '<td>' +
+        '<input type="text" class="row-inp" id="pName_' + pIdStr + '" value="' + escapeHtml(curName) + '" oninput="onPriceRowInputChange(\'' + pIdStr + '\')">' +
+      '</td>' +
+      '<td>' +
+        '<select class="row-inp select" id="pStore_' + pIdStr + '" onchange="onPriceRowInputChange(\'' + pIdStr + '\')" style="font-weight:700;">' +
+          storeOptionsHtml +
+        '</select>' +
+      '</td>' +
+      '<td style="text-align:right;">' +
+        '<div style="display:flex; align-items:center; justify-content:flex-end; gap:3px;">' +
+          '<input type="number" class="row-inp" id="pBuyPrice_' + pIdStr + '" value="' + curBuyPrice + '" min="0" step="1" style="max-width:85px; text-align:right; font-weight:700;" oninput="onPriceRowInputChange(\'' + pIdStr + '\')">' +
+          '<span style="font-size:11px; color:#64748b;">円</span>' +
+        '</div>' +
+      '</td>' +
+      '<td style="text-align:right;">' +
+        '<div style="display:flex; align-items:center; justify-content:flex-end; gap:3px;">' +
+          '<input type="number" class="row-inp" id="pBuyQty_' + pIdStr + '" value="' + curBuyQty + '" min="1" step="1" style="max-width:60px; text-align:right; font-weight:700;" oninput="onPriceRowInputChange(\'' + pIdStr + '\')">' +
+          '<span style="font-size:11px; color:#64748b;">個</span>' +
+        '</div>' +
+      '</td>' +
+      '<td style="text-align:right; font-weight:800; color:#d9480f;" id="pUnitDisplay_' + pIdStr + '">' +
+        curUnit + ' 円' +
+      '</td>' +
+      '<td style="text-align:right;">' +
+        '<div style="display:flex; align-items:center; justify-content:flex-end; gap:3px;">' +
+          '<input type="number" class="row-inp" id="pSellPrice_' + pIdStr + '" value="' + curSellPrice + '" min="0" step="1" style="max-width:70px; text-align:right; font-weight:800; color:#2b8a3e;" oninput="onPriceRowInputChange(\'' + pIdStr + '\')">' +
+          '<span style="font-size:11px; color:#64748b;">円</span>' +
+        '</div>' +
+      '</td>' +
+      '<td style="text-align:right;" id="pArariDisplay_' + pIdStr + '">' +
+        '<span style="font-size:12px; font-weight:700; color:' + (arari >= 0 ? '#2b8a3e' : '#e03131') + ';">' + arari + '円</span>' +
+        '<div style="font-size:10px; color:#64748b;">(' + arariRate + '%)</div>' +
+      '</td>' +
+      '<td class="no-print" style="text-align:center;">' +
+        '<button type="button" class="btn btn-sm ' + (changed ? 'btn-amb' : 'btn-sub') + '" id="pSaveBtn_' + pIdStr + '" onclick="saveSinglePriceRow(\'' + pIdStr + '\')" style="font-size:11px; padding:4px 8px; font-weight:800;">' +
+          (changed ? '💾 保存' : '保存') +
+        '</button>' +
+      '</td>';
 
     tbody.appendChild(tr);
   });
+
+  var badge = document.getElementById('priceProductCountBadge');
+  if (badge) badge.textContent = count + '件';
+}
+
+function onPriceRowInputChange(productId) {
+  var pIdStr = String(productId);
+  var nameInp = document.getElementById('pName_' + pIdStr);
+  var storeInp = document.getElementById('pStore_' + pIdStr);
+  var buyPriceInp = document.getElementById('pBuyPrice_' + pIdStr);
+  var buyQtyInp = document.getElementById('pBuyQty_' + pIdStr);
+  var sellPriceInp = document.getElementById('pSellPrice_' + pIdStr);
+  var unitDisplay = document.getElementById('pUnitDisplay_' + pIdStr);
+  var arariDisplay = document.getElementById('pArariDisplay_' + pIdStr);
+  var saveBtn = document.getElementById('pSaveBtn_' + pIdStr);
+  var tr = document.getElementById('priceRow_' + pIdStr);
+
+  if (!nameInp || !storeInp || !buyPriceInp || !buyQtyInp || !sellPriceInp) return;
+
+  var nameVal = nameInp.value.trim();
+  var storeVal = storeInp.value.trim();
+  var bpVal = parseFloat(buyPriceInp.value) || 0;
+  var bqVal = parseInt(buyQtyInp.value) || 1;
+  var spVal = parseFloat(sellPriceInp.value) || 0;
+
+  var unit = bqVal > 0 ? Math.round((bpVal / bqVal) * 100) / 100 : 0;
+  var arari = Math.round((spVal - unit) * 100) / 100;
+  var arariRate = spVal > 0 ? Math.round((arari / spVal) * 100) : 0;
+
+  if (unitDisplay) unitDisplay.textContent = unit + ' 円';
+  if (arariDisplay) {
+    arariDisplay.innerHTML = '<span style="font-size:12px; font-weight:700; color:' + (arari >= 0 ? '#2b8a3e' : '#e03131') + ';">' + arari + '円</span>' +
+      '<div style="font-size:10px; color:#64748b;">(' + arariRate + '%)</div>';
+  }
+
+  CHANGED_PRICE_ROWS[pIdStr] = {
+    name: nameVal,
+    storeName: storeVal,
+    buyPrice: bpVal,
+    buyQty: bqVal,
+    sellPrice: spVal
+  };
+
+  if (tr) tr.classList.add('row-changed');
+  if (saveBtn) {
+    saveBtn.className = 'btn btn-sm btn-amb';
+    saveBtn.textContent = '💾 保存';
+  }
+}
+
+function saveSinglePriceRow(productId) {
+  var pIdStr = String(productId);
+  var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === pIdStr; });
+  if (!prod) return Promise.reject(new Error('商品が見つかりません'));
+
+  var nameInp = document.getElementById('pName_' + pIdStr);
+  var storeInp = document.getElementById('pStore_' + pIdStr);
+  var buyPriceInp = document.getElementById('pBuyPrice_' + pIdStr);
+  var buyQtyInp = document.getElementById('pBuyQty_' + pIdStr);
+  var sellPriceInp = document.getElementById('pSellPrice_' + pIdStr);
+  var saveBtn = document.getElementById('pSaveBtn_' + pIdStr);
+
+  if (!nameInp || !storeInp || !buyPriceInp || !buyQtyInp || !sellPriceInp) return Promise.resolve();
+
+  var newName = nameInp.value.trim();
+  var newStore = storeInp.value.trim();
+  var newBuyPrice = parseFloat(buyPriceInp.value) || 0;
+  var newBuyQty = parseInt(buyQtyInp.value) || 1;
+  var newSellPrice = parseFloat(sellPriceInp.value) || 0;
+
+  if (!newName) {
+    alert('商品名を入力してください。');
+    return Promise.reject(new Error('商品名未入力'));
+  }
+
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = '保存中...';
+  }
+
+  // 1. 商品マスタ更新
+  var prodUpdatePromise = GAS.updateProduct({
+    id: prod.id,
+    name: newName,
+    buy_price: newBuyPrice,
+    buy_qty: newBuyQty,
+    sell_price: newSellPrice,
+    price: newSellPrice
+  });
+
+  // 2. 仕入れ先マスタ(product_suppliers)更新
+  var supObj = ALL_SUPPLIERS.find(function(s) { return s.name === newStore; });
+  var supPromise = Promise.resolve();
+  if (supObj && supObj.id) {
+    var existingPs = ALL_PRODUCT_SUPPLIERS.find(function(ps) {
+      return String(ps.product_id) === pIdStr && String(ps.supplier_id) === String(supObj.id);
+    });
+    supPromise = GAS.saveProductSupplier({
+      id: existingPs ? existingPs.id : undefined,
+      product_id: prod.id,
+      supplier_id: supObj.id,
+      buy_price: newBuyPrice,
+      buy_qty: newBuyQty,
+      is_primary: true
+    }).then(function() {
+      if (existingPs) {
+        existingPs.buy_price = newBuyPrice;
+        existingPs.buy_qty = newBuyQty;
+        existingPs.is_primary = true;
+      } else {
+        ALL_PRODUCT_SUPPLIERS.push({
+          id: Date.now(),
+          product_id: prod.id,
+          supplier_id: supObj.id,
+          buy_price: newBuyPrice,
+          buy_qty: newBuyQty,
+          is_primary: true
+        });
+      }
+    });
+  }
+
+  // 3. ロット情報(ALL_RESTOCK)の最新ロットを同期
+  var tanka = newBuyQty > 0 ? (newBuyPrice / newBuyQty) : 0;
+  var targetLot = ALL_RESTOCK.find(function(r) {
+    var rPid = r.productId || r.product_id;
+    return rPid && String(rPid) === pIdStr;
+  });
+  var restockPromise = Promise.resolve();
+  if (targetLot) {
+    var formattedNm = '【' + newStore + '】' + newName;
+    restockPromise = GAS.updateRestock({
+      id: targetLot.id,
+      iri: newBuyQty,
+      buy_price: newBuyPrice,
+      tanka: tanka,
+      sell: newSellPrice,
+      nm: formattedNm
+    }).then(function() {
+      targetLot.iri = newBuyQty;
+      targetLot.price = newBuyPrice;
+      targetLot.buy_price = newBuyPrice;
+      targetLot.tanka = tanka;
+      targetLot.sell = newSellPrice;
+      targetLot.nm = formattedNm;
+    }).catch(function(e) {
+      console.warn('Lot update sync skipped:', e);
+    });
+  }
+
+  return Promise.all([prodUpdatePromise, supPromise, restockPromise])
+    .then(function() {
+      prod.name = newName;
+      prod.buy_price = newBuyPrice;
+      prod.buy_qty = newBuyQty;
+      prod.sell_price = newSellPrice;
+      prod.price = newSellPrice;
+
+      delete CHANGED_PRICE_ROWS[pIdStr];
+
+      var tr = document.getElementById('priceRow_' + pIdStr);
+      if (tr) tr.classList.remove('row-changed');
+
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.className = 'btn btn-sm btn-grn';
+        saveBtn.textContent = '✅ 保存済';
+        setTimeout(function() {
+          if (!CHANGED_PRICE_ROWS[pIdStr]) {
+            saveBtn.className = 'btn btn-sm btn-sub';
+            saveBtn.textContent = '保存';
+          }
+        }, 1500);
+      }
+    })
+    .catch(function(err) {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.className = 'btn btn-sm btn-red';
+        saveBtn.textContent = '失敗';
+      }
+      alert('保存エラー: ' + (err.message || String(err)));
+    });
+}
+
+function saveAllPriceChanges() {
+  var pids = Object.keys(CHANGED_PRICE_ROWS);
+  if (pids.length === 0) {
+    alert('現在変更された項目はありません。');
+    return;
+  }
+
+  if (!confirm('変更された全 ' + pids.length + ' 件の商品価格情報を一括保存しますか？')) {
+    return;
+  }
+
+  var promises = pids.map(function(pid) {
+    return saveSinglePriceRow(pid);
+  });
+
+  Promise.all(promises)
+    .then(function() {
+      alert('全 ' + pids.length + ' 件の変更を保存しました！✨');
+    })
+    .catch(function(err) {
+      alert('一部の保存中にエラーが発生しました: ' + (err.message || String(err)));
+    });
+}
+
+function printPriceList() {
+  var printDate = document.getElementById('pricePrintDate');
+  if (printDate) {
+    var now = new Date();
+    printDate.textContent = todayJST() + ' ' + ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
+  }
+
+  var visibleRows = document.querySelectorAll('#priceTableBody tr');
+  var printCount = document.getElementById('pricePrintCount');
+  if (printCount) printCount.textContent = visibleRows.length;
+
+  document.body.classList.add('printing-pricelist');
+  window.print();
+  setTimeout(function() {
+    document.body.classList.remove('printing-pricelist');
+  }, 1000);
 }
 
 // ================= TAB 4: SHOPPING LIST MEMO & FAX =================
@@ -3334,7 +3764,11 @@ function updateFaxPreview() {
 }
 
 function printFaxDoc() {
+  document.body.classList.add('printing-fax');
   window.print();
+  setTimeout(function() {
+    document.body.classList.remove('printing-fax');
+  }, 1000);
 }
 
 function sendFaxDigital() {
