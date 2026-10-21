@@ -185,6 +185,8 @@ header {
 .lot-card.warning { border-left: 5px solid var(--amb); background: var(--abg); }
 .lot-card.good { border-left: 5px solid var(--grn); }
 .lot-card.consumed { opacity: 0.55; background: #f5f5f5; filter: grayscale(0.5); }
+.lot-card.no-lots { border-left: 5px solid #adb5bd !important; background: #fafbfc; }
+.lot-card.no-lots .lot-img { opacity: 0.85; }
 
 .lot-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
 .lot-img { width: 50px; height: 50px; border-radius: 10px; object-fit: cover; border: 1px solid var(--bd); background: var(--bg); flex-shrink: 0; }
@@ -559,6 +561,7 @@ tr:hover td { background: #FDFBFAF0; }
       </select>
       <select id="expFilter" class="select" style="width: auto;" onchange="renderExpiryList()">
         <option value="active">🟢 保有中（通常販売）</option>
+        <option value="no-lot">📭 ロットなし（在庫0・未仕入れ）のみ</option>
         <option value="expired">🚨 期限切れ（赤カード）のみ</option>
         <option value="warn">⚠️ 30日以内（オレンジカード）のみ</option>
         <option value="hidden">⏸️ 一時販売終了のみ</option>
@@ -2199,6 +2202,13 @@ function renderExpiryList() {
     }
     var allLots = getLotsForProduct(prod);
 
+    if (filter === 'no-lot') {
+      var pStatus = prod.status || 'active';
+      if (pStatus === 'hidden' || pStatus === 'discontinued') return;
+      var hasAnyActiveLot = allLots.some(function(r) { return r.status !== 'consumed'; });
+      if (hasAnyActiveLot) return;
+    }
+
     var filteredLots = allLots.filter(function(r) {
       var days = getDaysRemaining(r.d);
       var pStatus = prod.status || 'active';
@@ -2206,6 +2216,8 @@ function renderExpiryList() {
       if (filter === 'active') {
         if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
         if (r.status === 'consumed') return false;
+      } else if (filter === 'no-lot') {
+        return false;
       } else if (filter === 'expired') {
         if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
         if (days >= 0 || r.status === 'consumed') return false;
@@ -2220,13 +2232,14 @@ function renderExpiryList() {
         if (pStatus !== 'discontinued') return false;
       }
 
-      if (filter !== 'expired' && filter !== 'hidden' && filter !== 'discontinued' && filter !== 'all' && r.status !== 'consumed' && days !== null && days < -7) {
+      if (filter !== 'expired' && filter !== 'hidden' && filter !== 'discontinued' && filter !== 'all' && filter !== 'no-lot' && r.status !== 'consumed' && days !== null && days < -7) {
         return false;
       }
       return true;
     });
 
-    if (filteredLots.length === 0 && (filter === 'active' || filter === 'expired' || filter === 'warn' || filter === 'consumed')) {
+    var hasQuery = !!query;
+    if (!hasQuery && filter !== 'no-lot' && filteredLots.length === 0 && (filter === 'active' || filter === 'expired' || filter === 'warn' || filter === 'consumed')) {
       return;
     }
 
@@ -2238,91 +2251,108 @@ function renderExpiryList() {
       if (!matchQuery) return;
     }
 
-    var lotsToDisplay = filteredLots.length > 0 ? filteredLots : [{
-      productId: prod.id,
-      nm: prod.name,
-      d: '',
-      tanka: prod.buy_price || 0,
-      price: prod.buy_price || 0,
-      status: 'active'
-    }];
+    var hasLots = filteredLots.length > 0;
+    var lotsToDisplay = hasLots ? filteredLots.slice() : [];
+    if (hasLots) {
+      sortLots(lotsToDisplay);
+    }
 
-    sortLots(lotsToDisplay);
-
-    var topLot = lotsToDisplay[0];
-    var topDays = topLot.d ? getDaysRemaining(topLot.d) : 999;
-    var topStore = parseStoreFromNm(topLot.nm);
-    var topUnitCost = Math.round(((topLot.tanka && topLot.tanka > 0 ? topLot.tanka : (topLot.iri ? (topLot.price || 0) / topLot.iri : 0)) || 0) * 10) / 10;
+    var topLot = hasLots ? lotsToDisplay[0] : null;
+    var topDays = (topLot && topLot.d) ? getDaysRemaining(topLot.d) : 999;
+    var topStore = topLot ? parseStoreFromNm(topLot.nm) : (prod.supplier || parseStoreFromNm(prod.maker || '') || '店舗未登録');
+    var topUnitCost = topLot ? (Math.round(((topLot.tanka && topLot.tanka > 0 ? topLot.tanka : (topLot.iri ? (topLot.price || 0) / topLot.iri : 0)) || 0) * 10) / 10) : 0;
     var sellPrice = (topLot && topLot.sell && topLot.sell > 0) ? topLot.sell : (prod.sell_price || prod.price || 0);
 
     var cardClass = 'good';
-    if (topLot.status === 'consumed') cardClass = 'consumed';
-    else if (topLot.d && topDays < 0) cardClass = 'expired';
-    else if (topLot.d && topDays <= 14) cardClass = 'warning';
-    else if (topLot.d && topDays <= 30) cardClass = 'warning';
+    if (!hasLots) {
+      cardClass = 'no-lots';
+    } else if (topLot.status === 'consumed') {
+      cardClass = 'consumed';
+    } else if (topLot.d && topDays < 0) {
+      cardClass = 'expired';
+    } else if (topLot.d && topDays <= 14) {
+      cardClass = 'warning';
+    } else if (topLot.d && topDays <= 30) {
+      cardClass = 'warning';
+    }
 
     if (prod.status === 'hidden') cardClass += ' st-hidden';
     if (prod.status === 'discontinued') cardClass += ' st-disc';
 
     var listHtml = '';
-    lotsToDisplay.forEach(function(r, idx) {
-      var numLabel = circNums[idx] || ('(' + (idx + 1) + ')');
-      var badgeClass = 'grn';
-      var expText = '';
-      var expFormatted = '記録なし';
-
-      if (!r.d) {
-        badgeClass = 'gray';
-        expText = '仕入れ記録なし';
-        expFormatted = '未登録';
-      } else {
-        var dDays = getDaysRemaining(r.d);
-        expText = 'あと ' + dDays + ' 日';
-        expFormatted = r.d.replace(/-/g, '/');
-
-        if (r.status === 'consumed') {
-          badgeClass = 'gray';
-          expText = '完売・使い切り';
-        } else if (dDays < 0) {
-          badgeClass = 'red';
-          expText = '🚨 期限切れ (' + Math.abs(dDays) + '日前)';
-        } else if (dDays <= 14) {
-          badgeClass = 'red';
-          expText = '⚠️ あと ' + dDays + ' 日';
-        } else if (dDays <= 30) {
-          badgeClass = 'amb';
-          expText = '⏳ あと ' + dDays + ' 日';
-        }
-      }
-
-      var lotStoreName = parseStoreFromNm(r.nm);
-      var lotQty = r.iri || 0;
-      var lotUnitCost = Math.round(((r.tanka && r.tanka > 0 ? r.tanka : (r.iri ? (r.price || r.buy_price || 0) / r.iri : 0)) || 0) * 10) / 10;
-      var lotSellPrice = r.sell && r.sell > 0 ? r.sell : sellPrice;
-
-      listHtml += 
-        '<div style="display:flex; flex-direction:column; padding:6px 0; border-bottom:1px dashed #f0e6d8; font-size:13px; width:100%;">' +
-          '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">' +
-            '<div style="display:flex; align-items:center; gap:6px;">' +
-              '<span style="font-weight:900; color:var(--red); font-size:14px; min-width:18px;">' + numLabel + '</span>' +
-              '<span style="font-weight:700; color:var(--tx);">' + escapeHtml(expFormatted) + '</span>' +
-              '<span class="badge-exp ' + badgeClass + '" style="font-size:11px; margin-top:0;">' + expText + '</span>' +
-            '</div>' +
-            '<div style="font-size:11px; color:var(--t2); font-weight:600;">' +
-              (lotStoreName && lotStoreName !== '店舗未記入' && lotStoreName !== '購入先未記録' ? '🏬' + escapeHtml(lotStoreName) + ' ' : '') +
-              (lotQty ? '📦' + lotQty + '個 ' : '') +
-              (lotUnitCost ? '仕単:' + lotUnitCost + '円 ' : '') +
-              (lotSellPrice ? '売:<strong style="color:#2b8a3e;">' + lotSellPrice + '円</strong>' : '') +
-            '</div>' +
+    if (!hasLots) {
+      listHtml = 
+        '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px 10px; background:rgba(0,0,0,0.02); border:1.5px dashed #dee2e6; border-radius:8px; width:100%; margin:4px 0; text-align:center;">' +
+          '<div style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:800; color:#6c757d;">' +
+            '<span>📭 保有ロットなし（仕入れ・在庫記録なし）</span>' +
+          '</div>' +
+          '<div style="font-size:11px; color:var(--t3); font-weight:600; margin-top:3px;">' +
+            '※現在この商品の在庫ロットはありません。カードをタップして仕入れ登録できます。' +
           '</div>' +
         '</div>';
-    });
+    } else {
+      lotsToDisplay.forEach(function(r, idx) {
+        var numLabel = circNums[idx] || ('(' + (idx + 1) + ')');
+        var badgeClass = 'grn';
+        var expText = '';
+        var expFormatted = '記録なし';
+
+        if (!r.d) {
+          badgeClass = 'gray';
+          expText = '賞味期限未入力';
+          expFormatted = '期限未設定';
+        } else {
+          var dDays = getDaysRemaining(r.d);
+          expText = 'あと ' + dDays + ' 日';
+          expFormatted = r.d.replace(/-/g, '/');
+
+          if (r.status === 'consumed') {
+            badgeClass = 'gray';
+            expText = '完売・使い切り';
+          } else if (dDays < 0) {
+            badgeClass = 'red';
+            expText = '🚨 期限切れ (' + Math.abs(dDays) + '日前)';
+          } else if (dDays <= 14) {
+            badgeClass = 'red';
+            expText = '⚠️ あと ' + dDays + ' 日';
+          } else if (dDays <= 30) {
+            badgeClass = 'amb';
+            expText = '⏳ あと ' + dDays + ' 日';
+          }
+        }
+
+        var lotStoreName = parseStoreFromNm(r.nm);
+        var lotQty = r.iri || 0;
+        var lotUnitCost = Math.round(((r.tanka && r.tanka > 0 ? r.tanka : (r.iri ? (r.price || r.buy_price || 0) / r.iri : 0)) || 0) * 10) / 10;
+        var lotSellPrice = r.sell && r.sell > 0 ? r.sell : sellPrice;
+
+        listHtml += 
+          '<div style="display:flex; flex-direction:column; padding:6px 0; border-bottom:1px dashed #f0e6d8; font-size:13px; width:100%;">' +
+            '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">' +
+              '<div style="display:flex; align-items:center; gap:6px;">' +
+                '<span style="font-weight:900; color:var(--red); font-size:14px; min-width:18px;">' + numLabel + '</span>' +
+                '<span style="font-weight:700; color:var(--tx);">' + escapeHtml(expFormatted) + '</span>' +
+                '<span class="badge-exp ' + badgeClass + '" style="font-size:11px; margin-top:0;">' + expText + '</span>' +
+              '</div>' +
+              '<div style="font-size:11px; color:var(--t2); font-weight:600;">' +
+                (lotStoreName && lotStoreName !== '店舗未記入' && lotStoreName !== '購入先未記録' ? '🏬' + escapeHtml(lotStoreName) + ' ' : '') +
+                (lotQty ? '📦' + lotQty + '個 ' : '') +
+                (lotUnitCost ? '仕単:' + lotUnitCost + '円 ' : '') +
+                (lotSellPrice ? '売:<strong style="color:#2b8a3e;">' + lotSellPrice + '円</strong>' : '') +
+              '</div>' +
+            '</div>' +
+          '</div>';
+      });
+    }
 
     var statusBadgeHtml = '';
+    if (!hasLots) {
+      statusBadgeHtml += '<span style="font-size:11px; background:#f1f3f5; color:#495057; border:1px solid #ced4da; padding:2px 8px; border-radius:10px; font-weight:800; margin-left:6px;">📦 ロットなし (在庫0)</span>';
+    }
     if (prod.status === 'hidden') {
-      statusBadgeHtml = '<span style="font-size:11px; background:#FFF3BF; color:#F59F00; border:1px solid #FFE066; padding:2px 8px; border-radius:10px; font-weight:800; margin-left:6px;">⏸️ 一時販売終了</span>';
+      statusBadgeHtml += '<span style="font-size:11px; background:#FFF3BF; color:#F59F00; border:1px solid #FFE066; padding:2px 8px; border-radius:10px; font-weight:800; margin-left:6px;">⏸️ 一時販売終了</span>';
     } else if (prod.status === 'discontinued') {
-      statusBadgeHtml = '<span style="font-size:11px; background:#FFE3E3; color:#E03131; border:1px solid #FFC9C9; padding:2px 8px; border-radius:10px; font-weight:800; margin-left:6px;">❌ 販売終了</span>';
+      statusBadgeHtml += '<span style="font-size:11px; background:#FFE3E3; color:#E03131; border:1px solid #FFC9C9; padding:2px 8px; border-radius:10px; font-weight:800; margin-left:6px;">❌ 販売終了</span>';
     }
 
     var cardId = prod.id;
@@ -2337,6 +2367,14 @@ function renderExpiryList() {
       openProductDetailModal(cardId);
     };
 
+    var buyPriceInfoHtml = hasLots
+      ? '<span>💰 最新仕入額: <strong style="color:var(--red);">' + (topLot.price || topLot.buy_price || prod.buy_price || 0) + '円</strong> <span style="font-size:11px; font-weight:500; color:var(--t2);">(' + topUnitCost + '円/個)</span></span>'
+      : '<span>💰 仕入目安: <span style="color:var(--t2); font-weight:700;">' + (prod.buy_price ? prod.buy_price + '円' : '未設定') + '</span> <span style="font-size:11px; font-weight:500; color:var(--t3);">(仕入記録なし)</span></span>';
+
+    var lotHeaderTitle = hasLots
+      ? '<span>📅 賞味期限リスト （仕入れ順 ・ 全 ' + lotsToDisplay.length + ' ロット）</span>'
+      : '<span style="color:var(--t3);">📅 賞味期限リスト （保有ロットなし ・ 0件）</span>';
+
     card.innerHTML = 
       '<!-- 点線の上：商品情報 -->' +
       '<div>' +
@@ -2348,7 +2386,7 @@ function renderExpiryList() {
               '<span class="store-pill" style="' + getStorePillStyle(topStore) + ' font-size:11px; padding:2px 8px;">🏬 ' + escapeHtml(topStore) + '</span>' +
             '</div>' +
             '<div style="display:flex; flex-wrap:wrap; gap:12px; font-size:13px; font-weight:800; margin-top:4px; color:var(--tx);">' +
-              '<span>💰 最新仕入額: <strong style="color:var(--red);">' + (topLot.price || topLot.buy_price || prod.buy_price || 0) + '円</strong> <span style="font-size:11px; font-weight:500; color:var(--t2);">(' + topUnitCost + '円/個)</span></span>' +
+              buyPriceInfoHtml +
               '<span>🏷️ 1個の販売価格: <strong style="color:#2b8a3e;">' + (prod.sell_price || prod.price || sellPrice ? (prod.sell_price || prod.price || sellPrice) + '円' : '未設定') + '</strong></span>' +
             '</div>' +
           '</div>' +
@@ -2361,7 +2399,7 @@ function renderExpiryList() {
       '<!-- 点線の下：賞味期限リスト -->' +
       '<div>' +
         '<div style="font-size:11px; font-weight:800; color:var(--t3); margin-bottom:6px; text-align:center;">' +
-          '<span>📅 賞味期限リスト （仕入れ順 ・ 全 ' + lotsToDisplay.length + ' ロット）</span>' +
+          lotHeaderTitle +
         '</div>' +
         '<div class="exp-lot-list" style="display:flex; flex-direction:column; align-items:center;">' +
           listHtml +
