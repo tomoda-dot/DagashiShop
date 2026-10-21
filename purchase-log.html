@@ -397,6 +397,9 @@ tr:hover td { background: #FDFBFAF0; }
       <button class="tab" onclick="switchTab('storeTab')">
         🏬 店舗・仕入れ先管理
       </button>
+      <button class="tab" onclick="switchTab('settingsTab')">
+        ⚙️ 設定・カテゴリ管理
+      </button>
     </div>
   </div>
 
@@ -673,6 +676,80 @@ tr:hover td { background: #FDFBFAF0; }
           </tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB 6: 設定・カテゴリ管理 ================= -->
+  <div id="settingsTab" class="tab-content" style="display: none;">
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+
+      <!-- カテゴリ管理カード -->
+      <div class="card-sec">
+        <div class="sec-title">
+          <span>🏷️ カテゴリの登録・編集</span>
+          <span style="font-size: 12px; color: var(--t2); font-weight: normal;">※賞味期限一覧の絞り込みや在庫管理の分類に反映されます</span>
+        </div>
+
+        <!-- 新規カテゴリ追加フォーム -->
+        <div style="margin-bottom: 20px; display: flex; gap: 8px; max-width: 500px;">
+          <input type="text" id="newCatInput" class="inp" placeholder="新しいカテゴリ名（例: 珍味, 駄菓子セット）" style="flex: 1;" onkeydown="if(event.key==='Enter')addCategoryFromSettings()">
+          <button type="button" class="btn btn-grn" onclick="addCategoryFromSettings()" style="white-space: nowrap; font-weight: 800;">＋ 追加</button>
+        </div>
+
+        <!-- カテゴリ一覧 -->
+        <div style="max-width: 600px;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--t2); margin-bottom: 8px;">登録済みカテゴリ（並び順・編集）</div>
+          <div id="settingsCatList" style="display: flex; flex-direction: column; gap: 6px;">
+            <!-- Dynamic Category List -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 危険な操作・在庫一括リセットカード（最強の在庫クリア） -->
+      <div class="card-sec" style="border: 2px solid #ffcdd2; background: #fffcfc;">
+        <div class="sec-title" style="color: #c62828;">
+          <span>⚠️ 在庫・ロットデータの一括リセット（最強ボタン）</span>
+        </div>
+        <p style="font-size: 13px; color: var(--t2); margin-top: 0; margin-bottom: 16px; line-height: 1.6;">
+          棚卸時の初期化や、テスト用仕入れデータを一掃するための強力な管理機能です。<br>
+          目的に応じて以下のボタンをご使用ください。
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 16px; max-width: 720px;">
+          <!-- 最強の在庫クリア -->
+          <div style="background: #fff; border: 1px solid #ffcdd2; border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 280px;">
+              <div style="font-weight: 800; font-size: 15px; color: #b71c1c; margin-bottom: 4px;">
+                🔥 最強の在庫クリア（全在庫0 ＆ 全ロット完売）
+              </div>
+              <div style="font-size: 12px; color: var(--t2); line-height: 1.5;">
+                登録されている全商品の在庫数を一括で「<strong>0</strong>」にし、保有中の全ロットを「<strong>使い切り・完売</strong>」にします。<br>
+                <span style="color: var(--grn); font-weight: 700;">※過去の仕入れ価格や店舗比較データは保持されます。</span>
+              </div>
+            </div>
+            <button type="button" class="btn btn-red" id="btn-wipeout-stock" onclick="executeStockWipeout()" style="padding: 10px 18px; font-weight: 800; font-size: 13px; white-space: nowrap;">
+              💥 全在庫を0にする
+            </button>
+          </div>
+
+          <!-- 仕入れロット履歴の完全消去 -->
+          <div style="background: #fff; border: 1px solid #ffcdd2; border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 280px;">
+              <div style="font-weight: 800; font-size: 15px; color: #b71c1c; margin-bottom: 4px;">
+                💣 仕入れロット履歴を完全消去（ロット完全初期化）
+              </div>
+              <div style="font-size: 12px; color: var(--t2); line-height: 1.5;">
+                これまでに登録された仕入れロット記録（<code>restock</code> データ）を完全に全件削除します。<br>
+                <span style="color: #c62828; font-weight: 700;">※全ロットが消去され、元に戻せません。（商品マスタは残ります）</span>
+              </div>
+            </div>
+            <button type="button" class="btn btn-red" id="btn-purge-restock" onclick="executeFullRestockPurge()" style="padding: 10px 18px; font-weight: 800; font-size: 13px; white-space: nowrap; background: #b71c1c;">
+              ⚠️ 仕入れロット履歴を完全消去
+            </button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1068,6 +1145,10 @@ function switchTab(tabId, elem) {
     var btn = document.querySelector('.tab[onclick*="' + tabId + '"]');
     if (btn && btn.classList) btn.classList.add('on');
   }
+
+  if (tabId === 'settingsTab') {
+    loadSettingsCategories();
+  }
 }
 
 // ================= CALCULATIONS, TAX & INSPECTION =================
@@ -1302,6 +1383,189 @@ function populateCategoryDropdown() {
   });
   sel.innerHTML = html;
   if (cur) sel.value = cur;
+}
+
+// ================= SETTINGS: CATEGORY MANAGEMENT =================
+var SETTINGS_CATEGORIES_DATA = [];
+
+function loadSettingsCategories() {
+  var p = (typeof GAS.getCategories === 'function') ? GAS.getCategories() : Promise.resolve([]);
+  return p.then(function(rows) {
+    SETTINGS_CATEGORIES_DATA = rows || [];
+    renderSettingsCategoryList();
+  }).catch(function(err) {
+    console.error('getCategories failed:', err);
+  });
+}
+
+function renderSettingsCategoryList() {
+  var container = document.getElementById('settingsCatList');
+  if (!container) return;
+  if (!SETTINGS_CATEGORIES_DATA.length) {
+    container.innerHTML = '<div style="color:var(--t3);font-size:13px;padding:12px;background:#fff;border-radius:8px;border:1px solid var(--bd);">登録されているカテゴリがありません</div>';
+    return;
+  }
+  container.innerHTML = SETTINGS_CATEGORIES_DATA.map(function(cat, idx) {
+    var isFirst = (idx === 0);
+    var isLast = (idx === SETTINGS_CATEGORIES_DATA.length - 1);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border:1px solid var(--bd);border-radius:10px;">'
+      + '<div style="display:flex;flex-direction:column;gap:2px;">'
+      + '<button type="button" onclick="moveCategoryOrder('+idx+', -1)" style="border:none;background:none;cursor:pointer;font-size:12px;color:var(--t2);padding:0;line-height:1;' + (isFirst ? 'opacity:0.25;cursor:default;' : '') + '" ' + (isFirst ? 'disabled' : '') + '>▲</button>'
+      + '<button type="button" onclick="moveCategoryOrder('+idx+', 1)" style="border:none;background:none;cursor:pointer;font-size:12px;color:var(--t2);padding:0;line-height:1;' + (isLast ? 'opacity:0.25;cursor:default;' : '') + '" ' + (isLast ? 'disabled' : '') + '>▼</button>'
+      + '</div>'
+      + '<span style="flex:1;font-size:14px;font-weight:700;color:var(--tx);">' + escapeHtml(cat.name) + '</span>'
+      + '<button type="button" class="btn btn-sub btn-sm" onclick="editCategoryName('+idx+')" style="font-size:11px;padding:4px 10px;">✏️ 編集</button>'
+      + '<button type="button" class="btn btn-sub btn-sm" onclick="deleteCategoryFromSettings('+idx+')" style="font-size:11px;padding:4px 10px;color:var(--red);">🗑️ 削除</button>'
+      + '</div>';
+  }).join('');
+}
+
+function addCategoryFromSettings() {
+  var input = document.getElementById('newCatInput');
+  var name = (input ? input.value : '').trim();
+  if (!name) {
+    alert('カテゴリ名を入力してください');
+    if (input) input.focus();
+    return;
+  }
+  var exists = SETTINGS_CATEGORIES_DATA.some(function(c) { return c.name === name; });
+  if (exists) {
+    alert('そのカテゴリは既に登録されています');
+    return;
+  }
+  var maxSort = SETTINGS_CATEGORIES_DATA.reduce(function(m, c) { return Math.max(m, c.sort_order || 0); }, 0);
+  GAS.saveCategory({ name: name, sort_order: maxSort + 1 })
+    .then(function() {
+      if (input) input.value = '';
+      return loadSettingsCategories();
+    })
+    .then(function() {
+      loadCategoriesForExpiry();
+      alert('カテゴリ「' + name + '」を追加しました！');
+    })
+    .catch(function(err) {
+      alert('カテゴリ追加エラー: ' + (err.message || err));
+    });
+}
+
+function editCategoryName(idx) {
+  var cat = SETTINGS_CATEGORIES_DATA[idx];
+  if (!cat) return;
+  var newName = prompt('新しいカテゴリ名を入力してください:', cat.name);
+  if (newName === null) return;
+  newName = newName.trim();
+  if (!newName) {
+    alert('カテゴリ名を入力してください');
+    return;
+  }
+  if (newName === cat.name) return;
+  GAS.saveCategory({ id: cat.id, name: newName, sort_order: cat.sort_order })
+    .then(function() {
+      return loadSettingsCategories();
+    })
+    .then(function() {
+      loadCategoriesForExpiry();
+      alert('カテゴリ名を「' + newName + '」に変更しました！');
+    })
+    .catch(function(err) {
+      alert('カテゴリ更新エラー: ' + (err.message || err));
+    });
+}
+
+function deleteCategoryFromSettings(idx) {
+  var cat = SETTINGS_CATEGORIES_DATA[idx];
+  if (!cat) return;
+  if (!confirm('カテゴリ「' + cat.name + '」を削除してもよろしいですか？')) return;
+  GAS.deleteCategory(cat.id)
+    .then(function() {
+      return loadSettingsCategories();
+    })
+    .then(function() {
+      loadCategoriesForExpiry();
+      alert('カテゴリを削除しました。');
+    })
+    .catch(function(err) {
+      alert('カテゴリ削除エラー: ' + (err.message || err));
+    });
+}
+
+function moveCategoryOrder(idx, dir) {
+  var targetIdx = idx + dir;
+  if (targetIdx < 0 || targetIdx >= SETTINGS_CATEGORIES_DATA.length) return;
+  var catA = SETTINGS_CATEGORIES_DATA[idx];
+  var catB = SETTINGS_CATEGORIES_DATA[targetIdx];
+  var orderA = catA.sort_order || (idx + 1);
+  var orderB = catB.sort_order || (targetIdx + 1);
+  if (orderA === orderB) {
+    orderA = idx + 1;
+    orderB = targetIdx + 1;
+  }
+  Promise.all([
+    GAS.saveCategory({ id: catA.id, name: catA.name, sort_order: orderB }),
+    GAS.saveCategory({ id: catB.id, name: catB.name, sort_order: orderA })
+  ]).then(function() {
+    return loadSettingsCategories();
+  }).then(function() {
+    loadCategoriesForExpiry();
+  }).catch(function(err) {
+    alert('並び替えエラー: ' + (err.message || err));
+  });
+}
+
+// ================= SETTINGS: STOCK WIPEOUT (最強の在庫クリア) =================
+function executeStockWipeout() {
+  if (!confirm('⚠️【最強の在庫クリア】を実行しますか？\n\n・全商品の在庫数が一律「0」になります。\n・保有中のすべての仕入れロットが「使い切り・完売」になります。\n（※過去の仕入れ価格や店舗などの履歴データは保持されます）')) return;
+  if (!confirm('本当に実行してもよろしいですか？\nこの操作は元に戻せません。')) return;
+
+  var btn = document.getElementById('btn-wipeout-stock');
+  if (btn) { btn.disabled = true; btn.textContent = 'クリア中...'; }
+
+  Promise.all([
+    sbPatch('products', 'id=gt.0', { stock: 0 }),
+    sbPatch('restock', 'status=neq.consumed', { status: 'consumed' })
+  ])
+  .then(function() {
+    ALL_PRODUCTS.forEach(function(p) { p.stock = 0; });
+    ALL_RESTOCK.forEach(function(r) { r.status = 'consumed'; });
+    renderStats();
+    renderExpiryList();
+    renderPriceComparison();
+    if (btn) { btn.disabled = false; btn.textContent = '💥 全在庫を0にする'; }
+    alert('💥 最強の在庫クリアが完了しました！\n全商品の在庫が0になり、全ロットが完売になりました。');
+  })
+  .catch(function(err) {
+    if (btn) { btn.disabled = false; btn.textContent = '💥 全在庫を0にする'; }
+    alert('クリア中にエラーが発生しました: ' + (err.message || err));
+  });
+}
+
+function executeFullRestockPurge() {
+  var check = prompt('⚠️【仕入れロット完全消去】\nこれまでに登録された仕入れロット記録をすべて完全に削除します。\n実行する場合は「削除」と入力してください。');
+  if (check !== '削除') {
+    if (check !== null) alert('キャンセルされました（「削除」と一致しません）。');
+    return;
+  }
+
+  var btn = document.getElementById('btn-purge-restock');
+  if (btn) { btn.disabled = true; btn.textContent = '消去中...'; }
+
+  Promise.all([
+    sbDelete('restock', 'id=gt.0'),
+    sbPatch('products', 'id=gt.0', { stock: 0 })
+  ])
+  .then(function() {
+    ALL_RESTOCK = [];
+    ALL_PRODUCTS.forEach(function(p) { p.stock = 0; });
+    renderStats();
+    renderExpiryList();
+    renderPriceComparison();
+    if (btn) { btn.disabled = false; btn.textContent = '⚠️ 仕入れロット履歴を完全消去'; }
+    alert('💣 仕入れロット記録をすべて消去しました！');
+  })
+  .catch(function(err) {
+    if (btn) { btn.disabled = false; btn.textContent = '⚠️ 仕入れロット履歴を完全消去'; }
+    alert('消去中にエラーが発生しました: ' + (err.message || err));
+  });
 }
 
 function renderStoreTable() {
