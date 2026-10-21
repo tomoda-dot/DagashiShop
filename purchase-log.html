@@ -573,16 +573,16 @@ tr:hover td { background: #FDFBFAF0; }
     <div class="kana-filter-bar" id="expKanaFilterBar">
       <span class="kana-filter-title">🔤 50音検索:</span>
       <button type="button" class="kana-btn active" data-kana="" onclick="setKanaFilter('')">すべて</button>
-      <button type="button" class="kana-btn" data-kana="あ" onclick="setKanaFilter('あ')">あ</button>
-      <button type="button" class="kana-btn" data-kana="か" onclick="setKanaFilter('か')">か</button>
-      <button type="button" class="kana-btn" data-kana="さ" onclick="setKanaFilter('さ')">さ</button>
-      <button type="button" class="kana-btn" data-kana="た" onclick="setKanaFilter('た')">た</button>
-      <button type="button" class="kana-btn" data-kana="な" onclick="setKanaFilter('な')">な</button>
-      <button type="button" class="kana-btn" data-kana="は" onclick="setKanaFilter('は')">は</button>
-      <button type="button" class="kana-btn" data-kana="ま" onclick="setKanaFilter('ま')">ま</button>
-      <button type="button" class="kana-btn" data-kana="や" onclick="setKanaFilter('や')">や</button>
-      <button type="button" class="kana-btn" data-kana="ら" onclick="setKanaFilter('ら')">ら</button>
-      <button type="button" class="kana-btn" data-kana="わ" onclick="setKanaFilter('わ')">わ</button>
+      <button type="button" class="kana-btn" data-kana="あ" onclick="setKanaFilter('あ')">あ (ア)</button>
+      <button type="button" class="kana-btn" data-kana="か" onclick="setKanaFilter('か')">か (カ)</button>
+      <button type="button" class="kana-btn" data-kana="さ" onclick="setKanaFilter('さ')">さ (サ)</button>
+      <button type="button" class="kana-btn" data-kana="た" onclick="setKanaFilter('た')">た (タ)</button>
+      <button type="button" class="kana-btn" data-kana="な" onclick="setKanaFilter('な')">な (ナ)</button>
+      <button type="button" class="kana-btn" data-kana="は" onclick="setKanaFilter('は')">は (ハ)</button>
+      <button type="button" class="kana-btn" data-kana="ま" onclick="setKanaFilter('ま')">ま (マ)</button>
+      <button type="button" class="kana-btn" data-kana="や" onclick="setKanaFilter('や')">や (ヤ)</button>
+      <button type="button" class="kana-btn" data-kana="ら" onclick="setKanaFilter('ら')">ら (ラ)</button>
+      <button type="button" class="kana-btn" data-kana="わ" onclick="setKanaFilter('わ')">わ (英数)</button>
     </div>
 
     <div id="expContainer" class="lot-grid">
@@ -791,16 +791,16 @@ tr:hover td { background: #FDFBFAF0; }
       <div class="kana-filter-bar no-print" id="priceKanaFilterBar">
         <span class="kana-filter-title">🔤 50音検索:</span>
         <button type="button" class="kana-btn active" data-kana="" onclick="setKanaFilter('')">すべて</button>
-        <button type="button" class="kana-btn" data-kana="あ" onclick="setKanaFilter('あ')">あ</button>
-        <button type="button" class="kana-btn" data-kana="か" onclick="setKanaFilter('か')">か</button>
-        <button type="button" class="kana-btn" data-kana="さ" onclick="setKanaFilter('さ')">さ</button>
-        <button type="button" class="kana-btn" data-kana="た" onclick="setKanaFilter('た')">た</button>
-        <button type="button" class="kana-btn" data-kana="な" onclick="setKanaFilter('な')">な</button>
-        <button type="button" class="kana-btn" data-kana="は" onclick="setKanaFilter('は')">は</button>
-        <button type="button" class="kana-btn" data-kana="ま" onclick="setKanaFilter('ま')">ま</button>
-        <button type="button" class="kana-btn" data-kana="や" onclick="setKanaFilter('や')">や</button>
-        <button type="button" class="kana-btn" data-kana="ら" onclick="setKanaFilter('ら')">ら</button>
-        <button type="button" class="kana-btn" data-kana="わ" onclick="setKanaFilter('わ')">わ</button>
+        <button type="button" class="kana-btn" data-kana="あ" onclick="setKanaFilter('あ')">あ (ア)</button>
+        <button type="button" class="kana-btn" data-kana="か" onclick="setKanaFilter('か')">か (カ)</button>
+        <button type="button" class="kana-btn" data-kana="さ" onclick="setKanaFilter('さ')">さ (サ)</button>
+        <button type="button" class="kana-btn" data-kana="た" onclick="setKanaFilter('た')">た (タ)</button>
+        <button type="button" class="kana-btn" data-kana="な" onclick="setKanaFilter('な')">な (ナ)</button>
+        <button type="button" class="kana-btn" data-kana="は" onclick="setKanaFilter('は')">は (ハ)</button>
+        <button type="button" class="kana-btn" data-kana="ま" onclick="setKanaFilter('ま')">ま (マ)</button>
+        <button type="button" class="kana-btn" data-kana="や" onclick="setKanaFilter('や')">や (ヤ)</button>
+        <button type="button" class="kana-btn" data-kana="ら" onclick="setKanaFilter('ら')">ら (ラ)</button>
+        <button type="button" class="kana-btn" data-kana="わ" onclick="setKanaFilter('わ')">わ (英数)</button>
       </div>
 
       <div class="table-wrap">
@@ -2020,27 +2020,43 @@ function getLotsForProduct(target) {
 var CURRENT_KANA_FILTER = '';
 
 var KANA_ROW_MAP = {
-  'あ': 'あいうえおぁぃぅぇぉゔ',
-  'か': 'かきくけこがぎぐげごヵヶ',
-  'さ': 'さしすせそざじずぜぞ',
-  'た': 'たちつてとだぢづでどっ',
-  'な': 'なにぬねの',
-  'は': 'はひふへほばびぶべぼぱぴぷぺぽ',
-  'ま': 'まみむめも',
-  'や': 'やゆよゃゅょ',
-  'ら': 'らりるれろ',
-  'わ': 'わゐゑをん'
+  'あ': 'あいうえおぁぃぅぇぉゔアイウエオァィゥェォヴ',
+  'か': 'かきくけこがぎぐげごヵヶカキクケコガギグゲゴヵヶ',
+  'さ': 'さしすせそざじずぜぞサシスセソザジズゼゾ',
+  'た': 'たちつてとだぢづでどっタチツテトダヂヅデドッ',
+  'な': 'なにぬねのナニヌネノ',
+  'は': 'はひふへほばびぶべぼぱぴぷぺぽハヒフヘホバビブベボパピプペポ',
+  'ま': 'まみむめもマミムメモ',
+  'や': 'やゆよゃゅょヤユヨャュョ',
+  'ら': 'らりるれろラリルレロ',
+  'わ': 'わゐゑをんワヰヱヲン'
+};
+
+var HANKAKU_KANA_MAP = {
+  'ｱ':'ア','ｲ':'イ','ｳ':'ウ','ｴ':'エ','ｵ':'オ',
+  'ｶ':'カ','ｷ':'キ','ｸ':'ク','ｹ':'ケ','ｺ':'コ',
+  'ｻ':'サ','ｼ':'シ','ｽ':'ス','ｾ':'セ','ｿ':'ソ',
+  'ﾀ':'タ','ﾁ':'チ','ﾂ':'ツ','ﾃ':'テ','ﾄ':'ト',
+  'ﾅ':'ナ','ﾆ':'ニ','ﾇ':'ヌ','ﾈ':'ネ','ﾉ':'ノ',
+  'ﾊ':'ハ','ﾋ':'ヒ','ﾌ':'フ','ﾍ':'ヘ','ﾎ':'ホ',
+  'ﾏ':'マ','ﾐ':'ミ','ﾑ':'ム','ﾒ':'メ','ﾓ':'モ',
+  'ﾔ':'ヤ','ﾕ':'ユ','ﾖ':'ヨ',
+  'ﾗ':'ラ','ﾘ':'リ','ﾙ':'ル','ﾚ':'レ','ﾛ':'ロ',
+  'ﾜ':'ワ','ｦ':'ヲ','ﾝ':'ン'
 };
 
 var KANJI_READING_MAP = {
-  '蒲': 'か', '餅': 'も', '酢': 'す', '焼': 'や', '麦': 'む',
-  '菓': 'か', '梅': 'う', '大': 'お', '金': 'き', '黒': 'く',
-  '白': 'し', '紅': 'べ', '塩': 'し', '海': 'う', '森': 'も',
-  '小': 'こ', '駄': 'だ', '味': 'あ', '紋': 'も', '都': 'み',
-  '花': 'は', '玉': 'た', '鈴': 'す', '元': 'げ', '果': 'か',
-  '棒': 'ほ', '生': 'な', '甘': 'あ', '明': 'め', '雷': 'ら',
-  '夜': 'よ', '星': 'ほ', '竜': 'り', '風': 'ふ', '前': 'ま',
-  '中': 'な', '吉': 'よ', '丸': 'ま', '山': 'や', '本': 'ほ'
+  '不': 'ふ', '青': 'あ', '平': 'ひ', '三': 'さ', '人': 'じ',
+  '仮': 'か', '元': 'が', '共': 'き', '完': 'か', '月': 'つ',
+  '棒': 'ぼ', '激': 'げ', '濃': 'の', '焼': 'や', '紋': 'も',
+  '花': 'は', '赤': 'あ', '酢': 'す', '餅': 'も', '蒲': 'か',
+  '麦': 'む', '菓': 'か', '梅': 'う', '大': 'お', '金': 'き',
+  '黒': 'く', '白': 'し', '紅': 'べ', '塩': 'し', '海': 'う',
+  '森': 'も', '小': 'こ', '駄': 'だ', '味': 'あ', '都': 'み',
+  '玉': 'た', '鈴': 'す', '果': 'か', '生': 'な', '甘': 'あ',
+  '明': 'め', '雷': 'ら', '夜': 'よ', '星': 'ほ', '竜': 'り',
+  '風': 'ふ', '前': 'ま', '中': 'な', '吉': 'よ', '丸': 'ま',
+  '山': 'や', '本': 'ほ', '工': 'こ', '名': 'め'
 };
 
 function setKanaFilter(kana) {
@@ -2062,17 +2078,25 @@ function matchesKanaFilter(prod, targetRow) {
   if (!targetRow) return true;
   var text = (prod.name_kana && prod.name_kana.trim()) ? prod.name_kana.trim() : '';
   if (!text) {
-    text = (prod.name || '').replace(/【.*?】/g, '').replace(/\[.*?\]/g, '').trim();
+    text = (prod.name || '').trim();
+    // （玩具）や【特価】等のプレフィックス括弧をすべて除去
+    while (/^[（(【\[][^）)】\]]*[）)】\]]\s*/.test(text)) {
+      text = text.replace(/^[（(【\[][^）)】\]]*[）)】\]]\s*/, '').trim();
+    }
+    text = text.replace(/^[★☆◆◇●〇・\s]+/, '').trim();
   }
   if (!text) return false;
 
   var firstChar = text.charAt(0);
+
+  // 半角カナ→全角カナ変換
+  if (HANKAKU_KANA_MAP[firstChar]) {
+    firstChar = HANKAKU_KANA_MAP[firstChar];
+  }
+
+  // 漢字→ひらがな変換
   if (KANJI_READING_MAP[firstChar]) {
     firstChar = KANJI_READING_MAP[firstChar];
-  }
-  var code = firstChar.charCodeAt(0);
-  if (code >= 0x30A1 && code <= 0x30F6) {
-    firstChar = String.fromCharCode(code - 0x60);
   }
 
   var rowChars = KANA_ROW_MAP[targetRow];
@@ -2084,7 +2108,17 @@ function matchesKanaFilter(prod, targetRow) {
     }
   }
 
-  return rowChars.indexOf(firstChar) !== -1;
+  // ひらがな・カタカナ両方で合致判定
+  if (rowChars.indexOf(firstChar) !== -1) return true;
+
+  // カタカナコード判定でひらがなに変換して再照合
+  var code = firstChar.charCodeAt(0);
+  if (code >= 0x30A1 && code <= 0x30F6) {
+    var hiraChar = String.fromCharCode(code - 0x60);
+    if (rowChars.indexOf(hiraChar) !== -1) return true;
+  }
+
+  return false;
 }
 
 function renderExpiryList() {
