@@ -387,6 +387,49 @@ tr:hover td { background: #FDFBFAF0; }
   background: #fffdf5;
 }
 
+/* Kana 50-on Filter Bar Styles */
+.kana-filter-bar {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  align-items: center;
+  background: #FFFDF9;
+  border: 1px solid #F1E5D5;
+  border-radius: var(--r);
+  padding: 8px 12px;
+  margin-bottom: 14px;
+}
+.kana-filter-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #8C7B70;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+.kana-btn {
+  background: #fff;
+  border: 1px solid #E2D7C8;
+  color: var(--tx);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.kana-btn:hover {
+  background: #FDF4E7;
+  border-color: #D97252;
+  color: #D97252;
+}
+.kana-btn.active {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+  box-shadow: 0 2px 6px rgba(217, 114, 82, 0.35);
+}
+
 @media (max-width: 600px) {
   .htl { font-size: 17px; }
   .tabs { gap: 4px; }
@@ -524,6 +567,22 @@ tr:hover td { background: #FDFBFAF0; }
         <option value="all">🌐 全て表示（終売含む）</option>
       </select>
       <button class="btn btn-grn" onclick="switchTab('inputTab')">➕ 仕入れ検品を記録する</button>
+    </div>
+
+    <!-- あかさたな 50音インデックスバー -->
+    <div class="kana-filter-bar" id="expKanaFilterBar">
+      <span class="kana-filter-title">🔤 50音検索:</span>
+      <button type="button" class="kana-btn active" data-kana="" onclick="setKanaFilter('')">すべて</button>
+      <button type="button" class="kana-btn" data-kana="あ" onclick="setKanaFilter('あ')">あ</button>
+      <button type="button" class="kana-btn" data-kana="か" onclick="setKanaFilter('か')">か</button>
+      <button type="button" class="kana-btn" data-kana="さ" onclick="setKanaFilter('さ')">さ</button>
+      <button type="button" class="kana-btn" data-kana="た" onclick="setKanaFilter('た')">た</button>
+      <button type="button" class="kana-btn" data-kana="な" onclick="setKanaFilter('な')">な</button>
+      <button type="button" class="kana-btn" data-kana="は" onclick="setKanaFilter('は')">は</button>
+      <button type="button" class="kana-btn" data-kana="ま" onclick="setKanaFilter('ま')">ま</button>
+      <button type="button" class="kana-btn" data-kana="や" onclick="setKanaFilter('や')">や</button>
+      <button type="button" class="kana-btn" data-kana="ら" onclick="setKanaFilter('ら')">ら</button>
+      <button type="button" class="kana-btn" data-kana="わ" onclick="setKanaFilter('わ')">わ</button>
     </div>
 
     <div id="expContainer" class="lot-grid">
@@ -672,6 +731,7 @@ tr:hover td { background: #FDFBFAF0; }
               <span class="qbtn" onclick="addExpMonths(3)">+3ヶ月</span>
               <span class="qbtn" onclick="addExpMonths(6)">+6ヶ月</span>
               <span class="qbtn" onclick="addExpMonths(12)">+1年</span>
+              <span class="qbtn" onclick="setExpToEndOfMonth()" style="font-weight: 800; background: #FFF4E5; border-color: #F59E0B; color: #B45309;" title="選択中の年月の最終日（月末日）に設定">📅 月末日</span>
             </div>
           </div>
         </div>
@@ -726,6 +786,22 @@ tr:hover td { background: #FDFBFAF0; }
       <p class="no-print" style="font-size: 12px; color: var(--t2); margin-bottom: 12px;">
         💡 各商品の「商品名」「最安仕入れ先」「仕入れ値」「入数」「現在の販売価格」を直接編集して保存できます（最安取引店のみ表示）。「🖨️ 印刷」ボタンを押すと綺麗なA4台帳として印刷できます。
       </p>
+
+      <!-- あかさたな 50音インデックスバー (価格台帳用) -->
+      <div class="kana-filter-bar no-print" id="priceKanaFilterBar">
+        <span class="kana-filter-title">🔤 50音検索:</span>
+        <button type="button" class="kana-btn active" data-kana="" onclick="setKanaFilter('')">すべて</button>
+        <button type="button" class="kana-btn" data-kana="あ" onclick="setKanaFilter('あ')">あ</button>
+        <button type="button" class="kana-btn" data-kana="か" onclick="setKanaFilter('か')">か</button>
+        <button type="button" class="kana-btn" data-kana="さ" onclick="setKanaFilter('さ')">さ</button>
+        <button type="button" class="kana-btn" data-kana="た" onclick="setKanaFilter('た')">た</button>
+        <button type="button" class="kana-btn" data-kana="な" onclick="setKanaFilter('な')">な</button>
+        <button type="button" class="kana-btn" data-kana="は" onclick="setKanaFilter('は')">は</button>
+        <button type="button" class="kana-btn" data-kana="ま" onclick="setKanaFilter('ま')">ま</button>
+        <button type="button" class="kana-btn" data-kana="や" onclick="setKanaFilter('や')">や</button>
+        <button type="button" class="kana-btn" data-kana="ら" onclick="setKanaFilter('ら')">ら</button>
+        <button type="button" class="kana-btn" data-kana="わ" onclick="setKanaFilter('わ')">わ</button>
+      </div>
 
       <div class="table-wrap">
         <table class="price-table">
@@ -1149,6 +1225,7 @@ tr:hover td { background: #FDFBFAF0; }
             <span class="qbtn" onclick="batchInspAddMonths(3)">+3ヶ月</span>
             <span class="qbtn" onclick="batchInspAddMonths(6)">+6ヶ月</span>
             <span class="qbtn" onclick="batchInspAddMonths(12)">+1年</span>
+            <span class="qbtn" onclick="batchInspSetToEndOfMonth()" style="font-weight: 800; background: #FFF4E5; border-color: #F59E0B; color: #B45309;" title="選択中の年月の最終日（月末日）に設定">📅 月末日</span>
           </div>
         </div>
 
@@ -1399,6 +1476,24 @@ function checkExpiryInspection() {
 function addExpMonths(months) {
   var curDate = document.getElementById('formDate').value || todayJST();
   document.getElementById('formExpDate').value = addMonthsToDate(curDate, months);
+  checkExpiryInspection();
+}
+
+function setExpToEndOfMonth() {
+  var expInp = document.getElementById('formExpDate');
+  var curVal = expInp.value || document.getElementById('formDate').value || todayJST();
+  var parts = curVal.split('-');
+  var yr = parseInt(parts[0], 10);
+  var mo = parseInt(parts[1], 10);
+  if (isNaN(yr) || isNaN(mo) || mo < 1 || mo > 12) {
+    var today = new Date();
+    yr = today.getFullYear();
+    mo = today.getMonth() + 1;
+  }
+  var lastDay = new Date(yr, mo, 0).getDate();
+  var moStr = String(mo).padStart(2, '0');
+  var dayStr = String(lastDay).padStart(2, '0');
+  expInp.value = yr + '-' + moStr + '-' + dayStr;
   checkExpiryInspection();
 }
 
@@ -1921,6 +2016,77 @@ function getLotsForProduct(target) {
   });
 }
 
+// ================= KANA 50-ON SEARCH FILTER =================
+var CURRENT_KANA_FILTER = '';
+
+var KANA_ROW_MAP = {
+  'あ': 'あいうえおぁぃぅぇぉゔ',
+  'か': 'かきくけこがぎぐげごヵヶ',
+  'さ': 'さしすせそざじずぜぞ',
+  'た': 'たちつてとだぢづでどっ',
+  'な': 'なにぬねの',
+  'は': 'はひふへほばびぶべぼぱぴぷぺぽ',
+  'ま': 'まみむめも',
+  'や': 'やゆよゃゅょ',
+  'ら': 'らりるれろ',
+  'わ': 'わゐゑをん'
+};
+
+var KANJI_READING_MAP = {
+  '蒲': 'か', '餅': 'も', '酢': 'す', '焼': 'や', '麦': 'む',
+  '菓': 'か', '梅': 'う', '大': 'お', '金': 'き', '黒': 'く',
+  '白': 'し', '紅': 'べ', '塩': 'し', '海': 'う', '森': 'も',
+  '小': 'こ', '駄': 'だ', '味': 'あ', '紋': 'も', '都': 'み',
+  '花': 'は', '玉': 'た', '鈴': 'す', '元': 'げ', '果': 'か',
+  '棒': 'ほ', '生': 'な', '甘': 'あ', '明': 'め', '雷': 'ら',
+  '夜': 'よ', '星': 'ほ', '竜': 'り', '風': 'ふ', '前': 'ま',
+  '中': 'な', '吉': 'よ', '丸': 'ま', '山': 'や', '本': 'ほ'
+};
+
+function setKanaFilter(kana) {
+  CURRENT_KANA_FILTER = kana || '';
+  document.querySelectorAll('.kana-btn').forEach(function(btn) {
+    if (btn.getAttribute('data-kana') === CURRENT_KANA_FILTER) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  renderExpiryList();
+  if (typeof renderPriceComparison === 'function') {
+    renderPriceComparison();
+  }
+}
+
+function matchesKanaFilter(prod, targetRow) {
+  if (!targetRow) return true;
+  var text = (prod.name_kana && prod.name_kana.trim()) ? prod.name_kana.trim() : '';
+  if (!text) {
+    text = (prod.name || '').replace(/【.*?】/g, '').replace(/\[.*?\]/g, '').trim();
+  }
+  if (!text) return false;
+
+  var firstChar = text.charAt(0);
+  if (KANJI_READING_MAP[firstChar]) {
+    firstChar = KANJI_READING_MAP[firstChar];
+  }
+  var code = firstChar.charCodeAt(0);
+  if (code >= 0x30A1 && code <= 0x30F6) {
+    firstChar = String.fromCharCode(code - 0x60);
+  }
+
+  var rowChars = KANA_ROW_MAP[targetRow];
+  if (!rowChars) return true;
+
+  if (targetRow === 'わ') {
+    if (rowChars.indexOf(firstChar) !== -1 || /^[a-zA-Z0-9]/.test(firstChar)) {
+      return true;
+    }
+  }
+
+  return rowChars.indexOf(firstChar) !== -1;
+}
+
 function renderExpiryList() {
   renderStats();
   var container = document.getElementById('expContainer');
@@ -1964,6 +2130,9 @@ function renderExpiryList() {
 
   productsToRender.forEach(function(prod) {
     if (selectedCat && (prod.cat || 'その他') !== selectedCat) {
+      return;
+    }
+    if (CURRENT_KANA_FILTER && !matchesKanaFilter(prod, CURRENT_KANA_FILTER)) {
       return;
     }
     var allLots = getLotsForProduct(prod);
@@ -2824,6 +2993,7 @@ function renderPriceComparison() {
   ALL_PRODUCTS.forEach(function(p) {
     if (query && !p.name.toLowerCase().includes(query)) return;
     if (catFilter && p.cat !== catFilter) return;
+    if (CURRENT_KANA_FILTER && !matchesKanaFilter(p, CURRENT_KANA_FILTER)) return;
 
     count++;
 
@@ -3469,6 +3639,25 @@ function batchInspAddMonths(months) {
   if (!INSPECT_ITEMS[INSPECT_INDEX]) return;
   var current = document.getElementById('batchInspExpDate').value || todayJST();
   var nextDate = addMonthsToDate(current, months);
+  document.getElementById('batchInspExpDate').value = nextDate;
+  INSPECT_ITEMS[INSPECT_INDEX].expDate = nextDate;
+}
+
+function batchInspSetToEndOfMonth() {
+  if (!INSPECT_ITEMS[INSPECT_INDEX]) return;
+  var current = document.getElementById('batchInspExpDate').value || todayJST();
+  var parts = current.split('-');
+  var yr = parseInt(parts[0], 10);
+  var mo = parseInt(parts[1], 10);
+  if (isNaN(yr) || isNaN(mo) || mo < 1 || mo > 12) {
+    var today = new Date();
+    yr = today.getFullYear();
+    mo = today.getMonth() + 1;
+  }
+  var lastDay = new Date(yr, mo, 0).getDate();
+  var moStr = String(mo).padStart(2, '0');
+  var dayStr = String(lastDay).padStart(2, '0');
+  var nextDate = yr + '-' + moStr + '-' + dayStr;
   document.getElementById('batchInspExpDate').value = nextDate;
   INSPECT_ITEMS[INSPECT_INDEX].expDate = nextDate;
 }
