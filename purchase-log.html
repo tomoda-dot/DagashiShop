@@ -768,6 +768,15 @@ tr:hover td { background: #FDFBFAF0; }
       <button class="close-btn" onclick="closeImg()">×</button>
     </div>
     <div style="padding: 16px;">
+      <!-- 商品名変更セクション -->
+      <div style="margin-bottom: 14px; background: var(--bg); border: 1px solid var(--bd); border-radius: 12px; padding: 12px;">
+        <label style="font-size: 11px; font-weight: 700; color: var(--t2); display: block; margin-bottom: 6px;">🏷️ 商品名の変更</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="img-prod-name" style="flex: 1; padding: 8px 12px; border: 1px solid var(--bd); border-radius: 8px; font-size: 14px; font-weight: 700; background: #fff;" placeholder="商品名を入力">
+          <button type="button" class="btn btn-grn btn-sm" id="btn-save-prod-name" onclick="saveProdNameFromImgModal()" style="white-space: nowrap; font-weight: 800; padding: 0 14px;">名前を変更</button>
+        </div>
+      </div>
+
       <div style="display:flex; gap:8px; margin-bottom:1rem;">
         <div style="flex:1; background:var(--bg); border:1px solid var(--bd); border-radius:12px; padding:10px 8px; text-align:center;">
           <div style="font-size:22px; margin-bottom:2px;">📋</div>
@@ -3053,8 +3062,45 @@ function openImgCard(productId) {
   imgPid = productId;
   var p = ALL_PRODUCTS.find(function(x) { return String(x.id) === String(productId); });
   document.getElementById('img-title').textContent = '「' + (p ? p.name : '') + '」の画像を変更';
+  var nameInput = document.getElementById('img-prod-name');
+  if (nameInput) nameInput.value = p ? p.name : '';
   clearPrev();
   openModal('img-modal');
+}
+
+function saveProdNameFromImgModal() {
+  if (!imgPid) return;
+  var p = ALL_PRODUCTS.find(function(x) { return String(x.id) === String(imgPid); });
+  if (!p) { alert('商品が見つかりません'); return; }
+  var nameInput = document.getElementById('img-prod-name');
+  var newName = nameInput ? nameInput.value.trim() : '';
+  if (!newName) {
+    alert('商品名を入力してください');
+    if (nameInput) nameInput.focus();
+    return;
+  }
+  if (newName === p.name) {
+    alert('商品名に変更はありません');
+    return;
+  }
+  var btn = document.getElementById('btn-save-prod-name');
+  if (btn) { btn.disabled = true; btn.textContent = '保存中...'; }
+  GAS.updateProduct({ id: imgPid, name: newName })
+    .then(function(res) {
+      if (btn) { btn.disabled = false; btn.textContent = '名前を変更'; }
+      p.name = newName;
+      document.getElementById('img-title').textContent = '「' + newName + '」の画像を変更';
+      renderExpiryList();
+      renderPriceComparison();
+      if (typeof openProductDetailModal === 'function' && document.getElementById('productDetailModal') && document.getElementById('productDetailModal').style.display !== 'none') {
+        openProductDetailModal(imgPid);
+      }
+      alert('商品名を「' + newName + '」に変更しました！');
+    })
+    .catch(function(err) {
+      if (btn) { btn.disabled = false; btn.textContent = '名前を変更'; }
+      alert('商品名変更エラー: ' + (err.message || err));
+    });
 }
 
 function closeImg() {
@@ -3167,14 +3213,23 @@ function applyImg() {
         progVal.style.width = '100%';
         if (res && res.ok) {
           p.img_url = res.url;
-          closeImg();
-          renderExpiryList();
-          renderPriceComparison();
-          openProductDetailModal(imgPid);
-          alert('画像を保存しました！');
+          var nameInput = document.getElementById('img-prod-name');
+          var newName = nameInput ? nameInput.value.trim() : '';
+          if (newName && newName !== p.name) {
+            return GAS.updateProduct({ id: imgPid, name: newName }).then(function() {
+              p.name = newName;
+            });
+          }
         } else {
-          onFail((res && res.error) ? res.error : '不明なエラー');
+          throw new Error((res && res.error) ? res.error : '不明なエラー');
         }
+      })
+      .then(function() {
+        closeImg();
+        renderExpiryList();
+        renderPriceComparison();
+        openProductDetailModal(imgPid);
+        alert('画像と商品情報を保存しました！');
       })
       .catch(function(e) { onFail(e && e.message ? e.message : String(e)); });
   }

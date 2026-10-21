@@ -418,6 +418,14 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
     <div style="font-size:15px;font-weight:700;" id="img-title">画像を変更</div>
     <button onclick="closeImg()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--t3);">×</button>
   </div>
+  <!-- 商品名変更セクション -->
+  <div style="margin-bottom:14px;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:12px;">
+    <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:6px;">🏷️ 商品名の変更</label>
+    <div style="display:flex;gap:8px;">
+      <input type="text" id="img-prod-name" style="flex:1;padding:8px 12px;border:1px solid var(--bd);border-radius:8px;font-size:14px;font-weight:700;background:#fff;" placeholder="商品名を入力">
+      <button type="button" class="btn" id="btn-save-prod-name" onclick="saveProdNameFromImgModal()" style="white-space:nowrap;font-weight:700;padding:8px 14px;font-size:12px;">名前を変更</button>
+    </div>
+  </div>
   <div class="how-row">
     <div class="how-item"><div class="how-icon">📋</div><div class="how-label">コピー＆ペースト</div>右クリック→コピー→Ctrl+V</div>
     <div class="how-item"><div class="how-icon">🖱️</div><div class="how-label">ドラッグ＆ドロップ</div>ファイルをドロップ</div>
@@ -2045,7 +2053,9 @@ function openImgFromDet(){
   if(!detPid)return;
   imgPid=detPid;
   var p=prods.filter(function(x){return x.id===detPid;})[0];
-  document.getElementById('img-title').textContent=(p?p.name:'')+' の画像を変更';
+  document.getElementById('img-title').textContent='「'+(p?p.name:'')+'」の画像を変更';
+  var nameInput = document.getElementById('img-prod-name');
+  if (nameInput) nameInput.value = p ? p.name : '';
   clearPrev();
   document.getElementById('img-modal').style.display='flex';
 }
@@ -2054,9 +2064,39 @@ function closeImg(){ document.getElementById('img-modal').style.display='none'; 
 function openImgCard(id){
   imgPid=id;
   var p=prods.filter(function(x){return x.id===id;})[0];
-  document.getElementById('img-title').textContent=(p?p.name:'')+' の画像を変更';
+  document.getElementById('img-title').textContent='「'+(p?p.name:'')+'」の画像を変更';
+  var nameInput = document.getElementById('img-prod-name');
+  if (nameInput) nameInput.value = p ? p.name : '';
   clearPrev();
   document.getElementById('img-modal').style.display='flex';
+}
+
+function saveProdNameFromImgModal(){
+  if(!imgPid)return;
+  var p=prods.filter(function(x){return x.id===imgPid;})[0];
+  if(!p){toast('商品が見つかりません');return;}
+  var nameInput=document.getElementById('img-prod-name');
+  var newName=nameInput?nameInput.value.trim():'';
+  if(!newName){toast('商品名を入力してください');if(nameInput)nameInput.focus();return;}
+  if(newName===p.name){toast('商品名に変更はありません');return;}
+  var btn=document.getElementById('btn-save-prod-name');
+  if(btn){btn.disabled=true;btn.textContent='保存中...';}
+  run1('updateProduct',{id:imgPid, name:newName})
+    .then(function(res){
+      if(btn){btn.disabled=false;btn.textContent='名前を変更';}
+      p.name=newName;
+      document.getElementById('img-title').textContent='「'+newName+'」の画像を変更';
+      if(detPid===imgPid){
+        var detName=document.getElementById('det-name');
+        if(detName)detName.value=newName;
+      }
+      renderP();
+      toast('商品名を「'+newName+'」に変更しました！');
+    })
+    .catch(function(err){
+      if(btn){btn.disabled=false;btn.textContent='名前を変更';}
+      toast('商品名変更エラー: '+(err.message||err));
+    });
 }
 
 function showPrev(b64){
@@ -2127,12 +2167,27 @@ function applyImg(){
         progVal.style.width='100%';
         if(res&&res.ok){
           p.img_url = res.url;
-          if(detPid===imgPid){
-            var iw=document.getElementById('det-img-wrap');
-            iw.innerHTML='<img src="'+res.url+'" style="width:100%;height:100%;object-fit:cover;" />';
+          var nameInput = document.getElementById('img-prod-name');
+          var newName = nameInput ? nameInput.value.trim() : '';
+          if (newName && newName !== p.name) {
+            return run1('updateProduct', { id: imgPid, name: newName }).then(function() {
+              p.name = newName;
+              if (detPid === imgPid) {
+                var detName = document.getElementById('det-name');
+                if (detName) detName.value = newName;
+              }
+            });
           }
-          closeImg(); renderP(); toast('画像を保存しました！');
-        } else { onFail((res&&res.error)?res.error:'不明なエラー'); }
+        } else {
+          throw new Error((res&&res.error)?res.error:'不明なエラー');
+        }
+      })
+      .then(function(){
+        if(detPid===imgPid){
+          var iw=document.getElementById('det-img-wrap');
+          if(iw&&p.img_url) iw.innerHTML='<img src="'+p.img_url+'" style="width:100%;height:100%;object-fit:cover;" />';
+        }
+        closeImg(); renderP(); toast('画像と商品情報を保存しました！');
       })
       .catch(function(e){ onFail(e&&e.message?e.message:String(e)); });
   }
