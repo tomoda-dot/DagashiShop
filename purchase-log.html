@@ -1032,10 +1032,11 @@ tr:hover td { background: #FDFBFAF0; }
         <div id="prog-lbl" style="font-size:11px; color:var(--t2); display:none; margin-bottom:8px;"></div>
       </div>
 
-      <div style="display:flex; gap:8px; margin-top:1rem; flex-wrap:wrap;">
+      <div style="display:flex; gap:8px; margin-top:1rem; flex-wrap:wrap; align-items:center;">
         <button class="btn btn-grn" id="apply-btn" onclick="applyImg()" style="flex:1; display:none; font-weight:800;">この画像を保存する</button>
         <button class="btn btn-sub" onclick="clearProdImg()" style="color:var(--red);">画像を削除</button>
         <button class="btn btn-sub" onclick="closeImg()">キャンセル</button>
+        <button type="button" class="btn btn-red" onclick="deleteProductFromImgModal()" style="margin-left:auto; font-weight:800;" title="この商品を商品マスターから登録削除します">🗑️ この商品を登録削除</button>
       </div>
     </div>
   </div>
@@ -4018,6 +4019,62 @@ function clearProdImg() {
       alert('画像を削除しました。');
     })
     .catch(function(err) { alert('削除エラー: ' + err.message); });
+}
+
+function deleteProductFromImgModal() {
+  if (!imgPid) return;
+  var p = ALL_PRODUCTS.find(function(x) { return String(x.id) === String(imgPid); });
+  if (!p) {
+    alert('対象の商品が見つかりません。');
+    return;
+  }
+
+  var msg = '⚠️【商品の登録削除の確認】\n\n本当に商品「' + p.name + '」を商品マスターから削除しますか？\n\n※この操作を実行すると商品データが完全に削除され、元に戻せません。';
+  if (!confirm(msg)) return;
+
+  var targetId = imgPid;
+  var deletePromise;
+  if (typeof sbDelete === 'function') {
+    deletePromise = sbDelete('product_suppliers', 'product_id=eq.' + targetId)
+      .catch(function() {})
+      .then(function() {
+        return sbDelete('products', 'id=eq.' + targetId);
+      });
+  } else if (typeof GAS !== 'undefined' && GAS.deleteProduct) {
+    deletePromise = GAS.deleteProduct(targetId);
+  } else {
+    deletePromise = Promise.reject(new Error('削除APIが利用できません'));
+  }
+
+  deletePromise
+    .then(function() {
+      // ローカル配列から除外
+      ALL_PRODUCTS = ALL_PRODUCTS.filter(function(item) {
+        return String(item.id) !== String(targetId);
+      });
+      if (typeof ALL_PRODUCT_SUPPLIERS !== 'undefined') {
+        ALL_PRODUCT_SUPPLIERS = ALL_PRODUCT_SUPPLIERS.filter(function(ps) {
+          return String(ps.product_id) !== String(targetId);
+        });
+      }
+
+      closeImg();
+
+      // 詳細モーダルが開いていれば閉じる
+      if (typeof closeModal === 'function') {
+        closeModal('productDetailModal');
+      }
+
+      // 各画面の再描画
+      if (typeof renderStats === 'function') renderStats();
+      if (typeof renderExpiryList === 'function') renderExpiryList();
+      if (typeof renderPriceComparison === 'function') renderPriceComparison();
+
+      alert('商品「' + p.name + '」の登録を削除しました。');
+    })
+    .catch(function(err) {
+      alert('商品削除エラー: ' + (err.message || String(err)));
+    });
 }
 
 // ================= STORE PRICE EDIT MODAL =================

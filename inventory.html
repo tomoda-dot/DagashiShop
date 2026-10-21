@@ -445,10 +445,11 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,243,232,.94);backdro
     <div class="prog-bar" id="prog-bar"><div class="prog-val" id="prog-val" style="width:0%"></div></div>
     <div class="prog-lbl" id="prog-lbl"></div>
   </div>
-  <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;">
+  <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;align-items:center;">
     <button class="btn" id="apply-btn" onclick="applyImg()" style="flex:1;display:none;">この画像を保存する</button>
     <button class="btns" onclick="clearProdImg()" style="color:var(--red);">画像を削除</button>
     <button class="btns" onclick="closeImg()">キャンセル</button>
+    <button type="button" class="btn" onclick="deleteProductFromImgModal()" style="margin-left:auto;background:var(--red);color:#fff;font-weight:800;border:none;" title="この商品を商品マスターから登録削除します">🗑️ この商品を登録削除</button>
   </div>
   <button class="btns" onclick="testSave()" style="width:100%;margin-top:8px;font-size:11px;">🔧 接続テスト</button>
 </div>
@@ -2210,6 +2211,39 @@ function clearProdImg(){
   p.img_url=null; p.img=null; p.imgSrc=null;
   run1('updateImgUrl',{id:imgPid, img_url:null}).catch(function(){});
   clearPrev(); closeImg(); renderP(); toast('画像を削除しました');
+}
+
+function deleteProductFromImgModal(){
+  var p = prods.filter(function(x){ return String(x.id) === String(imgPid); })[0];
+  if(!p){ toast('商品が見つかりません'); return; }
+  showConfirm('⚠️【商品の登録削除の確認】\n\n本当に商品「' + p.name + '」を商品マスターから削除しますか？\n\n※この操作を実行すると商品データが完全に削除され、元に戻せません。', function(){
+    var targetId = imgPid;
+    var deletePromise;
+    if (typeof sbDelete === 'function') {
+      deletePromise = sbDelete('product_suppliers', 'product_id=eq.' + targetId)
+        .catch(function(){})
+        .then(function() {
+          return sbDelete('products', 'id=eq.' + targetId);
+        });
+    } else {
+      deletePromise = run1('deleteProduct', targetId).catch(function(){
+        return sbDelete('products', 'id=eq.' + targetId);
+      });
+    }
+
+    deletePromise.then(function(){
+      prods = prods.filter(function(x){ return String(x.id) !== String(targetId); });
+      closeImg();
+      if (typeof closeModal === 'function') {
+        closeModal('det-modal');
+      }
+      renderP();
+      if (typeof renderStats === 'function') renderStats();
+      toast('商品「' + p.name + '」の登録を削除しました');
+    }).catch(function(err){
+      toast('削除エラー: ' + (err.message || String(err)));
+    });
+  });
 }
 
 function testSave(){
