@@ -726,6 +726,7 @@ tr:hover td { background: #FDFBFAF0; }
             <label>実物の賞味期限 <span class="req">*</span></label>
             <input type="date" id="formExpDate" class="inp" required onchange="checkExpiryInspection()">
             <div class="quick-dates">
+              <span class="qbtn" onclick="addExpMonths(-1)">-1ヶ月</span>
               <span class="qbtn" onclick="addExpMonths(1)">+1ヶ月</span>
               <span class="qbtn" onclick="addExpMonths(2)">+2ヶ月</span>
               <span class="qbtn" onclick="addExpMonths(3)">+3ヶ月</span>
@@ -1220,6 +1221,7 @@ tr:hover td { background: #FDFBFAF0; }
           <label>📅 実物の賞味期限 <span class="req">*</span></label>
           <input type="date" id="batchInspExpDate" class="inp" required onchange="updateBatchInspField('expDate', this.value)">
           <div class="quick-dates">
+            <span class="qbtn" onclick="batchInspAddMonths(-1)">-1ヶ月</span>
             <span class="qbtn" onclick="batchInspAddMonths(1)">+1ヶ月</span>
             <span class="qbtn" onclick="batchInspAddMonths(2)">+2ヶ月</span>
             <span class="qbtn" onclick="batchInspAddMonths(3)">+3ヶ月</span>
@@ -1474,8 +1476,9 @@ function checkExpiryInspection() {
 }
 
 function addExpMonths(months) {
-  var curDate = document.getElementById('formDate').value || todayJST();
-  document.getElementById('formExpDate').value = addMonthsToDate(curDate, months);
+  var expInp = document.getElementById('formExpDate');
+  var curDate = (expInp && expInp.value) ? expInp.value : (document.getElementById('formDate').value || todayJST());
+  expInp.value = addMonthsToDate(curDate, months);
   checkExpiryInspection();
 }
 
@@ -1498,12 +1501,37 @@ function setExpToEndOfMonth() {
 }
 
 function addMonthsToDate(dateStr, months) {
-  var d = new Date(dateStr);
-  d.setMonth(d.getMonth() + months);
-  var yr = d.getFullYear();
-  var mo = String(d.getMonth() + 1).padStart(2, '0');
-  var da = String(d.getDate()).padStart(2, '0');
-  return yr + '-' + mo + '-' + da;
+  if (!dateStr) dateStr = todayJST();
+  var parts = dateStr.split('-');
+  var y = parseInt(parts[0], 10);
+  var m = parseInt(parts[1], 10); // 1-12
+  var d = parseInt(parts[2], 10);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) {
+    var dt = new Date();
+    y = dt.getFullYear(); m = dt.getMonth() + 1; d = dt.getDate();
+  }
+
+  // 元の日付がその月の月末日だったかを判定
+  var lastDayOfOrigin = new Date(y, m, 0).getDate();
+  var wasEndOfMonth = (d === lastDayOfOrigin);
+
+  // 加算・減算後の年・月を算出
+  var targetMonthIndex = (m - 1) + months; // 0-based
+  var targetYear = y + Math.floor(targetMonthIndex / 12);
+  var targetMonth = ((targetMonthIndex % 12) + 12) % 12 + 1; // 1-12
+
+  var lastDayOfTarget = new Date(targetYear, targetMonth, 0).getDate();
+
+  // 元が月末日だった場合、または日にちが目標月の末日を超える場合は末日に設定
+  var targetDay = d;
+  if (wasEndOfMonth || d > lastDayOfTarget) {
+    targetDay = lastDayOfTarget;
+  }
+
+  var yStr = String(targetYear);
+  var mStr = String(targetMonth).padStart(2, '0');
+  var dStr = String(targetDay).padStart(2, '0');
+  return yStr + '-' + mStr + '-' + dStr;
 }
 
 function getDaysRemaining(expDateStr) {
