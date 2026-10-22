@@ -563,8 +563,9 @@ tr:hover td { background: #FDFBFAF0; }
       <select id="expCategoryFilter" class="select" style="width: auto; min-width: 130px; font-weight: 700;" onchange="renderExpiryList()">
         <option value="">全カテゴリ</option>
       </select>
-      <select id="expFilter" class="select" style="width: auto;" onchange="renderExpiryList()">
-        <option value="active">🟢 保有中（通常販売）</option>
+      <select id="expFilter" class="select" style="width: auto; font-weight: 700;" onchange="renderExpiryList()">
+        <option value="current_all">🏬 取扱全商品（ロットあり＋ロットなし／終売除く）</option>
+        <option value="active">🟢 ロット保有中のみ</option>
         <option value="no-lot">📭 ロットなし（在庫0・未仕入れ）のみ</option>
         <option value="expired">🚨 期限切れ（赤カード）のみ</option>
         <option value="warn">⚠️ 30日以内（オレンジカード）のみ</option>
@@ -1369,13 +1370,10 @@ function initApp() {
 
       syncAllProductsToActiveLots();
 
-      // 保有ロットが0件の場合は、全商品マスタが見えるように初期フィルターを「all (全て表示)」にする
-      var activeLotsCount = ALL_RESTOCK.filter(function(r) { return r.status !== 'consumed'; }).length;
-      if (activeLotsCount === 0) {
-        var expFilterEl = document.getElementById('expFilter');
-        if (expFilterEl && expFilterEl.value === 'active') {
-          expFilterEl.value = 'all';
-        }
+      // 初期フィルターが空の場合は取扱全商品にする
+      var expFilterEl = document.getElementById('expFilter');
+      if (expFilterEl && !expFilterEl.value) {
+        expFilterEl.value = 'current_all';
       }
 
       // Default stores if none exist
@@ -2405,7 +2403,11 @@ function renderExpiryList() {
       if (pStatus !== 'discontinued') return;
     } else if (filter === 'hidden') {
       if (pStatus !== 'hidden') return;
+    } else if (filter === 'current_all') {
+      // 一部終売・終売を除外した、通常取扱中の全商品（ロットあり＋ロット0）
+      if (pStatus === 'hidden' || pStatus === 'discontinued') return;
     } else if (filter === 'active') {
+      // ロット保有中のみ
       if (pStatus === 'hidden' || pStatus === 'discontinued') return;
       if (activeLots.length === 0) return;
     } else if (filter === 'no-lot') {
@@ -2600,8 +2602,8 @@ function renderExpiryList() {
         '<div style="font-size: 15px; font-weight: 800; color: var(--tx); margin-bottom: 6px;">該当する賞味期限・仕入れデータはありません</div>' +
         '<div style="font-size: 12px; color: var(--t2); margin-bottom: 16px;">商品マスタを一覧表示したい場合は、下のボタンから「全て表示」に切り替えてください。</div>' +
         '<div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">' +
-          '<button type="button" class="btn btn-blu btn-sm" onclick="document.getElementById(\'expFilter\').value=\'all\'; renderExpiryList();" style="font-weight: 800; padding: 8px 16px;">🌐 全て表示（終売含む）に切り替える</button>' +
-          '<button type="button" class="btn btn-sub btn-sm" onclick="document.getElementById(\'expFilter\').value=\'no-lot\'; renderExpiryList();" style="font-weight: 700; padding: 8px 16px;">📭 ロットなし商品を表示</button>' +
+          '<button type="button" class="btn btn-blu btn-sm" onclick="document.getElementById(\'expFilter\').value=\'current_all\'; renderExpiryList();" style="font-weight: 800; padding: 8px 16px;">🏬 取扱全商品（通常販売）に切り替える</button>' +
+          '<button type="button" class="btn btn-sub btn-sm" onclick="document.getElementById(\'expFilter\').value=\'all\'; renderExpiryList();" style="font-weight: 700; padding: 8px 16px;">🌐 全て表示（終売含む）</button>' +
           '<button type="button" class="btn btn-grn btn-sm" onclick="switchTab(\'inputTab\')" style="font-weight: 800; padding: 8px 16px;">➕ 仕入れ検品を記録する</button>' +
         '</div>' +
       '</div>';
