@@ -4600,8 +4600,14 @@ function deleteProductFromImgModal() {
   var targetId = imgPid;
   var deletePromise;
   if (typeof sbDelete === 'function') {
-    deletePromise = sbDelete('product_suppliers', 'product_id=eq.' + targetId)
+    deletePromise = sbDelete('restock', 'product_id=eq.' + targetId)
       .catch(function() {})
+      .then(function() {
+        return sbDelete('product_suppliers', 'product_id=eq.' + targetId).catch(function() {});
+      })
+      .then(function() {
+        return sbDelete('purchase_orders', 'product_id=eq.' + targetId).catch(function() {});
+      })
       .then(function() {
         return sbDelete('products', 'id=eq.' + targetId);
       });
@@ -4617,6 +4623,11 @@ function deleteProductFromImgModal() {
       ALL_PRODUCTS = ALL_PRODUCTS.filter(function(item) {
         return String(item.id) !== String(targetId);
       });
+      if (typeof ALL_RESTOCK !== 'undefined') {
+        ALL_RESTOCK = ALL_RESTOCK.filter(function(r) {
+          return String(r.productId || r.product_id) !== String(targetId);
+        });
+      }
       if (typeof ALL_PRODUCT_SUPPLIERS !== 'undefined') {
         ALL_PRODUCT_SUPPLIERS = ALL_PRODUCT_SUPPLIERS.filter(function(ps) {
           return String(ps.product_id) !== String(targetId);

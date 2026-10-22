@@ -109,7 +109,7 @@ GasProxy.prototype.withFailureHandler = function(fn) {
     'getMakers','saveMakers',
     'getPettyCashData','addPettyCashRow','deletePettyCashRow',
     'getProductSuppliers','saveProductSupplier','deleteProductSupplier','getAllProductSuppliers',
-    'updateRestock','updateRestockStatus','deleteRestock','setAllStockToTen'
+    'updateRestock','updateRestockStatus','deleteRestock','setAllStockToTen','deleteProduct'
   ];
   fns.forEach(function(name) {
     GasProxy.prototype[name] = function(arg1, arg2) {
@@ -1006,5 +1006,20 @@ GAS.saveProductSupplier = function(data) {
 // ─ deleteProductSupplier ─
 GAS.deleteProductSupplier = function(id) {
   return sbDelete('product_suppliers', 'id=eq.' + id)
+    .then(function() { return { ok: true }; });
+};
+
+// ─ deleteProduct ─
+GAS.deleteProduct = function(productId) {
+  return sbDelete('restock', 'product_id=eq.' + productId).catch(function() {})
+    .then(function() {
+      return sbDelete('product_suppliers', 'product_id=eq.' + productId).catch(function() {});
+    })
+    .then(function() {
+      return sbDelete('purchase_orders', 'product_id=eq.' + productId).catch(function() {});
+    })
+    .then(function() {
+      return sbDelete('products', 'id=eq.' + productId);
+    })
     .then(function() { return { ok: true }; });
 };
