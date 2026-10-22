@@ -742,7 +742,7 @@ tr:hover td { background: #FDFBFAF0; }
               <span class="qbtn" onclick="addExpMonths(6)">+6ヶ月</span>
               <span class="qbtn" onclick="addExpMonths(12)">+1年</span>
               <span class="qbtn" onclick="setExpToEndOfMonth()" style="font-weight: 800; background: #FFF4E5; border-color: #F59E0B; color: #B45309;" title="選択中の年月の最終日（月末日）に設定">📅 月末日</span>
-              <span class="qbtn" id="btnNoExp" onclick="toggleNoExpiry()" style="font-weight: 800; background: #E8F5E9; border-color: #4CAF50; color: #2E7D32;" title="ガムなど賞味期限表示のない食品用（期限管理対象外にします）">♾️ 賞味期限なし (ガム等)</span>
+              <span class="qbtn" id="btnNoExp" onclick="toggleNoExpiry()" style="font-weight: 800; background: #E8F5E9; border-color: #4CAF50; color: #2E7D32;" title="ガムなど賞味期限表示のない食品用（期限管理対象外にします）">♾️ 賞味期限なし</span>
             </div>
           </div>
         </div>
@@ -2607,7 +2607,7 @@ function renderExpiryList() {
 
         if (!r.d || r.d === 'none') {
           badgeClass = 'grn';
-          expText = '♾️ 賞味期限なし (ガム等)';
+          expText = '♾️ 賞味期限なし';
           expFormatted = '期限管理対象外';
         } else {
           var dDays = getDaysRemaining(r.d);
@@ -2785,7 +2785,7 @@ function openProductDetailModal(targetId) {
         expText = '完売・使い切り';
       } else if (!r.d || r.d === 'none') {
         badgeClass = 'grn';
-        expText = '♾️ 賞味期限なし (ガム等)';
+        expText = '♾️ 賞味期限なし';
       } else if (dDays < 0) {
         badgeClass = 'red';
         expText = '🚨 期限切れ (' + Math.abs(dDays) + '日前)';
