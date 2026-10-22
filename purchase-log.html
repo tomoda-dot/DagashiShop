@@ -655,8 +655,8 @@ tr:hover td { background: #FDFBFAF0; }
               <input type="text" id="inlineProdBarcode" class="inp" placeholder="バーコード番号" style="font-size: 13px; background: #fff;">
             </div>
           </div>
-          <div style="margin-top: 8px; font-size: 11px; color: #856404; font-weight: 600;">
-            💡 商品名を入力し、下の「購入店舗」「仕入れ金額」「入数」「店頭販売価格」を入力して【値札決定・仕入れ確定保存】を押すと、新商品とお菓子の仕入れが同時に自動登録されます！
+          <div id="inlineProdHint" style="margin-top: 8px; font-size: 11px; color: #856404; font-weight: 600;">
+            💡 商品名を入力し、下の「購入店舗」「仕入れ金額」「入数」「店頭販売価格」を入力して【値札決定・仕入れ確定保存】を押すと、新商品とお菓子の仕入れが同時に自動登録されます！（既存のお菓子と同名の場合は自動でその商品の仕入れとして記録されます）
           </div>
         </div>
       </div>
@@ -3027,7 +3027,27 @@ function cancelInlineNewProd() {
 }
 
 function updateInlineNamePreview() {
-  // リアルタイム反映が必要ならここで処理
+  var nameInp = document.getElementById('inlineProdName');
+  var hintEl = document.getElementById('inlineProdHint');
+  if (!nameInp || !hintEl) return;
+  var val = nameInp.value.trim().toLowerCase();
+  if (!val) {
+    hintEl.innerHTML = '💡 商品名を入力し、下の「購入店舗」「仕入れ金額」「入数」「店頭販売価格」を入力して【値札決定・仕入れ確定保存】を押すと、新商品とお菓子の仕入れが同時に自動登録されます！（既存のお菓子と同名の場合は自動でその商品の仕入れとして記録されます）';
+    hintEl.style.color = '#856404';
+    return;
+  }
+
+  var dup = ALL_PRODUCTS.find(function(p) {
+    return p.name.trim().toLowerCase() === val && p.status !== 'discontinued';
+  });
+
+  if (dup) {
+    hintEl.innerHTML = '✨ <strong>登録済みのお菓子「' + escapeHtml(dup.name) + '」</strong>が見つかりました！重複して別商品を作らず、この商品の新しい仕入れロットとして自動的に記録されます。';
+    hintEl.style.color = '#2b8a3e';
+  } else {
+    hintEl.innerHTML = '🍬 新規お菓子「<strong>' + escapeHtml(nameInp.value.trim()) + '</strong>」として商品マスターに新規登録され、同時に仕入れが記録されます。';
+    hintEl.style.color = '#856404';
+  }
 }
 
 function openNewProductModal() {
@@ -3152,35 +3172,37 @@ function handleSavePurchase(e) {
     var dup = ALL_PRODUCTS.find(function(p) {
       return p.name.trim().toLowerCase() === newName.toLowerCase() && p.status !== 'discontinued';
     });
+
     if (dup) {
-      if (!confirm('「' + newName + '」は既に登録されています。\n重複して新規登録を続けますか？')) {
-        return;
-      }
+      // 既に登録されている場合は、二重登録確認アラートを出さずにその商品の仕入れロットとして自動的に紐付け
+      SELECTED_PRODUCT = dup;
+      document.getElementById('formProductId').value = dup.id;
+      prepareProductPromise = Promise.resolve(dup);
+    } else {
+      var pData = {
+        name: newName,
+        name_kana: newKana,
+        cat: newCat,
+        barcode: newBarcode,
+        unit: '個',
+        min: 5,
+        stock: 0,
+        price: sellPrice,
+        sell_price: sellPrice,
+        buy_qty: iri,
+        buy_price: totalInclTax,
+        status: 'active'
+      };
+
+      prepareProductPromise = GAS.addProduct(pData).then(function(res) {
+        var newId = (res && res.id) ? res.id : Date.now();
+        var createdProd = Object.assign({}, pData, { id: newId });
+        ALL_PRODUCTS.unshift(createdProd);
+        SELECTED_PRODUCT = createdProd;
+        document.getElementById('formProductId').value = newId;
+        return createdProd;
+      });
     }
-
-    var pData = {
-      name: newName,
-      name_kana: newKana,
-      cat: newCat,
-      barcode: newBarcode,
-      unit: '個',
-      min: 5,
-      stock: 0,
-      price: sellPrice,
-      sell_price: sellPrice,
-      buy_qty: iri,
-      buy_price: totalInclTax,
-      status: 'active'
-    };
-
-    prepareProductPromise = GAS.addProduct(pData).then(function(res) {
-      var newId = (res && res.id) ? res.id : Date.now();
-      var createdProd = Object.assign({}, pData, { id: newId });
-      ALL_PRODUCTS.unshift(createdProd);
-      SELECTED_PRODUCT = createdProd;
-      document.getElementById('formProductId').value = newId;
-      return createdProd;
-    });
   } else {
     var productId = parseInt(document.getElementById('formProductId').value);
     if (!productId || !SELECTED_PRODUCT) {
