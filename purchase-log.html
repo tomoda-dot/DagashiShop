@@ -2107,10 +2107,12 @@ function getLotsForProduct(target) {
     var rPid = String(r.productId || r.product_id || '').trim();
     
     // 1. Direct product ID match
-    if (prodIdStr && rPid && rPid === prodIdStr) return true;
+    if (prodIdStr && rPid) {
+      return rPid === prodIdStr;
+    }
     
-    // 2. Name match (if r.nm contains product name or product name contains r.nm)
-    if (r.nm && prodNameStr) {
+    // 2. Name match (only if lot has no productId registered)
+    if (!rPid && r.nm && prodNameStr) {
       var rNmStr = String(r.nm).trim().toLowerCase();
       if (rNmStr && (rNmStr.includes(prodNameStr) || prodNameStr.includes(rNmStr))) return true;
     }
@@ -2295,9 +2297,15 @@ function renderExpiryList() {
 
   ALL_RESTOCK.forEach(function(r) {
     var rPid = String(r.productId || r.product_id || '').trim();
-    var matchedProd = ALL_PRODUCTS.find(function(p) {
-      return (rPid && String(p.id) === rPid) || (r.nm && p.name && (r.nm.includes(p.name) || p.name.includes(r.nm)));
-    });
+    var matchedProd = null;
+    if (rPid) {
+      matchedProd = ALL_PRODUCTS.find(function(p) { return String(p.id) === rPid; });
+    }
+    if (!matchedProd && !rPid && r.nm) {
+      matchedProd = ALL_PRODUCTS.find(function(p) {
+        return p.name && (r.nm.includes(p.name) || p.name.includes(r.nm));
+      });
+    }
 
     if (!matchedProd) {
       var dummyId = rPid || r.nm || 'other';
@@ -2565,14 +2573,25 @@ function openProductDetailModal(targetId) {
 
   var targetStr = String(targetId).trim();
 
+  // 1. ID完全一致を最優先
   var prod = ALL_PRODUCTS.find(function(p) {
-    var pIdStr = String(p.id).trim();
-    var pNameStr = String(p.name || '').trim();
-    if (pIdStr === targetStr) return true;
-    if (pNameStr && pNameStr === targetStr) return true;
-    if (targetStr && pNameStr && (targetStr.includes(pNameStr) || pNameStr.includes(targetStr))) return true;
-    return false;
+    return String(p.id).trim() === targetStr;
   });
+
+  // 2. 見つからない場合は商品名完全一致
+  if (!prod) {
+    prod = ALL_PRODUCTS.find(function(p) {
+      return (p.name || '').trim() === targetStr;
+    });
+  }
+
+  // 3. それでも見つからず、かつ数字ではない場合のみ部分一致
+  if (!prod && isNaN(Number(targetStr))) {
+    prod = ALL_PRODUCTS.find(function(p) {
+      var pName = (p.name || '').trim();
+      return pName && (pName.includes(targetStr) || targetStr.includes(pName));
+    });
+  }
 
   var productId = prod ? prod.id : targetId;
   var prodName = prod ? prod.name : targetStr;
@@ -2799,8 +2818,9 @@ function syncProductToActiveLot(productId) {
 
   var lots = ALL_RESTOCK.filter(function(r) {
     var rPid = r.productId || r.product_id;
-    if (prod && rPid && String(rPid) === String(prod.id)) return true;
-    if (rPid && String(rPid) === String(productId)) return true;
+    if (rPid) {
+      return String(rPid) === String(productId);
+    }
     if (prod && r.nm && (r.nm.includes(prod.name) || prod.name.includes(r.nm))) return true;
     return false;
   });
@@ -2833,7 +2853,9 @@ function syncAllProductsToActiveLots() {
   ALL_PRODUCTS.forEach(function(prod) {
     var lots = ALL_RESTOCK.filter(function(r) {
       var rPid = r.productId || r.product_id;
-      if (rPid && String(rPid) === String(prod.id)) return true;
+      if (rPid) {
+        return String(rPid) === String(prod.id);
+      }
       if (r.nm && (r.nm.includes(prod.name) || prod.name.includes(r.nm))) return true;
       return false;
     });
