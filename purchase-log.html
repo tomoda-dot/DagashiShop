@@ -1298,7 +1298,7 @@ function initApp() {
 
   GAS.getAllData()
     .then(function(res) {
-      ALL_PRODUCTS = res.products || [];
+      ALL_PRODUCTS = sortProductsKana(res.products || []);
       ALL_RESTOCK = res.restock || [];
       ALL_SUPPLIERS = res.suppliers || [];
       ALL_PRODUCT_SUPPLIERS = res.productSuppliers || [];
@@ -2152,6 +2152,58 @@ function matchesKanaFilter(prod, targetRow) {
   return false;
 }
 
+// ================= PRODUCT KANA SORT UTILITY =================
+function getProductSortKey(prod) {
+  if (!prod) return '';
+  var text = (prod.name_kana && prod.name_kana.trim()) ? prod.name_kana.trim() : '';
+  if (!text) {
+    text = (prod.name || '').trim();
+    // （玩具）や【特価】等のプレフィックス括弧をすべて除去
+    while (/^[（(【\[][^）)】\]]*[）)】\]]\s*/.test(text)) {
+      text = text.replace(/^[（(【\[][^）)】\]]*[）)】\]]\s*/, '').trim();
+    }
+    text = text.replace(/^[★☆◆◇●〇・\s]+/, '').trim();
+  }
+  if (!text) return '';
+
+  // 半角カナ→全角カナ変換
+  var normalized = '';
+  for (var i = 0; i < text.length; i++) {
+    var ch = text.charAt(i);
+    if (HANKAKU_KANA_MAP[ch]) ch = HANKAKU_KANA_MAP[ch];
+    normalized += ch;
+  }
+
+  // 先頭の漢字読みをひらがなに変換
+  var firstChar = normalized.charAt(0);
+  if (KANJI_READING_MAP[firstChar]) {
+    normalized = KANJI_READING_MAP[firstChar] + normalized.slice(1);
+  }
+
+  // カタカナをすべてひらがなに統一（あいうえお順の比較ブレを防ぐ）
+  var hira = '';
+  for (var j = 0; j < normalized.length; j++) {
+    var code = normalized.charCodeAt(j);
+    if (code >= 0x30A1 && code <= 0x30F6) {
+      hira += String.fromCharCode(code - 0x60);
+    } else {
+      hira += normalized.charAt(j);
+    }
+  }
+  return hira;
+}
+
+function sortProductsKana(list) {
+  if (!list || !Array.isArray(list)) return list;
+  return list.sort(function(a, b) {
+    var keyA = getProductSortKey(a);
+    var keyB = getProductSortKey(b);
+    var cmp = keyA.localeCompare(keyB, 'ja');
+    if (cmp !== 0) return cmp;
+    return (a.name || '').localeCompare(b.name || '', 'ja');
+  });
+}
+
 function renderExpiryList() {
   renderStats();
   var container = document.getElementById('expContainer');
@@ -2189,6 +2241,9 @@ function renderExpiryList() {
       }
     }
   });
+
+  // 商品をあいうえお（50音昇順）にソート
+  sortProductsKana(productsToRender);
 
   var circNums = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
   var renderedCount = 0;
