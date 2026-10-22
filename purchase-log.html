@@ -564,7 +564,7 @@ tr:hover td { background: #FDFBFAF0; }
         <option value="">全カテゴリ</option>
       </select>
       <select id="expFilter" class="select" style="width: auto; font-weight: 700;" onchange="renderExpiryList()">
-        <option value="current_all">🏬 取扱全商品（ロットあり＋ロットなし／終売除く）</option>
+        <option value="current_all">🏬 取扱全商品</option>
         <option value="active">🟢 ロット保有中のみ</option>
         <option value="no-lot">📭 ロットなし（在庫0・未仕入れ）のみ</option>
         <option value="expired">🚨 期限切れ（赤カード）のみ</option>
@@ -2723,7 +2723,7 @@ function renderExpiryList() {
         '<div style="font-size: 15px; font-weight: 800; color: var(--tx); margin-bottom: 6px;">該当する賞味期限・仕入れデータはありません</div>' +
         '<div style="font-size: 12px; color: var(--t2); margin-bottom: 16px;">商品マスタを一覧表示したい場合は、下のボタンから「全て表示」に切り替えてください。</div>' +
         '<div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">' +
-          '<button type="button" class="btn btn-blu btn-sm" onclick="document.getElementById(\'expFilter\').value=\'current_all\'; renderExpiryList();" style="font-weight: 800; padding: 8px 16px;">🏬 取扱全商品（通常販売）に切り替える</button>' +
+          '<button type="button" class="btn btn-blu btn-sm" onclick="document.getElementById(\'expFilter\').value=\'current_all\'; renderExpiryList();" style="font-weight: 800; padding: 8px 16px;">🏬 取扱全商品に切り替える</button>' +
           '<button type="button" class="btn btn-sub btn-sm" onclick="document.getElementById(\'expFilter\').value=\'all\'; renderExpiryList();" style="font-weight: 700; padding: 8px 16px;">🌐 全て表示（終売含む）</button>' +
           '<button type="button" class="btn btn-grn btn-sm" onclick="switchTab(\'inputTab\')" style="font-weight: 800; padding: 8px 16px;">➕ 仕入れ検品を記録する</button>' +
         '</div>' +
