@@ -2608,7 +2608,7 @@ function renderExpiryList() {
         if (!r.d || r.d === 'none') {
           badgeClass = 'grn';
           expText = '♾️ 賞味期限なし';
-          expFormatted = '期限管理対象外';
+          expFormatted = '';
         } else {
           var dDays = getDaysRemaining(r.d);
           expText = 'あと ' + dDays + ' 日';
@@ -2639,7 +2639,7 @@ function renderExpiryList() {
             '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">' +
               '<div style="display:flex; align-items:center; gap:6px;">' +
                 '<span style="font-weight:900; color:var(--red); font-size:14px; min-width:18px;">' + numLabel + '</span>' +
-                '<span style="font-weight:700; color:var(--tx);">' + escapeHtml(expFormatted) + '</span>' +
+                (expFormatted ? '<span style="font-weight:700; color:var(--tx);">' + escapeHtml(expFormatted) + '</span>' : '') +
                 '<span class="badge-exp ' + badgeClass + '" style="font-size:11px; margin-top:0;">' + expText + '</span>' +
               '</div>' +
               '<div style="font-size:11px; color:var(--t2); font-weight:600;">' +
@@ -2810,7 +2810,7 @@ function openProductDetailModal(targetId) {
               '<span class="store-pill" style="' + getStorePillStyle(storeName) + ' font-size:11px; padding:2px 8px;">🏬 ' + escapeHtml(storeName) + '</span>' +
               '<span style="font-size:12px; color:var(--t2);">| 📅 仕入日: ' + escapeHtml(restockDateStr) + '</span>' +
             '</div>' +
-            '<span class="badge-exp ' + badgeClass + '" style="font-size:11px;">' + expText + ' (' + (r.d || '未設定') + ')</span>' +
+            '<span class="badge-exp ' + badgeClass + '" style="font-size:11px;">' + (r.d ? expText + ' (' + r.d + ')' : expText) + '</span>' +
           '</div>' +
           '<div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:700; flex-wrap:wrap; gap:8px;">' +
             '<div>📦 仕入数: ' + (r.iri || 0) + '個 &nbsp;|&nbsp; 💰 仕入額: ' + (r.price || 0) + '円 <span style="font-size:11px; font-weight:400; color:var(--t2);">(' + unitCost + '円/個)</span></div>' +
