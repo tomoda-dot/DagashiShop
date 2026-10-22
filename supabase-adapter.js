@@ -282,7 +282,7 @@ GAS.addRestock = function(r) {
     buy_price:  Number(r.buy_price) || 0,
     tanka:      Number(r.tanka)     || 0,
     sell:       Number(r.sell)      || 0,
-    d:          r.d || todayJST(),
+    d:          (r.d !== undefined && r.d !== null && r.d !== '') ? r.d : null,
     status:     'pending'
   };
 

@@ -733,7 +733,7 @@ tr:hover td { background: #FDFBFAF0; }
           <!-- Expiry Date -->
           <div class="form-group">
             <label>実物の賞味期限 <span class="req">*</span></label>
-            <input type="date" id="formExpDate" class="inp" required onchange="checkExpiryInspection()">
+            <input type="date" id="formExpDate" class="inp" required oninput="clearNoExpiry(); checkExpiryInspection();" onchange="clearNoExpiry(); checkExpiryInspection();">
             <div class="quick-dates">
               <span class="qbtn" onclick="addExpMonths(-1)">-1ヶ月</span>
               <span class="qbtn" onclick="addExpMonths(1)">+1ヶ月</span>
@@ -742,6 +742,7 @@ tr:hover td { background: #FDFBFAF0; }
               <span class="qbtn" onclick="addExpMonths(6)">+6ヶ月</span>
               <span class="qbtn" onclick="addExpMonths(12)">+1年</span>
               <span class="qbtn" onclick="setExpToEndOfMonth()" style="font-weight: 800; background: #FFF4E5; border-color: #F59E0B; color: #B45309;" title="選択中の年月の最終日（月末日）に設定">📅 月末日</span>
+              <span class="qbtn" id="btnNoExp" onclick="toggleNoExpiry()" style="font-weight: 800; background: #E8F5E9; border-color: #4CAF50; color: #2E7D32;" title="ガムなど賞味期限表示のない食品用（期限管理対象外にします）">♾️ 賞味期限なし (ガム等)</span>
             </div>
           </div>
         </div>
@@ -1559,7 +1560,60 @@ function checkExpiryInspection() {
   }
 }
 
+var IS_NO_EXPIRY = false;
+
+function setNoExpiry() {
+  IS_NO_EXPIRY = true;
+  var expInp = document.getElementById('formExpDate');
+  var btn = document.getElementById('btnNoExp');
+  if (expInp) {
+    expInp.value = '';
+    expInp.required = false;
+    expInp.style.background = '#f1f3f5';
+    expInp.style.borderColor = '#4CAF50';
+  }
+  if (btn) {
+    btn.style.background = '#2E7D32';
+    btn.style.color = '#fff';
+    btn.style.borderColor = '#1B5E20';
+  }
+  var expWarn = document.getElementById('inspectExpWarn');
+  if (expWarn) expWarn.style.display = 'none';
+  var banner = document.getElementById('inspectBanner');
+  if (banner) banner.classList.remove('has-warning');
+}
+
+function clearNoExpiry() {
+  IS_NO_EXPIRY = false;
+  var expInp = document.getElementById('formExpDate');
+  var btn = document.getElementById('btnNoExp');
+  if (expInp) {
+    expInp.required = true;
+    expInp.style.background = '';
+    expInp.style.borderColor = '';
+  }
+  if (btn) {
+    btn.style.background = '#E8F5E9';
+    btn.style.color = '#2E7D32';
+    btn.style.borderColor = '#4CAF50';
+  }
+}
+
+function toggleNoExpiry() {
+  if (IS_NO_EXPIRY) {
+    clearNoExpiry();
+    var expInp = document.getElementById('formExpDate');
+    if (expInp && !expInp.value) {
+      expInp.value = addMonthsToDate(todayJST(), 3);
+    }
+    checkExpiryInspection();
+  } else {
+    setNoExpiry();
+  }
+}
+
 function addExpMonths(months) {
+  clearNoExpiry();
   var expInp = document.getElementById('formExpDate');
   var curDate = (expInp && expInp.value) ? expInp.value : (document.getElementById('formDate').value || todayJST());
   expInp.value = addMonthsToDate(curDate, months);
@@ -1567,6 +1621,7 @@ function addExpMonths(months) {
 }
 
 function setExpToEndOfMonth() {
+  clearNoExpiry();
   var expInp = document.getElementById('formExpDate');
   var curVal = expInp.value || document.getElementById('formDate').value || todayJST();
   var parts = curVal.split('-');
@@ -2550,10 +2605,10 @@ function renderExpiryList() {
         var expText = '';
         var expFormatted = '記録なし';
 
-        if (!r.d) {
-          badgeClass = 'gray';
-          expText = '賞味期限未入力';
-          expFormatted = '期限未設定';
+        if (!r.d || r.d === 'none') {
+          badgeClass = 'grn';
+          expText = '♾️ 賞味期限なし (ガム等)';
+          expFormatted = '期限管理対象外';
         } else {
           var dDays = getDaysRemaining(r.d);
           expText = 'あと ' + dDays + ' 日';
@@ -2728,6 +2783,9 @@ function openProductDetailModal(targetId) {
       if (r.status === 'consumed') {
         badgeClass = 'gray';
         expText = '完売・使い切り';
+      } else if (!r.d || r.d === 'none') {
+        badgeClass = 'grn';
+        expText = '♾️ 賞味期限なし (ガム等)';
       } else if (dDays < 0) {
         badgeClass = 'red';
         expText = '🚨 期限切れ (' + Math.abs(dDays) + '日前)';
@@ -3205,6 +3263,16 @@ function selectProductForPurchase(prod) {
   document.getElementById('selProdMeta').textContent = '現在の店頭売価: ' + (prod.sell_price || prod.price || 0) + '円 / 登録入数: ' + (document.getElementById('formIri').value || 30) + '個';
   document.getElementById('formSellPrice').value = prod.sell_price || prod.price || 0;
 
+  // ガム製品の場合は自動で「賞味期限なし」を推奨選択
+  if (prod && (prod.cat === 'ガム' || (prod.name && prod.name.includes('ガム')))) {
+    setNoExpiry();
+  } else {
+    clearNoExpiry();
+    if (!document.getElementById('formExpDate').value) {
+      document.getElementById('formExpDate').value = addMonthsToDate(todayJST(), 3);
+    }
+  }
+
   calcTanka();
   closeModal('productModal');
 }
@@ -3221,6 +3289,9 @@ function handleSavePurchase(e) {
   var buyPrice = parseFloat(document.getElementById('formBuyPrice').value) || 0;
   var sellPrice = parseFloat(document.getElementById('formSellPrice').value) || 0;
   var expDate = document.getElementById('formExpDate').value;
+  if (IS_NO_EXPIRY || !expDate) {
+    expDate = null;
+  }
   var memo = document.getElementById('formMemo').value.trim();
 
   var totalInclTax = buyPrice;
