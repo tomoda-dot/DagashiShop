@@ -753,7 +753,7 @@ tr:hover td { background: #FDFBFAF0; }
           <input type="text" id="formMemo" class="inp" placeholder="例: ダイソー特売品、箱潰れ値引きなど">
         </div>
 
-        <button type="submit" class="btn btn-lg">🏷️ 値札決定・仕入れを確定保存</button>
+        <button type="submit" class="btn btn-lg" id="btnSubmitPurchase">🏷️ 値札決定・仕入れを確定保存</button>
       </form>
     </div>
   </div>
@@ -3278,8 +3278,22 @@ function selectProductForPurchase(prod) {
 }
 
 // ================= SAVE PURCHASE =================
+var IS_SAVING_PURCHASE = false;
+
 function handleSavePurchase(e) {
   if (e && e.preventDefault) e.preventDefault();
+  if (IS_SAVING_PURCHASE) return; // 二重クリック・連打防止ガード
+
+  var submitBtn = document.getElementById('btnSubmitPurchase');
+  function resetSubmitBtn() {
+    IS_SAVING_PURCHASE = false;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '🏷️ 値札決定・仕入れを確定保存';
+      submitBtn.style.opacity = '';
+      submitBtn.style.cursor = '';
+    }
+  }
 
   var store = document.getElementById('formStore').value;
   var taxMode = document.getElementById('formTaxMode').value;
@@ -3301,6 +3315,14 @@ function handleSavePurchase(e) {
   var totalQty = packs * iri;
   var tanka = totalQty > 0 ? (totalInclTax / totalQty) : 0;
 
+  IS_SAVING_PURCHASE = true;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = '⏳ 仕入れロットを登録中...';
+    submitBtn.style.opacity = '0.7';
+    submitBtn.style.cursor = 'not-allowed';
+  }
+
   var prepareProductPromise;
 
   if (IS_INLINE_NEW_PROD) {
@@ -3308,6 +3330,7 @@ function handleSavePurchase(e) {
     if (!newName) {
       alert('新規登録するお菓子の商品名を入力してください！');
       document.getElementById('inlineProdName').focus();
+      resetSubmitBtn();
       return;
     }
     var newKana = document.getElementById('inlineProdKana').value.trim();
@@ -3352,6 +3375,7 @@ function handleSavePurchase(e) {
     var productId = parseInt(document.getElementById('formProductId').value);
     if (!productId || !SELECTED_PRODUCT) {
       alert('商品マスターから商品を選択するか、または「➕ 新規お菓子」から商品名を入力してください！');
+      resetSubmitBtn();
       return;
     }
     prepareProductPromise = Promise.resolve(SELECTED_PRODUCT);
@@ -3419,9 +3443,11 @@ function handleSavePurchase(e) {
       SELECTED_PRODUCT = null;
       cancelInlineNewProd();
 
+      resetSubmitBtn();
       switchTab('expTab');
     })
     .catch(function(err) {
+      resetSubmitBtn();
       alert('保存に失敗しました: ' + (err.message || err));
     });
 }
