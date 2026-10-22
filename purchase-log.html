@@ -2277,34 +2277,34 @@ function getProductSortKey(prod) {
   return hira;
 }
 
-// 商品名先頭の文字種別（0: ひらがな・カタカナ, 1: 漢字, 2: 英数・記号）
+// 商品名先頭の文字種別（0: 数字・英字・記号, 1: ひらがな・カタカナ, 2: 漢字）
 function getProductNameCharType(prod) {
-  if (!prod) return 2;
+  if (!prod) return 0;
   var text = (prod.name || '').trim();
   while (/^[（(【\[][^）)】\]]*[）)】\]]\s*/.test(text)) {
     text = text.replace(/^[（(【\[][^）)】\]]*[）)】\]]\s*/, '').trim();
   }
   text = text.replace(/^[★☆◆◇●〇・\s]+/, '').trim();
-  if (!text) return 2;
+  if (!text) return 0;
 
   var ch = text.charAt(0);
   var code = ch.charCodeAt(0);
-  // ひらがな・カタカナ（全角・半角）
+  // ひらがな・カタカナ（全角・半角） -> 1
   if ((code >= 0x3041 && code <= 0x3096) || (code >= 0x30A1 && code <= 0x30F6) || (HANKAKU_KANA_MAP && HANKAKU_KANA_MAP[ch])) {
-    return 0;
-  }
-  // 漢字 (CJK Unified Ideographs, 々)
-  if ((code >= 0x4E00 && code <= 0x9FFF) || code === 0x3005) {
     return 1;
   }
-  // 英数・その他記号
-  return 2;
+  // 漢字 (CJK Unified Ideographs, 々) -> 2 (一番最後のグループ)
+  if ((code >= 0x4E00 && code <= 0x9FFF) || code === 0x3005) {
+    return 2;
+  }
+  // 数字・英字・その他記号 -> 0 (先頭グループ)
+  return 0;
 }
 
 function sortProductsKana(list) {
   if (!list || !Array.isArray(list)) return list;
   return list.sort(function(a, b) {
-    // 1. 文字種別の優先度（ひらがな・カタカナ:0 → 漢字:1 → 英数:2）
+    // 1. 文字種別の優先度（数字・英字:0 → ひらがな・カタカナ:1 → 漢字:2）
     var typeA = getProductNameCharType(a);
     var typeB = getProductNameCharType(b);
     if (typeA !== typeB) return typeA - typeB;
