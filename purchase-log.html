@@ -566,13 +566,13 @@ tr:hover td { background: #FDFBFAF0; }
       <select id="expFilter" class="select" style="width: auto; font-weight: 700;" onchange="renderExpiryList()">
         <option value="current_all">🏬 取扱全商品</option>
         <option value="active">🟢 ロット保有中のみ</option>
-        <option value="no-lot">📭 ロットなし（在庫0・未仕入れ）のみ</option>
-        <option value="expired">🚨 期限切れ（赤カード）のみ</option>
-        <option value="warn">⚠️ 30日以内（オレンジカード）のみ</option>
+        <option value="no-lot">📭 ロットなしのみ</option>
+        <option value="expired">🚨 期限切れのみ</option>
+        <option value="warn">⚠️ 30日以内のみ</option>
         <option value="hidden">⏸️ 一時販売終了のみ</option>
-        <option value="discontinued">❌ 販売終了（終売）のみ</option>
+        <option value="discontinued">❌ 販売終了のみ</option>
         <option value="consumed">⚪ 使い切り・完売済み</option>
-        <option value="all">🌐 全て表示（終売含む）</option>
+        <option value="all">🌐 全て表示</option>
       </select>
       <button class="btn btn-grn" onclick="switchTab('inputTab')">➕ 仕入れ検品を記録する</button>
     </div>
