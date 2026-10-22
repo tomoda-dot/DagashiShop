@@ -2321,69 +2321,88 @@ function renderExpiryList() {
   var renderedCount = 0;
 
   productsToRender.forEach(function(prod) {
+    var pStatus = prod.status || 'active';
+
+    // 1. カテゴリフィルター
     if (selectedCat && (prod.cat || 'その他') !== selectedCat) {
       return;
     }
+
+    // 2. 50音（あかさたな）検索フィルター
     if (CURRENT_KANA_FILTER && !matchesKanaFilter(prod, CURRENT_KANA_FILTER)) {
       return;
     }
+
+    // 3. キーワード検索（商品名・カナ・ロット店舗名など）
     var allLots = getLotsForProduct(prod);
-
-    if (filter === 'no-lot') {
-      var pStatus = prod.status || 'active';
-      if (pStatus === 'hidden' || pStatus === 'discontinued') return;
-      var hasAnyActiveLot = allLots.some(function(r) { return r.status !== 'consumed'; });
-      if (hasAnyActiveLot) return;
-    }
-
-    var filteredLots = allLots.filter(function(r) {
-      var days = getDaysRemaining(r.d);
-      var pStatus = prod.status || 'active';
-
-      if (filter === 'active') {
-        if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
-        if (r.status === 'consumed') return false;
-      } else if (filter === 'no-lot') {
-        return false;
-      } else if (filter === 'expired') {
-        if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
-        if (days >= 0 || r.status === 'consumed') return false;
-      } else if (filter === 'warn') {
-        if (pStatus === 'hidden' || pStatus === 'discontinued') return false;
-        if (days < 0 || days > 30 || r.status === 'consumed') return false;
-      } else if (filter === 'consumed') {
-        if (r.status !== 'consumed') return false;
-      } else if (filter === 'hidden') {
-        if (pStatus !== 'hidden') return false;
-      } else if (filter === 'discontinued') {
-        if (pStatus !== 'discontinued') return false;
-      }
-
-      if (filter !== 'expired' && filter !== 'hidden' && filter !== 'discontinued' && filter !== 'all' && filter !== 'no-lot' && r.status !== 'consumed' && days !== null && days < -7) {
-        return false;
-      }
-      return true;
-    });
-
-    var hasQuery = !!query;
-    if (!hasQuery && filter !== 'no-lot' && filteredLots.length === 0 && (filter === 'active' || filter === 'expired' || filter === 'warn' || filter === 'consumed')) {
-      return;
-    }
-
     if (query) {
       var pName = (prod.name || '').toLowerCase();
-      var matchQuery = pName.includes(query) || filteredLots.some(function(r) {
+      var pKana = (prod.name_kana || '').toLowerCase();
+      var matchQuery = pName.includes(query) || pKana.includes(query) || allLots.some(function(r) {
         return (r.nm || '').toLowerCase().includes(query);
       });
       if (!matchQuery) return;
     }
 
-    var hasLots = filteredLots.length > 0;
-    var lotsToDisplay = hasLots ? filteredLots.slice() : [];
-    if (hasLots) {
-      sortLots(lotsToDisplay);
-    }
+    // ロットの分類
+    var activeLots = allLots.filter(function(r) {
+      if (r.status === 'consumed') return false;
+      var days = getDaysRemaining(r.d);
+      if (r.d && days !== null && days < -7) return false;
+      return true;
+    });
 
+    // 4. ステータス・ロットフィルター (AND複合判定)
+    if (filter === 'discontinued') {
+      if (pStatus !== 'discontinued') return;
+    } else if (filter === 'hidden') {
+      if (pStatus !== 'hidden') return;
+    } else if (filter === 'active') {
+      if (pStatus === 'hidden' || pStatus === 'discontinued') return;
+      if (activeLots.length === 0) return;
+    } else if (filter === 'no-lot') {
+      if (pStatus === 'hidden' || pStatus === 'discontinued') return;
+      if (activeLots.length > 0) return;
+    } else if (filter === 'expired') {
+      if (pStatus === 'hidden' || pStatus === 'discontinued') return;
+      var hasExpired = activeLots.some(function(r) {
+        var days = getDaysRemaining(r.d);
+        return days !== null && days < 0;
+      });
+      if (!hasExpired) return;
+    } else if (filter === 'warn') {
+      if (pStatus === 'hidden' || pStatus === 'discontinued') return;
+      var hasWarn = activeLots.some(function(r) {
+        var days = getDaysRemaining(r.d);
+        return days !== null && days >= 0 && days <= 30;
+      });
+      if (!hasWarn) return;
+    } else if (filter === 'consumed') {
+      var hasConsumed = allLots.some(function(r) { return r.status === 'consumed'; });
+      if (!hasConsumed) return;
+    }
+    // filter === 'all' の場合は除外なし
+
+    // 表示用ロットの選定
+    var lotsToDisplay = [];
+    if (filter === 'consumed') {
+      lotsToDisplay = allLots.filter(function(r) { return r.status === 'consumed'; });
+    } else if (filter === 'expired') {
+      lotsToDisplay = activeLots.filter(function(r) {
+        var days = getDaysRemaining(r.d);
+        return days !== null && days < 0;
+      });
+    } else if (filter === 'warn') {
+      lotsToDisplay = activeLots.filter(function(r) {
+        var days = getDaysRemaining(r.d);
+        return days !== null && days >= 0 && days <= 30;
+      });
+    } else {
+      lotsToDisplay = activeLots.slice();
+    }
+    sortLots(lotsToDisplay);
+
+    var hasLots = lotsToDisplay.length > 0;
     var topLot = hasLots ? lotsToDisplay[0] : null;
     var topDays = (topLot && topLot.d) ? getDaysRemaining(topLot.d) : 999;
     var topStore = topLot ? parseStoreFromNm(topLot.nm) : (prod.supplier || parseStoreFromNm(prod.maker || '') || '店舗未登録');
@@ -2403,21 +2422,12 @@ function renderExpiryList() {
       cardClass = 'warning';
     }
 
-    if (prod.status === 'hidden') cardClass += ' st-hidden';
-    if (prod.status === 'discontinued') cardClass += ' st-disc';
+    if (pStatus === 'hidden') cardClass += ' st-hidden';
+    if (pStatus === 'discontinued') cardClass += ' st-disc';
 
+    // ロットがある場合のみロット一覧HTMLを生成
     var listHtml = '';
-    if (!hasLots) {
-      listHtml = 
-        '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px 10px; background:rgba(0,0,0,0.02); border:1.5px dashed #dee2e6; border-radius:8px; width:100%; margin:4px 0; text-align:center;">' +
-          '<div style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:800; color:#6c757d;">' +
-            '<span>📭 保有ロットなし（仕入れ・在庫記録なし）</span>' +
-          '</div>' +
-          '<div style="font-size:11px; color:var(--t3); font-weight:600; margin-top:3px;">' +
-            '※現在この商品の在庫ロットはありません。カードをタップして仕入れ登録できます。' +
-          '</div>' +
-        '</div>';
-    } else {
+    if (hasLots) {
       lotsToDisplay.forEach(function(r, idx) {
         var numLabel = circNums[idx] || ('(' + (idx + 1) + ')');
         var badgeClass = 'grn';
@@ -2473,12 +2483,9 @@ function renderExpiryList() {
     }
 
     var statusBadgeHtml = '';
-    if (!hasLots) {
-      statusBadgeHtml += '<span style="font-size:11px; background:#f1f3f5; color:#495057; border:1px solid #ced4da; padding:2px 8px; border-radius:10px; font-weight:800; margin-left:6px;">📦 ロットなし (在庫0)</span>';
-    }
-    if (prod.status === 'hidden') {
+    if (pStatus === 'hidden') {
       statusBadgeHtml += '<span style="font-size:11px; background:#FFF3BF; color:#F59F00; border:1px solid #FFE066; padding:2px 8px; border-radius:10px; font-weight:800; margin-left:6px;">⏸️ 一時販売終了</span>';
-    } else if (prod.status === 'discontinued') {
+    } else if (pStatus === 'discontinued') {
       statusBadgeHtml += '<span style="font-size:11px; background:#FFE3E3; color:#E03131; border:1px solid #FFC9C9; padding:2px 8px; border-radius:10px; font-weight:800; margin-left:6px;">❌ 販売終了</span>';
     }
 
@@ -2498,9 +2505,22 @@ function renderExpiryList() {
       ? '<span>💰 最新仕入額: <strong style="color:var(--red);">' + (topLot.price || topLot.buy_price || prod.buy_price || 0) + '円</strong> <span style="font-size:11px; font-weight:500; color:var(--t2);">(' + topUnitCost + '円/個)</span></span>'
       : '<span>💰 仕入目安: <span style="color:var(--t2); font-weight:700;">' + (prod.buy_price ? prod.buy_price + '円' : '未設定') + '</span> <span style="font-size:11px; font-weight:500; color:var(--t3);">(仕入記録なし)</span></span>';
 
-    var lotHeaderTitle = hasLots
-      ? '<span>📅 賞味期限リスト （仕入れ順 ・ 全 ' + lotsToDisplay.length + ' ロット）</span>'
-      : '<span style="color:var(--t3);">📅 賞味期限リスト （保有ロットなし ・ 0件）</span>';
+    // 保有ロットがない場合は下部セクション（区切り線やリスト）を完全に出力せず白紙（空欄）にする
+    var lotSectionHtml = '';
+    if (hasLots) {
+      lotSectionHtml = 
+        '<!-- 区切り点線 -->' +
+        '<div style="border-bottom:1.5px dashed var(--bd); margin:10px 0 8px;"></div>' +
+        '<!-- 点線の下：賞味期限リスト -->' +
+        '<div>' +
+          '<div style="font-size:11px; font-weight:800; color:var(--t3); margin-bottom:6px; text-align:center;">' +
+            '<span>📅 賞味期限リスト （仕入れ順 ・ 全 ' + lotsToDisplay.length + ' ロット）</span>' +
+          '</div>' +
+          '<div class="exp-lot-list" style="display:flex; flex-direction:column; align-items:center;">' +
+            listHtml +
+          '</div>' +
+        '</div>';
+    }
 
     card.innerHTML = 
       '<!-- 点線の上：商品情報 -->' +
@@ -2519,19 +2539,7 @@ function renderExpiryList() {
           '</div>' +
         '</div>' +
       '</div>' +
-
-      '<!-- 区切り点線 -->' +
-      '<div style="border-bottom:1.5px dashed var(--bd); margin:10px 0 8px;"></div>' +
-
-      '<!-- 点線の下：賞味期限リスト -->' +
-      '<div>' +
-        '<div style="font-size:11px; font-weight:800; color:var(--t3); margin-bottom:6px; text-align:center;">' +
-          lotHeaderTitle +
-        '</div>' +
-        '<div class="exp-lot-list" style="display:flex; flex-direction:column; align-items:center;">' +
-          listHtml +
-        '</div>' +
-      '</div>';
+      lotSectionHtml;
 
     container.appendChild(card);
     renderedCount++;
