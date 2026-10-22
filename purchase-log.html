@@ -714,6 +714,7 @@ tr:hover td { background: #FDFBFAF0; }
           <div class="form-group">
             <label>伝票・レシートの仕入れ金額 <span class="req">*</span></label>
             <input type="number" id="formBuyPrice" class="inp" min="0" value="" placeholder="例: 960" required oninput="calcTanka()">
+            <div id="formStoreNotice" style="font-size: 11px; font-weight: 700; color: #2b8a3e; margin-top: 3px; min-height: 16px;"></div>
           </div>
 
           <!-- Calculated Unit Price -->
@@ -1652,31 +1653,96 @@ function getStorePillStyle(storeName) {
   return 'background:' + c.bg + '; color:' + c.color + '; border:1px solid ' + c.border + ';';
 }
 
+function showFormPriceNotice(msg, isWarn) {
+  var el = document.getElementById('formStoreNotice');
+  if (el) {
+    el.textContent = msg;
+    el.style.color = isWarn ? '#c92a2a' : '#2b8a3e';
+  }
+  var buyPriceInput = document.getElementById('formBuyPrice');
+  if (buyPriceInput) {
+    buyPriceInput.style.transition = 'background-color 0.3s';
+    buyPriceInput.style.backgroundColor = isWarn ? '#fff5f5' : '#e6fcf5';
+    setTimeout(function() {
+      buyPriceInput.style.backgroundColor = '';
+    }, 600);
+  }
+}
+
 function handleFormStoreChange() {
-  if (!SELECTED_PRODUCT) return;
-  var storeName = document.getElementById('formStore').value;
+  var storeName = (document.getElementById('formStore') ? document.getElementById('formStore').value : '').trim();
   if (!storeName) return;
 
+  // 対象商品の特定（SELECTED_PRODUCT、インライン入力名、formProductId から柔軟に取得）
+  var prod = SELECTED_PRODUCT;
+  if (!prod) {
+    var inlineName = (document.getElementById('inlineProdName') ? document.getElementById('inlineProdName').value : '').trim().toLowerCase();
+    if (inlineName) {
+      prod = ALL_PRODUCTS.find(function(p) { return (p.name || '').trim().toLowerCase() === inlineName; });
+    }
+  }
+  if (!prod) {
+    var formPid = document.getElementById('formProductId') ? document.getElementById('formProductId').value : '';
+    if (formPid) {
+      prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(formPid); });
+    }
+  }
+
+  if (!prod) return;
+
+  var foundPrice = null;
+  var foundIri = null;
+  var sourceDesc = '';
+
+  // 1. ALL_PRODUCT_SUPPLIERS から探す（is_primary優先、複数あれば最新レコード）
   var supObj = ALL_SUPPLIERS.find(function(s) { return s.name === storeName; });
   if (supObj) {
-    var ps = ALL_PRODUCT_SUPPLIERS.find(function(item) {
-      return String(item.product_id) === String(SELECTED_PRODUCT.id) && String(item.supplier_id) === String(supObj.id);
+    var matchingPsList = ALL_PRODUCT_SUPPLIERS.filter(function(item) {
+      return String(item.product_id) === String(prod.id) && String(item.supplier_id) === String(supObj.id);
     });
-
-    if (ps) {
-      if (ps.buy_qty) document.getElementById('formIri').value = ps.buy_qty;
-      if (ps.buy_price) document.getElementById('formBuyPrice').value = ps.buy_price;
-    } else {
-      var pastRestock = ALL_RESTOCK.find(function(r) {
-        return String(r.productId) === String(SELECTED_PRODUCT.id) && parseStoreFromNm(r.nm) === storeName;
-      });
-      if (pastRestock) {
-        if (pastRestock.iri) document.getElementById('formIri').value = pastRestock.iri;
-        if (pastRestock.price) document.getElementById('formBuyPrice').value = pastRestock.price;
-      }
+    if (matchingPsList.length > 0) {
+      var ps = matchingPsList.find(function(x) { return x.is_primary; }) || matchingPsList[matchingPsList.length - 1];
+      if (ps.buy_price !== undefined && ps.buy_price !== null) foundPrice = ps.buy_price;
+      if (ps.buy_qty) foundIri = ps.buy_qty;
+      sourceDesc = '仕入れ先マスタ';
     }
-    calcTanka();
   }
+
+  // 2. 見つからなければ過去の仕入れロット（ALL_RESTOCK）から探す
+  if (foundPrice === null) {
+    var matchingRestocks = ALL_RESTOCK.filter(function(r) {
+      var rPid = String(r.productId || r.product_id || '').trim();
+      if (rPid !== String(prod.id)) return false;
+      var rStore = parseStoreFromNm(r.nm);
+      return rStore === storeName || rStore.includes(storeName) || storeName.includes(rStore);
+    });
+    if (matchingRestocks.length > 0) {
+      var latestR = matchingRestocks[0];
+      foundPrice = latestR.buy_price || latestR.price || 0;
+      foundIri = latestR.iri || 0;
+      sourceDesc = '過去仕入れ実績';
+    }
+  }
+
+  // 3. 価格反映とユーザー通知
+  if (foundPrice !== null) {
+    document.getElementById('formBuyPrice').value = foundPrice;
+    if (foundIri) document.getElementById('formIri').value = foundIri;
+    showFormPriceNotice('🏬 ' + storeName + ' の' + sourceDesc + '（' + foundPrice + '円）を反映しました', false);
+  } else {
+    // 該当店舗での記録がない場合、商品マスタの標準値をセット（前の店舗の価格を引きずらない）
+    if (prod.buy_price) {
+      document.getElementById('formBuyPrice').value = prod.buy_price;
+      showFormPriceNotice('💡 ' + storeName + ' での過去記録なし（商品標準: ' + prod.buy_price + '円 を表示）', true);
+    } else {
+      document.getElementById('formBuyPrice').value = '';
+      showFormPriceNotice('💡 ' + storeName + ' での過去仕入れ記録はありません', true);
+    }
+    if (prod.buy_qty) document.getElementById('formIri').value = prod.buy_qty;
+  }
+
+  calcTanka();
+  calcMargin();
 }
 
 function populateStoreDropdown() {
@@ -3044,6 +3110,12 @@ function updateInlineNamePreview() {
   });
 
   if (dup) {
+    SELECTED_PRODUCT = dup;
+    document.getElementById('formProductId').value = dup.id;
+    if (dup.sell_price || dup.price) {
+      document.getElementById('formSellPrice').value = dup.sell_price || dup.price;
+    }
+    handleFormStoreChange();
     hintEl.innerHTML = '✨ <strong>登録済みのお菓子「' + escapeHtml(dup.name) + '」</strong>が見つかりました！重複して別商品を作らず、この商品の新しい仕入れロットとして自動的に記録されます。';
     hintEl.style.color = '#2b8a3e';
   } else {
