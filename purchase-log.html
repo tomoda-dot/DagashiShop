@@ -349,6 +349,10 @@ tr:hover td { background: #FDFBFAF0; }
     color: #000 !important;
     width: 100% !important;
   }
+  body.printing-pricelist tr.tr-hidden,
+  body.printing-pricelist tr.tr-disc {
+    display: none !important;
+  }
 }
 
 /* Price Table UI Styles */
@@ -758,7 +762,7 @@ tr:hover td { background: #FDFBFAF0; }
       <div style="display: flex; justify-content: space-between; align-items: flex-end;">
         <div>
           <h2 style="margin: 0; font-size: 16pt; font-weight: 900; color: #111;">駄菓子 商品別・最安仕入れ＆販売価格台帳</h2>
-          <p style="margin: 3px 0 0; font-size: 9pt; color: #555;">※最安取引店・仕入れ値・入数・店頭売価の一覧</p>
+          <p style="margin: 3px 0 0; font-size: 9pt; color: #555;">※最安取引店・仕入れ値・入数・店頭売価の一覧（※販売中商品のみ出力）</p>
         </div>
         <div style="text-align: right; font-size: 9pt; color: #333;">
           <div>出力日時: <span id="pricePrintDate">--</span></div>
@@ -775,13 +779,19 @@ tr:hover td { background: #FDFBFAF0; }
         </div>
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
           <input type="text" id="priceSearch" class="inp" style="max-width: 170px; font-size: 13px; padding: 6px 10px;" placeholder="🔍 商品名で絞り込み..." oninput="renderPriceComparison()">
-          <select id="priceCatFilter" class="select" style="max-width: 140px; font-size: 13px; padding: 6px 8px; border-color: var(--bd);" onchange="renderPriceComparison()">
+          <select id="priceCatFilter" class="select" style="max-width: 130px; font-size: 13px; padding: 6px 8px; border-color: var(--bd);" onchange="renderPriceComparison()">
             <option value="">全カテゴリ ▼</option>
+          </select>
+          <select id="priceStatusFilter" class="select" style="max-width: 175px; font-size: 13px; padding: 6px 8px; border-color: var(--bd); font-weight: 700;" onchange="renderPriceComparison()">
+            <option value="active" selected>🟢 通常販売のみ (終売除く)</option>
+            <option value="all">🌐 全て表示 (終売含む)</option>
+            <option value="hidden">⏸️ 一時販売終了のみ</option>
+            <option value="discontinued">❌ 完全終売のみ</option>
           </select>
           <button type="button" class="btn btn-amb btn-sm" onclick="saveAllPriceChanges()" style="font-weight: 800; padding: 6px 12px;" title="変更された全行を一括保存">
             💾 全変更を一括保存
           </button>
-          <button type="button" class="btn btn-blu btn-sm" onclick="printPriceList()" style="font-weight: 800; padding: 6px 14px;" title="この台帳を印刷">
+          <button type="button" class="btn btn-blu btn-sm" onclick="printPriceList()" style="font-weight: 800; padding: 6px 14px;" title="この台帳を印刷（販売中商品のみA4印刷）">
             🖨️ 印刷
           </button>
         </div>
@@ -3252,12 +3262,25 @@ function renderPriceComparison() {
 
   var query = (document.getElementById('priceSearch') ? document.getElementById('priceSearch').value : '').toLowerCase().trim();
   var catFilter = (document.getElementById('priceCatFilter') ? document.getElementById('priceCatFilter').value : '');
+  var statusFilter = (document.getElementById('priceStatusFilter') ? document.getElementById('priceStatusFilter').value : 'active');
 
   populatePriceCategoryFilter();
 
   var count = 0;
 
   ALL_PRODUCTS.forEach(function(p) {
+    var pStatus = p.status || 'active';
+    if (pStatus === 'temp_discontinued') pStatus = 'hidden';
+
+    // 販売状況・終売フィルター
+    if (statusFilter === 'active') {
+      if (pStatus === 'hidden' || pStatus === 'discontinued') return;
+    } else if (statusFilter === 'hidden') {
+      if (pStatus !== 'hidden') return;
+    } else if (statusFilter === 'discontinued') {
+      if (pStatus !== 'discontinued') return;
+    }
+
     if (query && !p.name.toLowerCase().includes(query)) return;
     if (catFilter && p.cat !== catFilter) return;
     if (CURRENT_KANA_FILTER && !matchesKanaFilter(p, CURRENT_KANA_FILTER)) return;
@@ -3380,11 +3403,25 @@ function renderPriceComparison() {
 
     var tr = document.createElement('tr');
     tr.id = 'priceRow_' + pIdStr;
-    if (changed) tr.className = 'row-changed';
+    var rowClasses = [];
+    if (changed) rowClasses.push('row-changed');
+    if (pStatus === 'hidden') rowClasses.push('tr-hidden');
+    if (pStatus === 'discontinued') rowClasses.push('tr-disc');
+    if (rowClasses.length > 0) tr.className = rowClasses.join(' ');
+
+    var statusBadgeHtml = '';
+    if (pStatus === 'hidden') {
+      statusBadgeHtml = '<span class="no-print" style="font-size:10px; background:#FFF3BF; color:#F59F00; border:1px solid #FFE066; padding:1px 5px; border-radius:4px; font-weight:800; margin-left:4px; white-space:nowrap;">⏸️ 一時終売</span>';
+    } else if (pStatus === 'discontinued') {
+      statusBadgeHtml = '<span class="no-print" style="font-size:10px; background:#FFE3E3; color:#E03131; border:1px solid #FFC9C9; padding:1px 5px; border-radius:4px; font-weight:800; margin-left:4px; white-space:nowrap;">❌ 終売</span>';
+    }
 
     tr.innerHTML = 
       '<td>' +
-        '<input type="text" class="row-inp" id="pName_' + pIdStr + '" value="' + escapeHtml(curName) + '" oninput="onPriceRowInputChange(\'' + pIdStr + '\')">' +
+        '<div style="display:flex; align-items:center; gap:4px;">' +
+          '<input type="text" class="row-inp" id="pName_' + pIdStr + '" value="' + escapeHtml(curName) + '" oninput="onPriceRowInputChange(\'' + pIdStr + '\')">' +
+          statusBadgeHtml +
+        '</div>' +
       '</td>' +
       '<td>' +
         '<select class="row-inp select" id="pStore_' + pIdStr + '" onchange="onPriceRowInputChange(\'' + pIdStr + '\')" style="font-weight:700;">' +
@@ -3640,14 +3677,31 @@ function printPriceList() {
     printDate.textContent = todayJST() + ' ' + ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
   }
 
-  var visibleRows = document.querySelectorAll('#priceTableBody tr');
+  // 印刷時は一時終売・完全終売商品を確実に除外
+  var allRows = document.querySelectorAll('#priceTableBody tr');
+  var excludedRows = [];
+  var printableCount = 0;
+
+  allRows.forEach(function(row) {
+    if (row.classList.contains('tr-hidden') || row.classList.contains('tr-disc')) {
+      row.classList.add('no-print');
+      excludedRows.push(row);
+    } else {
+      printableCount++;
+    }
+  });
+
   var printCount = document.getElementById('pricePrintCount');
-  if (printCount) printCount.textContent = visibleRows.length;
+  if (printCount) printCount.textContent = printableCount;
 
   document.body.classList.add('printing-pricelist');
   window.print();
   setTimeout(function() {
     document.body.classList.remove('printing-pricelist');
+    // 一時的に付与したno-printを解除（画面の表示状態を維持）
+    excludedRows.forEach(function(row) {
+      row.classList.remove('no-print');
+    });
   }, 1000);
 }
 
