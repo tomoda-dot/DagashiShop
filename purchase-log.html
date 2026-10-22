@@ -1273,6 +1273,60 @@ var ALL_PRODUCT_SUPPLIERS = [];
 var SHOPPING_LIST = JSON.parse(localStorage.getItem('dagashi_shop_memo') || '[]');
 var SELECTED_PRODUCT = null;
 
+// ================= HISTORY & BACK BUTTON NAVIGATION =================
+var CURRENT_ACTIVE_TAB = 'expTab';
+var IS_HISTORY_INITIALIZED = false;
+
+function initHistoryNavigation() {
+  if (IS_HISTORY_INITIALIZED) return;
+  IS_HISTORY_INITIALIZED = true;
+
+  // 最初の状態を置換し、誤ってTOPへ抜けないよう1つバッファを積む
+  try {
+    history.replaceState({ type: 'tab', tabId: 'expTab', isRoot: true }, '', location.pathname + '#expTab');
+    history.pushState({ type: 'tab', tabId: 'expTab' }, '', location.pathname + '#expTab');
+  } catch (e) {
+    console.warn('History API not supported or restricted:', e);
+  }
+
+  window.addEventListener('popstate', function(e) {
+    // 1. 開いているモーダルがあれば、まずそれを閉じる
+    var openModals = Array.from(document.querySelectorAll('.modal-overlay')).filter(function(m) {
+      return m && (m.style.display === 'flex' || m.style.display === 'block' || m.classList.contains('open'));
+    });
+
+    if (openModals.length > 0) {
+      openModals.forEach(function(m) {
+        m.style.display = 'none';
+        m.classList.remove('open');
+      });
+      // モーダルを閉じたので、余分にTOPへ抜けないよう現在のタブの履歴を補充
+      try {
+        history.pushState({ type: 'tab', tabId: CURRENT_ACTIVE_TAB || 'expTab' }, '', location.pathname + '#' + (CURRENT_ACTIVE_TAB || 'expTab'));
+      } catch (err) {}
+      return;
+    }
+
+    // 2. タブ履歴の復元
+    if (e.state && e.state.type === 'tab' && e.state.tabId) {
+      if (e.state.tabId !== CURRENT_ACTIVE_TAB) {
+        switchTab(e.state.tabId, null, true);
+        return;
+      }
+    }
+
+    // 3. ルート（最前の状態）で「戻る」が押された場合は誤離脱防止の確認
+    var doLeave = confirm('🏠 TOP画面に戻りますか？\n（キャンセルを押すとこの管理画面にとどまります）');
+    if (doLeave) {
+      location.href = 'index.html';
+    } else {
+      try {
+        history.pushState({ type: 'tab', tabId: CURRENT_ACTIVE_TAB || 'expTab' }, '', location.pathname + '#' + (CURRENT_ACTIVE_TAB || 'expTab'));
+      } catch (err) {}
+    }
+  });
+}
+
 // ================= INITIALIZATION =================
 document.addEventListener('DOMContentLoaded', function() {
   initApp();
@@ -1305,6 +1359,15 @@ function initApp() {
 
       syncAllProductsToActiveLots();
 
+      // 保有ロットが0件の場合は、全商品マスタが見えるように初期フィルターを「all (全て表示)」にする
+      var activeLotsCount = ALL_RESTOCK.filter(function(r) { return r.status !== 'consumed'; }).length;
+      if (activeLotsCount === 0) {
+        var expFilterEl = document.getElementById('expFilter');
+        if (expFilterEl && expFilterEl.value === 'active') {
+          expFilterEl.value = 'all';
+        }
+      }
+
       // Default stores if none exist
       if (ALL_SUPPLIERS.length === 0) {
         ALL_SUPPLIERS = [
@@ -1324,6 +1387,7 @@ function initApp() {
       renderShoppingList();
       renderStoreTable();
       initDropzoneEvents();
+      initHistoryNavigation();
 
       document.getElementById('loading').style.display = 'none';
       document.getElementById('app').style.display = 'block';
@@ -1349,7 +1413,8 @@ function updateSyncStatus(ok, msg) {
 }
 
 // ================= TAB SWITCHING =================
-function switchTab(tabId, elem) {
+function switchTab(tabId, elem, fromPopstate) {
+  CURRENT_ACTIVE_TAB = tabId;
   var tabs = document.querySelectorAll('.tab');
   var contents = document.querySelectorAll('.tab-content');
   tabs.forEach(function(t) { t.classList.remove('on'); });
@@ -1369,6 +1434,13 @@ function switchTab(tabId, elem) {
 
   if (tabId === 'settingsTab') {
     loadSettingsCategories();
+  }
+
+  // 戻るボタンで前のタブに戻れるように履歴を追加（戻る操作による復元時以外）
+  if (!fromPopstate) {
+    try {
+      history.pushState({ type: 'tab', tabId: tabId }, '', location.pathname + '#' + tabId);
+    } catch (e) {}
   }
 }
 
@@ -2466,7 +2538,17 @@ function renderExpiryList() {
   });
 
   if (renderedCount === 0) {
-    container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--t3); background: var(--sf); border-radius: var(--r); border: 1px solid var(--bd);">該当する賞味期限・仕入れデータはありません</div>';
+    container.innerHTML = 
+      '<div style="grid-column: 1/-1; text-align: center; padding: 40px 20px; background: var(--sf); border-radius: var(--r); border: 1.5px dashed var(--bd);">' +
+        '<div style="font-size: 28px; margin-bottom: 8px;">📭</div>' +
+        '<div style="font-size: 15px; font-weight: 800; color: var(--tx); margin-bottom: 6px;">該当する賞味期限・仕入れデータはありません</div>' +
+        '<div style="font-size: 12px; color: var(--t2); margin-bottom: 16px;">商品マスタを一覧表示したい場合は、下のボタンから「全て表示」に切り替えてください。</div>' +
+        '<div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">' +
+          '<button type="button" class="btn btn-blu btn-sm" onclick="document.getElementById(\'expFilter\').value=\'all\'; renderExpiryList();" style="font-weight: 800; padding: 8px 16px;">🌐 全て表示（終売含む）に切り替える</button>' +
+          '<button type="button" class="btn btn-sub btn-sm" onclick="document.getElementById(\'expFilter\').value=\'no-lot\'; renderExpiryList();" style="font-weight: 700; padding: 8px 16px;">📭 ロットなし商品を表示</button>' +
+          '<button type="button" class="btn btn-grn btn-sm" onclick="switchTab(\'inputTab\')" style="font-weight: 800; padding: 8px 16px;">➕ 仕入れ検品を記録する</button>' +
+        '</div>' +
+      '</div>';
   }
 }
 
@@ -3765,6 +3847,9 @@ function openModal(id) {
   if (m) {
     m.style.display = 'flex';
     m.classList.add('open');
+    try {
+      history.pushState({ type: 'modal', modalId: id }, '');
+    } catch (e) {}
   }
 }
 
