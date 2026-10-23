@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>💳 クレジットカード管理 | HITOTSUGI SYSTEM</title>
+  <title>💳 カード・レシート管理 | HITOTSUGI SYSTEM</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -44,11 +44,15 @@
     }
     /* 印刷スタイル */
     @media print {
-      body { background: #fff; padding: 0; }
-      header, .no-print, .top-back-btn, #action-bar { display: none !important; }
-      #print-area { display: block !important; }
-      .card-box { box-shadow: none !important; border: 1px solid #ccc !important; }
+      body { background: #fff !important; padding: 0 !important; color: #000 !important; }
+      header, .no-print, .top-back-btn, #action-bar, #summary-cards { display: none !important; }
+      #print-header { display: block !important; }
+      .card-box { box-shadow: none !important; border: 1px solid #333 !important; }
+      table { border-collapse: collapse !important; width: 100% !important; font-size: 11px !important; }
+      th, td { border: 1px solid #666 !important; padding: 6px 8px !important; }
+      th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
+    #print-header { display: none; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col text-slate-800">
@@ -57,11 +61,14 @@
   <header class="bg-slate-800 text-white p-4 shadow-md flex justify-between items-center shrink-0">
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow">
-        <span class="material-icons">credit_card</span>
+        <span class="material-icons">receipt_long</span>
       </div>
       <div>
-        <h1 class="text-xl font-bold tracking-tight">クレジットカード管理</h1>
-        <p class="text-xs text-slate-400">ガソリンカード・各種経費の利用明細と月別集計</p>
+        <h1 class="text-xl font-bold tracking-tight flex items-center gap-2">
+          <span>ガソリンカード・レシート管理</span>
+          <span class="text-[11px] bg-blue-500/30 text-blue-200 border border-blue-400/40 px-2 py-0.5 rounded-full font-medium">事務方決済・現場レシート保管</span>
+        </h1>
+        <p class="text-xs text-slate-400">日々の給油・カード利用レシートの記録と事務方への提出管理</p>
       </div>
     </div>
     <div class="flex items-center gap-3 text-sm font-medium">
@@ -72,13 +79,41 @@
     </div>
   </header>
 
-  <!-- サブバー（案内） -->
-  <div class="bg-blue-50 border-b border-blue-100 px-4 py-2.5 text-xs text-blue-700 flex items-center justify-between no-print">
+  <!-- 案内バー -->
+  <div class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-900 flex items-center justify-between no-print">
     <div class="flex items-center gap-2">
-      <span class="material-icons text-blue-500 text-base">info</span>
-      <span><b>銀行口座引き落とし管理：</b> クレジットカード決済のため手元の小口現金残高には影響しません。</span>
+      <span class="material-icons text-amber-600 text-base">task_alt</span>
+      <span><b>運用ルール：</b> カード代金は事務方で口座引き落としされます。現場では<b>「レシートを受け取ったら登録 ➔ ファイルに保管 ➔ 月末に印刷して提出」</b>を行います。</span>
     </div>
-    <span class="text-slate-400 font-mono text-[11px]" id="status-text">準備完了</span>
+    <span class="text-slate-400 font-mono text-[11px]" id="status-text">同期完了</span>
+  </div>
+
+  <!-- 印刷用ヘッダー（印刷時のみ表示） -->
+  <div id="print-header" class="p-6 pb-2">
+    <div class="flex justify-between items-start border-b-2 border-slate-800 pb-3 mb-4">
+      <div>
+        <h1 class="text-xl font-bold text-slate-900 tracking-wider">ガソリンカード利用・レシート提出明細書</h1>
+        <p class="text-xs text-slate-600 mt-1" id="print-month-title">対象年月: 2026年 10月度</p>
+      </div>
+      <div class="flex gap-4 text-xs">
+        <div class="border border-slate-400 rounded p-1.5 text-center w-20">
+          <div class="text-[9px] text-slate-500 border-b border-slate-200 pb-0.5">事業所</div>
+          <div class="font-bold pt-1">豊中小曽根</div>
+        </div>
+        <div class="border border-slate-400 rounded p-1.5 text-center w-20">
+          <div class="text-[9px] text-slate-500 border-b border-slate-200 pb-0.5">提出者印</div>
+          <div class="h-8"></div>
+        </div>
+        <div class="border border-slate-400 rounded p-1.5 text-center w-20">
+          <div class="text-[9px] text-slate-500 border-b border-slate-200 pb-0.5">事務受領印</div>
+          <div class="h-8"></div>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-between text-xs font-bold mb-2">
+      <span id="print-stat-text">利用合計: ¥0 (0件) / 給油量: 0.0 L</span>
+      <span id="print-date-text">印刷日: </span>
+    </div>
   </div>
 
   <!-- メインコンテンツ -->
@@ -93,30 +128,30 @@
       </div>
       <div class="flex items-center gap-2">
         <button onclick="openAddModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition flex items-center gap-1.5 active:scale-95">
-          <span class="material-icons text-base">add_circle</span>
-          <span>利用明細を追加</span>
+          <span class="material-icons text-base">receipt</span>
+          <span>レシートを記録</span>
         </button>
-        <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-800 text-white px-3 py-2 rounded-xl text-sm font-bold shadow transition flex items-center gap-1">
+        <button onclick="printReport()" class="bg-slate-700 hover:bg-slate-800 text-white px-3 py-2 rounded-xl text-sm font-bold shadow transition flex items-center gap-1">
           <span class="material-icons text-base">print</span>
-          <span>印刷</span>
+          <span>提出用印刷</span>
         </button>
         <button onclick="exportCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-sm font-bold shadow transition flex items-center gap-1">
           <span class="material-icons text-base">file_download</span>
-          <span>CSV</span>
+          <span>CSV出力</span>
         </button>
       </div>
     </div>
 
     <!-- サマリーカード -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      <!-- 利用合計金額 -->
+    <div id="summary-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <!-- レシート利用合計金額 -->
       <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 card-box flex items-center justify-between">
         <div>
-          <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">当月カード利用合計</div>
+          <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">当月レシート合計金額</div>
           <div class="text-2xl sm:text-3xl font-black font-mono text-blue-600" id="stat-total-amount">¥0</div>
         </div>
         <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
-          <span class="material-icons text-2xl">payments</span>
+          <span class="material-icons text-2xl">receipt</span>
         </div>
       </div>
 
@@ -131,14 +166,14 @@
         </div>
       </div>
 
-      <!-- 利用件数 -->
+      <!-- レシート保管件数 -->
       <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 card-box flex items-center justify-between">
         <div>
-          <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">利用件数</div>
-          <div class="text-2xl sm:text-3xl font-black font-mono text-slate-700" id="stat-count">0 <span class="text-sm font-bold text-slate-400">件</span></div>
+          <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">レシート登録枚数</div>
+          <div class="text-2xl sm:text-3xl font-black font-mono text-slate-700" id="stat-count">0 <span class="text-sm font-bold text-slate-400">枚</span></div>
         </div>
         <div class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-600">
-          <span class="material-icons text-2xl">receipt_long</span>
+          <span class="material-icons text-2xl">folder_shared</span>
         </div>
       </div>
     </div>
@@ -149,18 +184,19 @@
         <table class="w-full text-left border-collapse" id="main-table">
           <thead>
             <tr class="bg-slate-100 text-slate-500 text-xs font-bold border-b border-slate-200">
-              <th class="py-3 px-4 w-28">利用日</th>
-              <th class="py-3 px-4 w-32">内訳（科目）</th>
-              <th class="py-3 px-4 w-40">支払先</th>
-              <th class="py-3 px-4 w-28">車両</th>
-              <th class="py-3 px-4 w-24 text-right">給油量</th>
-              <th class="py-3 px-4">内容・摘要</th>
-              <th class="py-3 px-4 w-32 text-right">金額</th>
+              <th class="py-3 px-3 w-12 text-center">No.</th>
+              <th class="py-3 px-4 w-28">給油・利用日</th>
+              <th class="py-3 px-3 w-28 text-center">レシート状況</th>
+              <th class="py-3 px-4 w-28">対象車両</th>
+              <th class="py-3 px-4 w-36">給油所・支払先</th>
+              <th class="py-3 px-3 w-24 text-right">給油量</th>
+              <th class="py-3 px-4">内容・メモ（摘要）</th>
+              <th class="py-3 px-4 w-28 text-right">金額（税込）</th>
               <th class="py-3 px-3 w-16 text-center no-print">操作</th>
             </tr>
           </thead>
           <tbody id="card-tbody" class="divide-y divide-slate-100 text-sm">
-            <tr><td colspan="8" class="text-center text-slate-400 py-12">読み込み中...</td></tr>
+            <tr><td colspan="9" class="text-center text-slate-400 py-12">読み込み中...</td></tr>
           </tbody>
         </table>
       </div>
@@ -174,13 +210,13 @@
     <span>メニューに戻る</span>
   </a>
 
-  <!-- 登録・編集モーダル -->
+  <!-- レシート登録・編集モーダル -->
   <div id="card-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl transition-all" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center mb-4 pb-2 border-b">
         <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2" id="modal-title">
-          <span class="material-icons text-blue-600">add_card</span>
-          <span>利用明細を追加</span>
+          <span class="material-icons text-blue-600">receipt</span>
+          <span>レシートを記録</span>
         </h3>
         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-full">
           <span class="material-icons">close</span>
@@ -190,50 +226,28 @@
       <input type="hidden" id="edit-id" value="">
 
       <div class="space-y-3.5 text-sm">
-        <!-- 利用日 -->
-        <div>
-          <label class="text-xs font-bold text-slate-500 block mb-1">利用日</label>
-          <input type="date" id="input-date" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-blue-500 font-mono">
+        <!-- 利用日 ＆ レシート状況（横並び） -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">給油・利用日</label>
+            <input type="date" id="input-date" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-blue-500 font-mono">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">レシート状況</label>
+            <select id="input-status" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-blue-500 font-bold text-xs">
+              <option value="🧾 保管済">🧾 保管済（手元あり）</option>
+              <option value="📤 事務提出済">📤 事務方へ提出済</option>
+              <option value="⚠️ レシート未着">⚠️ レシート未着・確認中</option>
+            </select>
+          </div>
         </div>
 
         <!-- 金額 -->
         <div>
-          <label class="text-xs font-bold text-slate-500 block mb-1">利用金額（税込）<span class="text-red-500">*</span></label>
+          <label class="text-xs font-bold text-slate-500 block mb-1">レシート金額（税込）<span class="text-red-500">*</span></label>
           <div class="relative">
             <span class="absolute left-3 top-2.5 text-slate-400 font-bold font-mono">¥</span>
             <input type="number" id="input-amount" min="1" placeholder="4700" class="w-full border-2 border-slate-200 rounded-xl pl-8 pr-3 py-2 outline-none focus:border-blue-500 font-mono font-bold text-base">
-          </div>
-        </div>
-
-        <!-- 内訳（科目） -->
-        <div>
-          <label class="text-xs font-bold text-slate-500 block mb-1">内訳（科目）</label>
-          <select id="input-category" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-blue-500 font-medium">
-            <option value="⛽ ガソリン代">⛽ ガソリン代（旅費交通費）</option>
-            <option value="🚗 車両維持費">🚗 車両維持費（洗車・オイル・点検）</option>
-            <option value="🛣️ 高速道路・ETC">🛣️ 高速道路・有料道路（ETC）</option>
-            <option value="📦 消耗品費">📦 消耗品費</option>
-            <option value="📄 事務用品・通信費">📄 事務用品・通信費</option>
-            <option value="💡 雑費">💡 雑費・その他</option>
-          </select>
-        </div>
-
-        <!-- 支払先 -->
-        <div>
-          <label class="text-xs font-bold text-slate-500 block mb-1">支払先（GS・店舗名）</label>
-          <div class="space-y-1.5">
-            <select id="input-supplier-preset" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-blue-500 font-medium text-slate-700" onchange="onSupplierPresetChange()">
-              <option value="">-- 定番先から選択 --</option>
-              <option value="エネオス（ENEOS）">エネオス（ENEOS）</option>
-              <option value="出光・アポロステーション">出光・アポロステーション</option>
-              <option value="コスモ石油">コスモ石油</option>
-              <option value="キグナス石油">キグナス石油</option>
-              <option value="ETC（阪神高速等）">ETC（阪神高速等）</option>
-              <option value="Amazon">Amazon</option>
-              <option value="やまや（ダイソー）">やまや（ダイソー）</option>
-              <option value="その他">その他（直接入力）</option>
-            </select>
-            <input type="text" id="input-supplier" placeholder="支払先を入力（例：エネオス 豊中SS）" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-blue-500">
           </div>
         </div>
 
@@ -253,10 +267,41 @@
           </div>
         </div>
 
+        <!-- 支払先（給油所・スタンド） -->
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">給油所・スタンド名（支払先）</label>
+          <div class="space-y-1.5">
+            <select id="input-supplier-preset" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-blue-500 font-medium text-slate-700" onchange="onSupplierPresetChange()">
+              <option value="">-- 定番先から選択 --</option>
+              <option value="エネオス（ENEOS）">エネオス（ENEOS）</option>
+              <option value="出光・アポロステーション">出光・アポロステーション</option>
+              <option value="コスモ石油">コスモ石油</option>
+              <option value="キグナス石油">キグナス石油</option>
+              <option value="ETC（阪神高速等）">ETC（阪神高速等）</option>
+              <option value="Amazon">Amazon</option>
+              <option value="その他">その他（直接入力）</option>
+            </select>
+            <input type="text" id="input-supplier" placeholder="支払先を入力（例：エネオス 豊中SS）" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-blue-500">
+          </div>
+        </div>
+
+        <!-- 内訳（科目） -->
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">内訳（科目）</label>
+          <select id="input-category" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-blue-500 font-medium">
+            <option value="⛽ ガソリン代">⛽ ガソリン代（旅費交通費）</option>
+            <option value="🚗 車両維持費">🚗 車両維持費（洗車・オイル・点検）</option>
+            <option value="🛣️ 高速道路・ETC">🛣️ 高速道路・有料道路（ETC）</option>
+            <option value="📦 消耗品費">📦 消耗品費</option>
+            <option value="📄 事務用品・通信費">📄 事務用品・通信費</option>
+            <option value="💡 雑費">💡 雑費・その他</option>
+          </select>
+        </div>
+
         <!-- 内容・摘要（メモ） -->
         <div>
-          <label class="text-xs font-bold text-slate-500 block mb-1">内容・摘要（メモ）</label>
-          <input type="text" id="input-memo" placeholder="例：レギュラー満タン、洗車など" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-blue-500">
+          <label class="text-xs font-bold text-slate-500 block mb-1">内容・メモ（摘要 / レシートNo.など）</label>
+          <input type="text" id="input-memo" placeholder="例：レギュラー満タン、レシートNo.1234など" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-blue-500">
         </div>
       </div>
 
@@ -278,7 +323,6 @@
   </div>
 
   <script>
-    // 時計
     function updateClock() {
       const now = new Date();
       document.getElementById('clock').textContent = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -288,7 +332,6 @@
 
     let g_allData = [];
 
-    // 月セレクター初期化
     function initMonthSelector() {
       const sel = document.getElementById('month-selector');
       const now = new Date();
@@ -305,7 +348,6 @@
       }
     }
 
-    // データ読み込み（Supabase）
     async function loadCardData() {
       const status = document.getElementById('status-text');
       status.textContent = '読み込み中...';
@@ -324,18 +366,24 @@
       } catch (e) {
         console.error(e);
         status.textContent = '取得失敗: ' + e.message;
-        document.getElementById('card-tbody').innerHTML = '<tr><td colspan="8" class="text-center text-red-500 py-10 font-bold">データの取得に失敗しました<br><span class="text-xs text-slate-400 font-normal">' + e.message + '</span></td></tr>';
+        document.getElementById('card-tbody').innerHTML = '<tr><td colspan="9" class="text-center text-red-500 py-10 font-bold">データの取得に失敗しました<br><span class="text-xs text-slate-400 font-normal">' + e.message + '</span></td></tr>';
       }
     }
 
-    // メモ文字列からメタ情報をパース（車両、給油量、メモ本文）
+    // メモ文字列からメタ情報をパース（状況、車両、給油量、メモ本文）
     function parseMemo(memoStr) {
       memoStr = String(memoStr || '').trim();
-      let vehicle = '';
+      let status = '🧾 保管済';
+      let vehicle = 'N-BOX';
       let fuelQty = '';
       let cleanMemo = memoStr;
 
-      // 形式: [車両:xxx] [給油:xxL] メモ本文
+      const sMatch = cleanMemo.match(/\[状況:([^\]]+)\]/);
+      if (sMatch) {
+        status = sMatch[1];
+        cleanMemo = cleanMemo.replace(sMatch[0], '').trim();
+      }
+
       const vMatch = cleanMemo.match(/\[車両:([^\]]+)\]/);
       if (vMatch) {
         vehicle = vMatch[1];
@@ -348,19 +396,18 @@
         cleanMemo = cleanMemo.replace(fMatch[0], '').trim();
       }
 
-      return { vehicle, fuelQty, cleanMemo };
+      return { status, vehicle, fuelQty, cleanMemo };
     }
 
-    // メモ文字列を生成
-    function buildMemoString(cleanMemo, vehicle, fuelQty) {
+    function buildMemoString(cleanMemo, status, vehicle, fuelQty) {
       const parts = [];
+      if (status) parts.push('[状況:' + status + ']');
       if (vehicle && vehicle !== 'なし') parts.push('[車両:' + vehicle + ']');
       if (fuelQty && !isNaN(Number(fuelQty)) && Number(fuelQty) > 0) parts.push('[給油:' + Number(fuelQty) + 'L]');
       if (cleanMemo) parts.push(cleanMemo);
       return parts.join(' ');
     }
 
-    // 月別フィルタリングとテーブル描画
     function filterDataByMonth() {
       const ym = document.getElementById('month-selector').value;
       const monthRows = g_allData.filter(r => r.date && r.date.startsWith(ym));
@@ -376,34 +423,50 @@
         if (parsed.fuelQty) totalFuel += Number(parsed.fuelQty) || 0;
       });
 
-      document.getElementById('stat-total-amount').textContent = '¥' + totalAmount.toLocaleString();
-      document.getElementById('stat-fuel-qty').innerHTML = (Math.round(totalFuel * 10) / 10).toFixed(1) + ' <span class="text-sm font-bold text-slate-500">L</span>';
-      document.getElementById('stat-count').innerHTML = monthRows.length + ' <span class="text-sm font-bold text-slate-400">件</span>';
+      const totalAmountStr = '¥' + totalAmount.toLocaleString();
+      const totalFuelStr = (Math.round(totalFuel * 10) / 10).toFixed(1);
+
+      document.getElementById('stat-total-amount').textContent = totalAmountStr;
+      document.getElementById('stat-fuel-qty').innerHTML = totalFuelStr + ' <span class="text-sm font-bold text-slate-500">L</span>';
+      document.getElementById('stat-count').innerHTML = monthRows.length + ' <span class="text-sm font-bold text-slate-400">枚</span>';
+
+      // 印刷用テキスト更新
+      const ymParts = ym.split('-');
+      document.getElementById('print-month-title').textContent = '対象年月: ' + ymParts[0] + '年 ' + ymParts[1] + '月度';
+      document.getElementById('print-stat-text').textContent = '利用合計: ' + totalAmountStr + ' (' + monthRows.length + '件) / 給油量計: ' + totalFuelStr + ' L';
+      document.getElementById('print-date-text').textContent = '印刷日: ' + new Date().toLocaleDateString('ja-JP');
 
       const tbody = document.getElementById('card-tbody');
       if (monthRows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-slate-400 py-12">この月のクレジットカード利用明細はありません</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-slate-400 py-12">この月のレシート記録はありません</td></tr>';
         return;
       }
 
-      // 新しい順（日付降順、ID降順）
+      // 新しい順
       const sorted = [...monthRows].reverse();
 
-      tbody.innerHTML = sorted.map(r => {
+      tbody.innerHTML = sorted.map((r, idx) => {
         const parsed = parseMemo(r.memo);
         const amount = Number(r.amount) || 0;
-        const reason = r.reason || '⛽ ガソリン代';
         const supplier = r.supplier || '-';
         const vehicle = parsed.vehicle || '-';
         const fuel = parsed.fuelQty ? parsed.fuelQty + ' L' : '-';
         const memo = parsed.cleanMemo || '-';
 
+        let statusBadge = '<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full text-xs font-bold">🧾 保管済</span>';
+        if (parsed.status.includes('提出済')) {
+          statusBadge = '<span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full text-xs font-bold">📤 提出済</span>';
+        } else if (parsed.status.includes('未着')) {
+          statusBadge = '<span class="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-xs font-bold">⚠️ 未着</span>';
+        }
+
         return '<tr class="hover:bg-blue-50/40 transition cursor-pointer group" onclick="openEditModal(' + r.id + ')" title="クリックして編集">'
+          + '<td class="py-3 px-3 text-center text-xs text-slate-400 font-mono">' + (sorted.length - idx) + '</td>'
           + '<td class="py-3 px-4 font-mono font-bold text-slate-700">' + r.date + '</td>'
-          + '<td class="py-3 px-4 font-semibold text-slate-700">' + reason + '</td>'
+          + '<td class="py-3 px-3 text-center">' + statusBadge + '</td>'
+          + '<td class="py-3 px-4 text-xs font-bold text-slate-700">' + (vehicle !== '-' ? '<span class="bg-slate-100 px-2 py-0.5 rounded-md">' + vehicle + '</span>' : '-') + '</td>'
           + '<td class="py-3 px-4 font-medium text-slate-800">' + supplier + '</td>'
-          + '<td class="py-3 px-4 text-xs font-bold text-slate-600">' + (vehicle !== '-' ? '<span class="bg-slate-100 px-2 py-0.5 rounded-md">' + vehicle + '</span>' : '-') + '</td>'
-          + '<td class="py-3 px-4 text-right font-mono text-amber-700 font-bold">' + fuel + '</td>'
+          + '<td class="py-3 px-3 text-right font-mono text-amber-700 font-bold">' + fuel + '</td>'
           + '<td class="py-3 px-4 text-slate-600 text-xs">' + memo + '</td>'
           + '<td class="py-3 px-4 text-right font-mono font-black text-slate-800 text-base">¥' + amount.toLocaleString() + '</td>'
           + '<td class="py-3 px-3 text-center no-print">'
@@ -415,14 +478,14 @@
       }).join('');
     }
 
-    // モーダル操作
     function openAddModal() {
-      document.getElementById('modal-title').innerHTML = '<span class="material-icons text-blue-600">add_card</span><span>利用明細を追加</span>';
+      document.getElementById('modal-title').innerHTML = '<span class="material-icons text-blue-600">receipt</span><span>レシートを記録</span>';
       document.getElementById('edit-id').value = '';
 
       const now = new Date();
       const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
       document.getElementById('input-date').value = dateStr;
+      document.getElementById('input-status').value = '🧾 保管済';
       document.getElementById('input-amount').value = '';
       document.getElementById('input-category').selectedIndex = 0;
       document.getElementById('input-supplier-preset').value = 'エネオス（ENEOS）';
@@ -441,7 +504,7 @@
       const item = g_allData.find(r => r.id === id);
       if (!item) return;
 
-      document.getElementById('modal-title').innerHTML = '<span class="material-icons text-blue-600">edit</span><span>明細を編集</span>';
+      document.getElementById('modal-title').innerHTML = '<span class="material-icons text-blue-600">edit</span><span>レシート記録を編集</span>';
       document.getElementById('edit-id').value = item.id;
       document.getElementById('input-date').value = item.date;
       document.getElementById('input-amount').value = item.amount;
@@ -450,6 +513,7 @@
       document.getElementById('input-supplier-preset').value = '';
 
       const parsed = parseMemo(item.memo);
+      document.getElementById('input-status').value = parsed.status || '🧾 保管済';
       document.getElementById('input-vehicle').value = parsed.vehicle || 'N-BOX';
       document.getElementById('input-fuel-qty').value = parsed.fuelQty || '';
       document.getElementById('input-memo').value = parsed.cleanMemo || '';
@@ -474,7 +538,6 @@
       }
     }
 
-    // 保存処理（追加・更新）
     let g_isSaving = false;
     async function saveItem() {
       if (g_isSaving) return;
@@ -482,6 +545,7 @@
       const editId = document.getElementById('edit-id').value;
       const date = document.getElementById('input-date').value;
       const amount = parseInt(document.getElementById('input-amount').value, 10);
+      const status = document.getElementById('input-status').value;
       const category = document.getElementById('input-category').value;
       const supplier = document.getElementById('input-supplier').value.trim();
       const vehicle = document.getElementById('input-vehicle').value;
@@ -489,9 +553,9 @@
       const memo = document.getElementById('input-memo').value.trim();
 
       if (!date) { alert('利用日を入力してください'); return; }
-      if (!amount || amount <= 0) { alert('有効な利用金額を入力してください'); return; }
+      if (!amount || amount <= 0) { alert('有効なレシート金額を入力してください'); return; }
 
-      const memoString = buildMemoString(memo, vehicle, fuelQty);
+      const memoString = buildMemoString(memo, status, vehicle, fuelQty);
 
       const payload = {
         date: date,
@@ -516,7 +580,6 @@
         };
 
         if (editId) {
-          // 更新 (PATCH)
           const res = await fetch(SUPABASE_URL + '/rest/v1/petty_cash?id=eq.' + editId, {
             method: 'PATCH',
             headers: headers,
@@ -524,7 +587,6 @@
           });
           if (!res.ok) throw new Error('更新に失敗しました (' + res.status + ')');
         } else {
-          // 新規追加 (POST)
           const res = await fetch(SUPABASE_URL + '/rest/v1/petty_cash', {
             method: 'POST',
             headers: headers,
@@ -544,11 +606,10 @@
       }
     }
 
-    // 削除処理
     async function deleteItem() {
       const editId = document.getElementById('edit-id').value;
       if (!editId) return;
-      if (!confirm('この利用明細を削除してもよろしいですか？')) return;
+      if (!confirm('このレシート記録を削除してもよろしいですか？')) return;
 
       try {
         const headers = {
@@ -568,7 +629,10 @@
       }
     }
 
-    // CSVエクスポート
+    function printReport() {
+      window.print();
+    }
+
     function exportCSV() {
       const ym = document.getElementById('month-selector').value;
       const monthRows = g_allData.filter(r => r.date && r.date.startsWith(ym));
@@ -578,17 +642,19 @@
       }
 
       const rows = [
-        ['利用日', '内訳（科目）', '支払先', '車両', '給油量(L)', '内容・摘要', '利用金額(円)']
+        ['No.', '給油・利用日', 'レシート状況', '対象車両', '給油所・支払先', '給油量(L)', '内訳（科目）', '内容・メモ', '金額(円)']
       ];
 
-      monthRows.forEach(r => {
+      monthRows.forEach((r, i) => {
         const parsed = parseMemo(r.memo);
         rows.push([
+          i + 1,
           r.date,
-          r.reason || '',
-          r.supplier || '',
+          parsed.status || '',
           parsed.vehicle || '',
+          r.supplier || '',
           parsed.fuelQty || '',
+          r.reason || '',
           parsed.cleanMemo || '',
           Number(r.amount) || 0
         ]);
@@ -599,12 +665,11 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'クレジットカード利用明細_' + ym + '.csv';
+      a.download = 'ガソリンカード・レシート管理_' + ym + '.csv';
       a.click();
       URL.revokeObjectURL(url);
     }
 
-    // 初期起動
     window.addEventListener('DOMContentLoaded', () => {
       initMonthSelector();
       loadCardData();
