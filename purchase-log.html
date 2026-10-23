@@ -1037,6 +1037,23 @@ tr:hover td { background: #FDFBFAF0; }
         <label>住所</label>
         <input type="text" id="newStoreAddr" class="inp" placeholder="例: 大阪府豊中市...">
       </div>
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label>カラー（問屋・仕入れ先のタグ表示色）</label>
+        <input type="hidden" id="newStoreColor" value="">
+        <div id="storeColorPickerGroup" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+          <button type="button" onclick="selectStoreColor('#3d5a3e')" data-color="#3d5a3e" style="width:28px;height:28px;background:#3d5a3e;border:3px solid transparent;border-radius:50%;cursor:pointer;padding:0;" title="深緑"></button>
+          <button type="button" onclick="selectStoreColor('#1565c0')" data-color="#1565c0" style="width:28px;height:28px;background:#1565c0;border:3px solid transparent;border-radius:50%;cursor:pointer;padding:0;" title="ブルー"></button>
+          <button type="button" onclick="selectStoreColor('#c07830')" data-color="#c07830" style="width:28px;height:28px;background:#c07830;border:3px solid transparent;border-radius:50%;cursor:pointer;padding:0;" title="オレンジ/ブラウン"></button>
+          <button type="button" onclick="selectStoreColor('#c62828')" data-color="#c62828" style="width:28px;height:28px;background:#c62828;border:3px solid transparent;border-radius:50%;cursor:pointer;padding:0;" title="レッド"></button>
+          <button type="button" onclick="selectStoreColor('#6a1b9a')" data-color="#6a1b9a" style="width:28px;height:28px;background:#6a1b9a;border:3px solid transparent;border-radius:50%;cursor:pointer;padding:0;" title="パープル"></button>
+          <button type="button" onclick="selectStoreColor('#00838f')" data-color="#00838f" style="width:28px;height:28px;background:#00838f;border:3px solid transparent;border-radius:50%;cursor:pointer;padding:0;" title="ティール"></button>
+          <button type="button" onclick="selectStoreColor('#558b2f')" data-color="#558b2f" style="width:28px;height:28px;background:#558b2f;border:3px solid transparent;border-radius:50%;cursor:pointer;padding:0;" title="オリーブ"></button>
+          <button type="button" onclick="selectStoreColor('#4e342e')" data-color="#4e342e" style="width:28px;height:28px;background:#4e342e;border:3px solid transparent;border-radius:50%;cursor:pointer;padding:0;" title="ダークブラウン"></button>
+          <button type="button" onclick="selectStoreColor('#546e7a')" data-color="#546e7a" style="width:28px;height:28px;background:#546e7a;border:3px solid transparent;border-radius:50%;cursor:pointer;padding:0;" title="スレートグレー"></button>
+          <input type="color" id="storeCustomColorInput" value="#3d5a3e" onchange="selectStoreColor(this.value)" style="width:32px;height:28px;border:none;cursor:pointer;border-radius:4px;padding:0;" title="カスタムカラー">
+          <button type="button" onclick="selectStoreColor('')" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:3px 8px;font-size:11px;color:#666;cursor:pointer;" title="初期設定（自動配色）に戻す">クリア</button>
+        </div>
+      </div>
       <div class="form-group" style="margin-bottom: 20px;">
         <label>メモ</label>
         <input type="text" id="newStoreMemo" class="inp" placeholder="例: 毎週火曜お買い得デーなど">
@@ -1682,9 +1699,53 @@ function getDaysRemaining(expDateStr) {
 }
 
 // ================= STORE DROPDOWN & TABLE =================
+function hexToRgb(hex) {
+  if (!hex) return null;
+  var c = String(hex).trim();
+  if (c.indexOf('#') === 0) c = c.slice(1);
+  if (c.length === 3) c = c.split('').map(function(x){ return x + x; }).join('');
+  if (c.length !== 6) return null;
+  var num = parseInt(c, 16);
+  if (isNaN(num)) return null;
+  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+}
+
+function selectStoreColor(colorHex) {
+  var colorInput = document.getElementById('newStoreColor');
+  if (colorInput) colorInput.value = colorHex || '';
+  var group = document.getElementById('storeColorPickerGroup');
+  if (group) {
+    var btns = group.querySelectorAll('button[data-color]');
+    btns.forEach(function(b) {
+      var c = b.getAttribute('data-color');
+      b.style.border = (colorHex && c.toLowerCase() === colorHex.toLowerCase()) ? '3px solid #333' : '3px solid transparent';
+    });
+  }
+  var customEl = document.getElementById('storeCustomColorInput');
+  if (customEl && colorHex) {
+    customEl.value = colorHex;
+  }
+}
+
 function getStorePillStyle(storeName) {
   if (!storeName || storeName === '店舗未記入' || storeName === '購入先未記録') {
     return 'background:#F3F4F6; color:#6B7280; border:1px solid #D1D5DB;';
+  }
+
+  // 登録済み仕入れ先のカスタムカラーを検索
+  var sup = (typeof ALL_SUPPLIERS !== 'undefined' && Array.isArray(ALL_SUPPLIERS))
+    ? ALL_SUPPLIERS.find(function(s) {
+        return String(s.name).trim() === String(storeName).trim() || String(s.id) === String(storeName);
+      })
+    : null;
+
+  var customColor = (sup && sup.color) ? sup.color : null;
+  if (customColor) {
+    var rgb = hexToRgb(customColor);
+    if (rgb) {
+      return 'background:rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0.12); color:' + customColor + '; border:1.5px solid rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0.38); font-weight:700;';
+    }
+    return 'background:#f5f5f5; color:' + customColor + '; border:1.5px solid ' + customColor + '; font-weight:700;';
   }
   
   var palette = [
@@ -2065,6 +2126,7 @@ function openAddStoreModal() {
   document.getElementById('newStoreTel').value = '';
   document.getElementById('newStoreAddr').value = '';
   document.getElementById('newStoreMemo').value = '';
+  selectStoreColor('');
   document.getElementById('storeModal').classList.add('open');
 }
 
@@ -2080,6 +2142,7 @@ function openEditStoreById(id) {
   document.getElementById('newStoreTel').value = sup.tel || '';
   document.getElementById('newStoreAddr').value = sup.address || '';
   document.getElementById('newStoreMemo').value = sup.memo || '';
+  selectStoreColor(sup.color || '');
 
   document.getElementById('storeModal').classList.add('open');
 }
@@ -2099,6 +2162,7 @@ function openEditStoreByName(storeName) {
     document.getElementById('newStoreTel').value = '';
     document.getElementById('newStoreAddr').value = '';
     document.getElementById('newStoreMemo').value = '';
+    selectStoreColor('');
     document.getElementById('storeModal').classList.add('open');
   }
 }
@@ -2111,32 +2175,36 @@ function handleSaveStore(e) {
   var tel = document.getElementById('newStoreTel').value.trim();
   var addr = document.getElementById('newStoreAddr').value.trim();
   var memo = document.getElementById('newStoreMemo').value.trim();
+  var colorEl = document.getElementById('newStoreColor');
+  var color = colorEl ? colorEl.value.trim() : '';
 
   if (!name) return;
 
   if (storeId) {
     // 既存店舗の更新
-    GAS.updateSupplier({ id: storeId, name: name, fax: fax, tel: tel, address: addr, memo: memo })
+    GAS.updateSupplier({ id: storeId, name: name, fax: fax, tel: tel, address: addr, memo: memo, color: color })
       .then(function() {
         var existingIndex = ALL_SUPPLIERS.findIndex(function(s) { return String(s.id) === String(storeId); });
         if (existingIndex >= 0) {
-          ALL_SUPPLIERS[existingIndex] = { id: storeId, name: name, fax: fax, tel: tel, address: addr, memo: memo };
+          ALL_SUPPLIERS[existingIndex] = { id: storeId, name: name, fax: fax, tel: tel, address: addr, memo: memo, color: color };
         }
         populateStoreDropdown();
         renderStoreTable();
         renderPriceComparison();
+        renderShoppingList();
         closeModal('storeModal');
         alert('「' + name + '」の店舗情報を更新しました！');
       })
       .catch(function(err) { alert('更新エラー: ' + err.message); });
   } else {
     // 新規店舗の追加
-    GAS.addSupplier({ name: name, fax: fax, tel: tel, address: addr, memo: memo })
+    GAS.addSupplier({ name: name, fax: fax, tel: tel, address: addr, memo: memo, color: color })
       .then(function(res) {
-        ALL_SUPPLIERS.push({ id: res.id, name: name, fax: fax, tel: tel, address: addr, memo: memo });
+        ALL_SUPPLIERS.push({ id: res.id, name: name, fax: fax, tel: tel, address: addr, memo: memo, color: color });
         populateStoreDropdown();
         renderStoreTable();
         renderPriceComparison();
+        renderShoppingList();
         closeModal('storeModal');
         alert('「' + name + '」を仕入れ先として登録しました！');
       })

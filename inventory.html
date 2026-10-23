@@ -2498,7 +2498,9 @@ function renderSupList(){
   el.innerHTML = suppliers.map(function(s){
     return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--bd);border-radius:var(--r);margin-bottom:8px;background:var(--sf);">'
       +'<div style="flex:1;">'
-      +'<div style="font-size:13px;font-weight:700;">'+s.name+'</div>'
+      +'<div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;">'
+      +(s.color ? '<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+s.color+';border:1px solid rgba(0,0,0,0.15);flex-shrink:0;"></span>' : '')
+      +s.name+'</div>'
       +'<div style="font-size:11px;color:var(--t2);">'
       +(s.fax?'FAX: '+s.fax+'　':'')
       +(s.tel?'TEL: '+s.tel+'　':'')
@@ -2514,9 +2516,25 @@ function renderSupList(){
   }).join('');
 }
 
+function selectInvStoreColor(colorHex) {
+  var colorInput = document.getElementById('sf-color');
+  if (colorInput) colorInput.value = colorHex || '';
+  var group = document.getElementById('invStoreColorPicker');
+  if (group) {
+    var btns = group.querySelectorAll('button[data-color]');
+    btns.forEach(function(b) {
+      var c = b.getAttribute('data-color');
+      b.style.border = (colorHex && c.toLowerCase() === colorHex.toLowerCase()) ? '2.5px solid #333' : '2.5px solid transparent';
+    });
+  }
+  var customEl = document.getElementById('invStoreCustomColor');
+  if (customEl && colorHex) customEl.value = colorHex;
+}
+
 function resetSupForm(){
-  var ids=['sf-id','sf-name','sf-fax','sf-tel','sf-address','sf-memo'];
+  var ids=['sf-id','sf-name','sf-fax','sf-tel','sf-address','sf-memo','sf-color'];
   ids.forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  selectInvStoreColor('');
   var t=document.getElementById('sup-form-title'); if(t) t.textContent='新しい発注先を追加';
   var b=document.getElementById('sf-save-btn'); if(b){ b.textContent='追加する'; b.disabled=false; }
 }
@@ -2530,6 +2548,7 @@ function editSupplier(id){
   document.getElementById('sf-tel').value=s.tel;
   document.getElementById('sf-address').value=s.address;
   document.getElementById('sf-memo').value=s.memo;
+  selectInvStoreColor(s.color || '');
   document.getElementById('sup-form-title').textContent='発注先を編集';
   document.getElementById('sf-save-btn').textContent='更新する';
 }
@@ -2542,7 +2561,8 @@ function saveSupplier(){
     name:nm, fax:document.getElementById('sf-fax').value.trim(),
     tel:document.getElementById('sf-tel').value.trim(),
     address:document.getElementById('sf-address').value.trim(),
-    memo:document.getElementById('sf-memo').value.trim()
+    memo:document.getElementById('sf-memo').value.trim(),
+    color:document.getElementById('sf-color') ? document.getElementById('sf-color').value.trim() : ''
   };
   var btn = document.getElementById('sf-save-btn');
   btn.disabled=true; btn.textContent='保存中...';

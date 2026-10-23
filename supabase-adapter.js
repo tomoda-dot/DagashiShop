@@ -144,7 +144,8 @@ GAS.getAllData = function() {
     sbGet('products', 'select=id,name,name_kana,cat,stock,min,price,sell_price,unit,exp,buy_price,buy_qty,memo,status,sort_order,maker,barcode,img_url&order=sort_order.asc,id.asc'),
     sbGet('restock',  'select=*&order=id.desc'),
     sbGet('suppliers', 'select=*&order=id.asc'),
-    sbGet('product_suppliers', 'select=*')
+    sbGet('product_suppliers', 'select=*'),
+    sbGet('settings', 'key=eq.supplierColors&select=value')
   ]).then(function(results) {
     var products = (results[0] || []).map(function(p) {
       return {
@@ -182,8 +183,15 @@ GAS.getAllData = function() {
         applied_at: r.applied_at || ''
       };
     });
+    var colMap = {};
+    try {
+      if (results[4] && results[4][0] && results[4][0].value) {
+        colMap = JSON.parse(results[4][0].value);
+      }
+    } catch(e) {}
     var suppliers = (results[2] || []).map(function(r) {
-      return { id:r.id, name:r.name||'', fax:r.fax||'', tel:r.tel||'', address:r.address||'', memo:r.memo||'' };
+      var c = colMap[String(r.id)] || colMap[r.name] || '';
+      return { id:r.id, name:r.name||'', fax:r.fax||'', tel:r.tel||'', address:r.address||'', memo:r.memo||'', color:c };
     });
     var productSuppliers = results[3] || [];
     return { products: products, restock: restock, suppliers: suppliers, productSuppliers: productSuppliers };
@@ -432,11 +440,48 @@ GAS.saveSortOrder = function(orderArr) {
   return Promise.all(promises).then(function() { return { ok: true }; });
 };
 
+// ─ getSupplierColors ─
+GAS.getSupplierColors = function() {
+  return sbGet('settings', 'key=eq.supplierColors&select=value').then(function(rows) {
+    if (rows && rows.length > 0 && rows[0].value) {
+      try { return JSON.parse(rows[0].value); } catch(e) { return {}; }
+    }
+    return {};
+  });
+};
+
+// ─ saveSupplierColor ─
+GAS.saveSupplierColor = function(supplierIdOrName, colorHex) {
+  return GAS.getSupplierColors().then(function(map) {
+    if (colorHex) {
+      map[String(supplierIdOrName)] = colorHex;
+    } else {
+      delete map[String(supplierIdOrName)];
+    }
+    return sbFetch('settings', {
+      method: 'POST',
+      body: JSON.stringify({ key: 'supplierColors', value: JSON.stringify(map) }),
+      prefer: 'resolution=merge-duplicates,return=representation'
+    }).then(function() { return map; });
+  });
+};
+
 // ─ getSuppliers ─
 GAS.getSuppliers = function() {
-  return sbGet('suppliers', 'select=*&order=id.asc').then(function(rows) {
-    return (rows || []).map(function(r) {
-      return { id:r.id, name:r.name||'', fax:r.fax||'', tel:r.tel||'', address:r.address||'', memo:r.memo||'' };
+  return Promise.all([
+    sbGet('suppliers', 'select=*&order=id.asc'),
+    sbGet('settings', 'key=eq.supplierColors&select=value')
+  ]).then(function(res) {
+    var rows = res[0] || [];
+    var colMap = {};
+    try {
+      if (res[1] && res[1][0] && res[1][0].value) {
+        colMap = JSON.parse(res[1][0].value);
+      }
+    } catch(e) {}
+    return rows.map(function(r) {
+      var c = colMap[String(r.id)] || colMap[r.name] || '';
+      return { id:r.id, name:r.name||'', fax:r.fax||'', tel:r.tel||'', address:r.address||'', memo:r.memo||'', color:c };
     });
   });
 };
@@ -444,13 +489,26 @@ GAS.getSuppliers = function() {
 // ─ addSupplier ─
 GAS.addSupplier = function(s) {
   return sbPost('suppliers', { name:s.name||'', fax:s.fax||'', tel:s.tel||'', address:s.address||'', memo:s.memo||'' })
-    .then(function(res) { var r = Array.isArray(res)?res[0]:res; return { ok:true, id:r.id }; });
+    .then(function(res) {
+      var r = Array.isArray(res)?res[0]:res;
+      if (s.color) {
+        GAS.saveSupplierColor(r.id, s.color);
+        if (s.name) GAS.saveSupplierColor(s.name, s.color);
+      }
+      return { ok:true, id:r.id };
+    });
 };
 
 // ─ updateSupplier ─
 GAS.updateSupplier = function(s) {
   return sbPatch('suppliers', 'id=eq.' + s.id, { name:s.name, fax:s.fax, tel:s.tel, address:s.address, memo:s.memo })
-    .then(function() { return { ok:true }; });
+    .then(function() {
+      if (s.color !== undefined) {
+        GAS.saveSupplierColor(s.id, s.color);
+        if (s.name) GAS.saveSupplierColor(s.name, s.color);
+      }
+      return { ok:true };
+    });
 };
 
 // ─ deleteSupplier ─
