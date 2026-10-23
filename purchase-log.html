@@ -2839,6 +2839,7 @@ function saveProductBasicInfoInModal(productId) {
 
   var name = (document.getElementById('editProdName') ? document.getElementById('editProdName').value : '').trim();
   var kana = (document.getElementById('editProdKana') ? document.getElementById('editProdKana').value : '').trim();
+  var cat = (document.getElementById('editProdCat') ? document.getElementById('editProdCat').value : '').trim();
   var maker = (document.getElementById('editProdMaker') ? document.getElementById('editProdMaker').value : '').trim();
   var barcode = (document.getElementById('editProdBarcode') ? document.getElementById('editProdBarcode').value : '').trim();
 
@@ -2857,14 +2858,22 @@ function saveProductBasicInfoInModal(productId) {
     id: productId,
     name: name,
     name_kana: kana,
+    cat: cat,
     maker: maker,
     barcode: barcode
   })
     .then(function() {
       prod.name = name;
       prod.name_kana = kana;
+      prod.cat = cat;
       prod.maker = maker;
       prod.barcode = barcode;
+
+      // 新規カテゴリがあれば ALL_CATEGORIES にも反映
+      if (cat && typeof ALL_CATEGORIES !== 'undefined' && !ALL_CATEGORIES.includes(cat)) {
+        ALL_CATEGORIES.push(cat);
+        if (typeof populateCategoryDropdown === 'function') populateCategoryDropdown();
+      }
 
       // 50音ソートを再実行
       if (typeof sortProductsKana === 'function') {
@@ -3044,11 +3053,23 @@ function openProductDetailModal(targetId) {
 
   var metaInfoArr = [];
   if (prod && prod.name_kana) metaInfoArr.push('よみ: ' + escapeHtml(prod.name_kana));
+  if (prod && prod.cat) metaInfoArr.push('🏷️ ' + escapeHtml(prod.cat));
   if (prod && prod.maker) metaInfoArr.push('🏢 ' + escapeHtml(prod.maker));
   if (prod && prod.barcode) metaInfoArr.push('JAN: ' + escapeHtml(prod.barcode));
   var metaInfoHtml = metaInfoArr.length > 0 
     ? '<div style="font-size:11px; color:var(--t3); margin-top:3px; display:flex; gap:8px; flex-wrap:wrap;">' + metaInfoArr.join(' <span style="opacity:0.4;">|</span> ') + '</div>'
-    : '<div style="font-size:11px; color:var(--t3); margin-top:3px; opacity:0.8;">よみがな・メーカー・JAN未設定（下の基本情報から登録できます）</div>';
+    : '<div style="font-size:11px; color:var(--t3); margin-top:3px; opacity:0.8;">よみがな・カテゴリ・メーカー・JAN未設定（下の基本情報から登録できます）</div>';
+
+  var curCat = prod ? (prod.cat || 'その他') : 'その他';
+  var catList = (typeof ALL_CATEGORIES !== 'undefined' && Array.isArray(ALL_CATEGORIES) && ALL_CATEGORIES.length > 0)
+    ? ALL_CATEGORIES.slice()
+    : ['駄菓子', '珍味', '玩具', 'ジュース', 'その他'];
+  if (curCat && !catList.includes(curCat)) {
+    catList.unshift(curCat);
+  }
+  var catOptionsHtml = catList.map(function(c) {
+    return '<option value="' + escapeHtml(c) + '"' + (c === curCat ? ' selected' : '') + '>' + escapeHtml(c) + '</option>';
+  }).join('');
 
   bodyEl.innerHTML = 
     '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; background:var(--sf); border:1.5px solid var(--bd); padding:14px; border-radius:var(--r); flex-wrap:wrap; gap:10px;">' +
@@ -3069,23 +3090,29 @@ function openProductDetailModal(targetId) {
       '<button type="button" class="btn btn-blu btn-sm" onclick="openAddRestockForProduct(\'' + productId + '\')" style="font-weight:800; font-size:12px; padding:8px 14px;">➕ 仕入を新規登録</button>' +
     '</div>' +
 
-    '<!-- ✏️ 基本情報アコーディオン（よみがな・販売会社・JANコード） -->' +
+    '<!-- ✏️ 基本情報アコーディオン（よみがな・カテゴリ・販売会社・JANコード） -->' +
     '<div style="margin-bottom:14px; border:1px solid var(--bd); border-radius:var(--r); background:var(--sf); overflow:hidden;">' +
       '<div onclick="toggleProductBasicInfoAccordion()" style="padding:10px 14px; background:#fdfbf8; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; transition:background 0.2s;" onmouseover="this.style.background=\'#f7f2ea\'" onmouseout="this.style.background=\'#fdfbf8\'">' +
         '<div style="font-size:13px; font-weight:800; color:var(--tx); display:flex; align-items:center; gap:6px;">' +
-          '<span>✏️</span> <span>商品基本情報（よみがな・販売会社・JANコード）の編集</span>' +
+          '<span>✏️</span> <span>商品基本情報（よみがな・カテゴリ・販売会社・JAN）の編集</span>' +
         '</div>' +
         '<span id="pdetBasicInfoArrow" style="font-size:12px; color:var(--pri); font-weight:800;">' + (_pdetBasicInfoAccordionOpen ? '▲ 閉じる' : '▼ 開く') + '</span>' +
       '</div>' +
       '<div id="pdetBasicInfoBox" style="display:' + (_pdetBasicInfoAccordionOpen ? 'block' : 'none') + '; padding:14px; border-top:1px solid var(--bd); background:#fff;">' +
-        '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:12px; margin-bottom:12px;">' +
+        '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:12px;">' +
           '<div>' +
             '<label style="font-size:11px; font-weight:700; color:var(--t2); display:block; margin-bottom:3px;">商品名 <span style="color:var(--red);">*</span></label>' +
             '<input type="text" id="editProdName" class="inp" value="' + escapeHtml(prod ? (prod.name || '') : '') + '" style="width:100%; font-size:13px; padding:6px 10px;">' +
           '</div>' +
           '<div>' +
-            '<label style="font-size:11px; font-weight:700; color:var(--t2); display:block; margin-bottom:3px;">よみがな（50音検索用・ひらがな/カタカナ）</label>' +
+            '<label style="font-size:11px; font-weight:700; color:var(--t2); display:block; margin-bottom:3px;">よみがな（50音検索用）</label>' +
             '<input type="text" id="editProdKana" class="inp" value="' + escapeHtml(prod ? (prod.name_kana || '') : '') + '" placeholder="例: うまいぼう しゅがーらすく" style="width:100%; font-size:13px; padding:6px 10px;">' +
+          '</div>' +
+          '<div>' +
+            '<label style="font-size:11px; font-weight:700; color:var(--t2); display:block; margin-bottom:3px;">カテゴリ</label>' +
+            '<select id="editProdCat" class="select" style="width:100%; font-size:13px; padding:6px 10px;">' +
+              catOptionsHtml +
+            '</select>' +
           '</div>' +
           '<div>' +
             '<label style="font-size:11px; font-weight:700; color:var(--t2); display:block; margin-bottom:3px;">販売会社・メーカー</label>' +
