@@ -1408,6 +1408,7 @@ function initApp() {
       updateSyncStatus(true);
       populateStoreDropdown();
       loadCategoriesForExpiry();
+      loadMakersForDatalist();
       renderStats();
       renderExpiryList();
       renderPriceComparison();
@@ -2799,6 +2800,110 @@ function renderExpiryList() {
   }
 }
 
+// ================= PRODUCT BASIC INFO ACCORDION & MAKERS =================
+var _pdetBasicInfoAccordionOpen = false;
+
+function loadMakersForDatalist() {
+  if (typeof GAS !== 'undefined' && typeof GAS.getMakers === 'function') {
+    GAS.getMakers().then(function(savedMakers) {
+      var list = savedMakers || [];
+      var dl = document.getElementById('makersDatalist');
+      if (!dl) {
+        dl = document.createElement('datalist');
+        dl.id = 'makersDatalist';
+        document.body.appendChild(dl);
+      }
+      dl.innerHTML = list.map(function(m) {
+        var nm = typeof m === 'string' ? m : (m && m.name ? m.name : '');
+        return nm ? '<option value="' + escapeHtml(nm) + '">' : '';
+      }).join('');
+    }).catch(function(){});
+  }
+}
+
+function toggleProductBasicInfoAccordion() {
+  var box = document.getElementById('pdetBasicInfoBox');
+  var arrow = document.getElementById('pdetBasicInfoArrow');
+  if (!box) return;
+  var isOpen = box.style.display !== 'none';
+  box.style.display = isOpen ? 'none' : 'block';
+  _pdetBasicInfoAccordionOpen = !isOpen;
+  if (arrow) {
+    arrow.textContent = isOpen ? '▼ 開く' : '▲ 閉じる';
+  }
+}
+
+function saveProductBasicInfoInModal(productId) {
+  var prod = ALL_PRODUCTS.find(function(p) { return String(p.id) === String(productId); });
+  if (!prod) return;
+
+  var name = (document.getElementById('editProdName') ? document.getElementById('editProdName').value : '').trim();
+  var kana = (document.getElementById('editProdKana') ? document.getElementById('editProdKana').value : '').trim();
+  var maker = (document.getElementById('editProdMaker') ? document.getElementById('editProdMaker').value : '').trim();
+  var barcode = (document.getElementById('editProdBarcode') ? document.getElementById('editProdBarcode').value : '').trim();
+
+  if (!name) {
+    alert('商品名を入力してください');
+    return;
+  }
+
+  var btn = document.getElementById('btnSaveProdBasicInfo');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '保存中...';
+  }
+
+  GAS.updateProduct({
+    id: productId,
+    name: name,
+    name_kana: kana,
+    maker: maker,
+    barcode: barcode
+  })
+    .then(function() {
+      prod.name = name;
+      prod.name_kana = kana;
+      prod.maker = maker;
+      prod.barcode = barcode;
+
+      // 50音ソートを再実行
+      if (typeof sortProductsKana === 'function') {
+        ALL_PRODUCTS = sortProductsKana(ALL_PRODUCTS);
+      }
+
+      // 新しいメーカー名があれば makers リストにも追加
+      if (maker && typeof GAS.getMakers === 'function' && typeof GAS.saveMakers === 'function') {
+        GAS.getMakers().then(function(mList) {
+          var arr = mList || [];
+          if (!arr.includes(maker)) {
+            arr.push(maker);
+            GAS.saveMakers(arr).then(loadMakersForDatalist).catch(function(){});
+          }
+        }).catch(function(){});
+      }
+
+      // 画面リストの再描画
+      if (typeof renderExpiryList === 'function') renderExpiryList();
+      if (typeof renderPriceComparison === 'function') renderPriceComparison();
+      if (typeof renderShoppingList === 'function') renderShoppingList();
+
+      // モーダルを閉じるか最新化
+      _pdetBasicInfoAccordionOpen = false;
+      openProductDetailModal(productId);
+
+      alert('✅ 商品基本情報（よみがな・販売会社・JAN）を更新しました！');
+    })
+    .catch(function(err) {
+      alert('保存エラー: ' + (err.message || err));
+    })
+    .finally(function() {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '💾 基本情報を保存';
+      }
+    });
+}
+
 function openProductDetailModal(targetId) {
   if (targetId === undefined || targetId === null || targetId === '') return;
 
@@ -2937,6 +3042,14 @@ function openProductDetailModal(targetId) {
   var sellPrice = (topLot && topLot.sell) ? topLot.sell : (prod ? (prod.sell_price || prod.price || 0) : 0);
   var pStatus = prod ? (prod.status || 'active') : 'active';
 
+  var metaInfoArr = [];
+  if (prod && prod.name_kana) metaInfoArr.push('よみ: ' + escapeHtml(prod.name_kana));
+  if (prod && prod.maker) metaInfoArr.push('🏢 ' + escapeHtml(prod.maker));
+  if (prod && prod.barcode) metaInfoArr.push('JAN: ' + escapeHtml(prod.barcode));
+  var metaInfoHtml = metaInfoArr.length > 0 
+    ? '<div style="font-size:11px; color:var(--t3); margin-top:3px; display:flex; gap:8px; flex-wrap:wrap;">' + metaInfoArr.join(' <span style="opacity:0.4;">|</span> ') + '</div>'
+    : '<div style="font-size:11px; color:var(--t3); margin-top:3px; opacity:0.8;">よみがな・メーカー・JAN未設定（下の基本情報から登録できます）</div>';
+
   bodyEl.innerHTML = 
     '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; background:var(--sf); border:1.5px solid var(--bd); padding:14px; border-radius:var(--r); flex-wrap:wrap; gap:10px;">' +
       '<div style="display:flex; align-items:center; gap:12px;">' +
@@ -2948,11 +3061,46 @@ function openProductDetailModal(targetId) {
           '<div onclick="openImgCard(\'' + productId + '\')" title="クリックで画像を追加" style="width:54px; height:54px; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:20px; background:var(--bg); border:1.5px dashed var(--bd); cursor:pointer; flex-shrink:0;">🍬<span style="font-size:9px; color:var(--t2); font-weight:700;">画像追加</span></div>') +
         '<div>' +
           '<div style="font-size:16px; font-weight:800; color:var(--tx);">' + escapeHtml(prodName) + '</div>' +
-          '<div style="font-size:12px; color:var(--t2); margin-top:2px;">🏷️ 1個の販売価格: <strong style="color:#2b8a3e; font-size:14px;">' + (sellPrice ? sellPrice + '円' : '未設定') + '</strong></div>' +
+          metaInfoHtml +
+          '<div style="font-size:12px; color:var(--t2); margin-top:4px;">🏷️ 1個の販売価格: <strong style="color:#2b8a3e; font-size:14px;">' + (sellPrice ? sellPrice + '円' : '未設定') + '</strong></div>' +
           '<button type="button" class="btn btn-sub btn-sm" onclick="openImgCard(\'' + productId + '\')" style="margin-top:4px; font-size:11px; padding:3px 10px; font-weight:700;">📷 画像を変更・追加</button>' +
         '</div>' +
       '</div>' +
       '<button type="button" class="btn btn-blu btn-sm" onclick="openAddRestockForProduct(\'' + productId + '\')" style="font-weight:800; font-size:12px; padding:8px 14px;">➕ 仕入を新規登録</button>' +
+    '</div>' +
+
+    '<!-- ✏️ 基本情報アコーディオン（よみがな・販売会社・JANコード） -->' +
+    '<div style="margin-bottom:14px; border:1px solid var(--bd); border-radius:var(--r); background:var(--sf); overflow:hidden;">' +
+      '<div onclick="toggleProductBasicInfoAccordion()" style="padding:10px 14px; background:#fdfbf8; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; transition:background 0.2s;" onmouseover="this.style.background=\'#f7f2ea\'" onmouseout="this.style.background=\'#fdfbf8\'">' +
+        '<div style="font-size:13px; font-weight:800; color:var(--tx); display:flex; align-items:center; gap:6px;">' +
+          '<span>✏️</span> <span>商品基本情報（よみがな・販売会社・JANコード）の編集</span>' +
+        '</div>' +
+        '<span id="pdetBasicInfoArrow" style="font-size:12px; color:var(--pri); font-weight:800;">' + (_pdetBasicInfoAccordionOpen ? '▲ 閉じる' : '▼ 開く') + '</span>' +
+      '</div>' +
+      '<div id="pdetBasicInfoBox" style="display:' + (_pdetBasicInfoAccordionOpen ? 'block' : 'none') + '; padding:14px; border-top:1px solid var(--bd); background:#fff;">' +
+        '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:12px; margin-bottom:12px;">' +
+          '<div>' +
+            '<label style="font-size:11px; font-weight:700; color:var(--t2); display:block; margin-bottom:3px;">商品名 <span style="color:var(--red);">*</span></label>' +
+            '<input type="text" id="editProdName" class="inp" value="' + escapeHtml(prod ? (prod.name || '') : '') + '" style="width:100%; font-size:13px; padding:6px 10px;">' +
+          '</div>' +
+          '<div>' +
+            '<label style="font-size:11px; font-weight:700; color:var(--t2); display:block; margin-bottom:3px;">よみがな（50音検索用・ひらがな/カタカナ）</label>' +
+            '<input type="text" id="editProdKana" class="inp" value="' + escapeHtml(prod ? (prod.name_kana || '') : '') + '" placeholder="例: うまいぼう しゅがーらすく" style="width:100%; font-size:13px; padding:6px 10px;">' +
+          '</div>' +
+          '<div>' +
+            '<label style="font-size:11px; font-weight:700; color:var(--t2); display:block; margin-bottom:3px;">販売会社・メーカー</label>' +
+            '<input type="text" id="editProdMaker" class="inp" list="makersDatalist" value="' + escapeHtml(prod ? (prod.maker || '') : '') + '" placeholder="例: やおきん, オリオン" style="width:100%; font-size:13px; padding:6px 10px;">' +
+          '</div>' +
+          '<div>' +
+            '<label style="font-size:11px; font-weight:700; color:var(--t2); display:block; margin-bottom:3px;">JANコード（バーコード）</label>' +
+            '<input type="text" id="editProdBarcode" class="inp" value="' + escapeHtml(prod ? (prod.barcode || '') : '') + '" placeholder="例: 4901234567890" style="width:100%; font-size:13px; padding:6px 10px;">' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex; justify-content:flex-end; gap:8px;">' +
+          '<button type="button" class="btn btn-sub btn-sm" onclick="toggleProductBasicInfoAccordion()" style="font-size:12px; padding:6px 14px;">閉じる</button>' +
+          '<button type="button" class="btn btn-grn btn-sm" id="btnSaveProdBasicInfo" onclick="saveProductBasicInfoInModal(\'' + productId + '\')" style="font-size:12px; padding:6px 20px; font-weight:800;">💾 基本情報を保存</button>' +
+        '</div>' +
+      '</div>' +
     '</div>' +
 
     '<!-- 販売ステータス（一時終売・終売設定） -->' +
