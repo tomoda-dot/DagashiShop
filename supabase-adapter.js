@@ -943,8 +943,11 @@ GAS.getPettyCashData = function() {
     rows = rows || [];
     var balance = 0;
     rows.forEach(function(r) {
-      var amt = Number(r.amount) || 0;
-      balance += (r.type === '入金' ? amt : -amt);
+      if (r.type === '入金') {
+        balance += Number(r.amount) || 0;
+      } else if (r.type === '出金') {
+        balance -= Number(r.amount) || 0;
+      }
       r.balance = balance;
     });
     return rows;

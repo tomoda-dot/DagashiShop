@@ -1770,6 +1770,7 @@
       // 「前月繰越金」はコード側で自動追加するため除外（DB登録分との重複防止）
       const monthRows = g_allPettyCashData.filter(r =>
         r.date && r.date.startsWith(selectedMonth) &&
+        (r.type === '入金' || r.type === '出金') &&
         !(r.type === '入金' && r.memo && r.memo.includes('前月繰越'))
       );
 
