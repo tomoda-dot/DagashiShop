@@ -1306,6 +1306,55 @@
     </div>
 </div>
 
+<!-- ボタン編集モーダル -->
+<div class="modal-overlay" id="btn-edit-modal-overlay" style="z-index: 3100;">
+    <div style="background: var(--white); border-radius: 20px; padding: 22px; width: 90%; max-width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); border: 2px solid #e0d8cc;">
+        <div style="font-size: 1.1rem; font-weight: 800; color: var(--brown); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+            <span>✏️ ボタンの中身を編集</span>
+            <button type="button" onclick="closeBtnEditModal()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #888;">✕</button>
+        </div>
+        <input type="hidden" id="edit-btn-orig-price">
+        <input type="hidden" id="edit-btn-orig-name">
+        
+        <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px;">
+            <div>
+                <label style="font-size: 0.8rem; font-weight: 800; color: #8a8070; display: block; margin-bottom: 4px;">アイコン絵文字</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="emoji-pick-wrap" style="position: relative;">
+                        <button type="button" id="edit-emoji-pick-btn" class="emoji-pick-btn" onclick="toggleEditEmojiPicker(event)">🍬</button>
+                        <input type="hidden" id="edit-btn-emoji" value="🍬">
+                        <div class="emoji-picker-pop" id="edit-emoji-picker-pop">
+                            <div class="emoji-tabs" id="edit-emoji-tabs"></div>
+                            <div class="emoji-grid-pick" id="edit-emoji-grid-pick"></div>
+                        </div>
+                    </div>
+                    <span style="font-size: 0.8rem; color: #888;">タップして絵文字を変更</span>
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; font-weight: 800; color: #8a8070; display: block; margin-bottom: 4px;">なまえ（商品名）</label>
+                <input type="text" id="edit-btn-name" class="cfg-input" style="width: 100%; font-size: 0.95rem; font-weight: 700;" placeholder="例: 10円菓子">
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; font-weight: 800; color: #8a8070; display: block; margin-bottom: 4px;">単価（円）</label>
+                <input type="number" id="edit-btn-price" class="cfg-input" style="width: 100%; font-size: 0.95rem; font-weight: 700;" placeholder="例: 10" min="1">
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; font-weight: 800; color: #8a8070; display: block; margin-bottom: 4px;">所属タブ（商品区分）</label>
+                <select id="edit-btn-category" class="cfg-input" style="width: 100%; font-size: 0.95rem; font-weight: 700; cursor: pointer;">
+                    <!-- JSで動的生成 -->
+                </select>
+            </div>
+            <div class="cfg-error" id="edit-btn-error" style="font-size: 0.82rem; color: #e74c3c; min-height: 1.2em;"></div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" onclick="closeBtnEditModal()" style="background: #eef0f3; border: 1.5px solid #d4c8b8; color: var(--brown); padding: 8px 16px; border-radius: 10px; font-weight: 800; cursor: pointer;">キャンセル</button>
+            <button type="button" onclick="saveBtnEdit()" style="background: linear-gradient(135deg, var(--coral), #e07850); border: none; color: white; padding: 8px 20px; border-radius: 10px; font-weight: 800; cursor: pointer; box-shadow: 0 3px 8px rgba(244, 149, 118, 0.4);">💾 変更を保存</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // ═══ メニューに戻る ══════════════════════════════
 function goMenu() {
@@ -2559,7 +2608,7 @@ function closeEmojiPicker() {
     document.getElementById('emoji-picker-pop').classList.remove('open');
 }
 document.addEventListener('click', function(e) {
-    if (!e.target.closest('.emoji-pick-wrap')) closeEmojiPicker();
+    if (!e.target.closest('.emoji-pick-wrap')) { closeEmojiPicker(); closeEditEmojiPicker(); }
 });
 
 function initEmojiPicker() {
@@ -2889,11 +2938,12 @@ function renderCfgBtnList() {
         }).join('');
 
         return '<div class="cfg-row">' +
-            '<span class="cfg-row-emoji">' + btn.emoji + '</span>' +
-            '<span class="cfg-row-name" style="flex:1;">' + btn.name + '</span>' +
+            '<span class="cfg-row-emoji" style="cursor:pointer;" onclick="openBtnEditModal(' + btn.price + ',\'' + btn.name.replace(/'/g,"\\'") + '\')" title="クリックして編集">' + btn.emoji + '</span>' +
+            '<span class="cfg-row-name" style="flex:1;cursor:pointer;font-weight:700;" onclick="openBtnEditModal(' + btn.price + ',\'' + btn.name.replace(/'/g,"\\'") + '\')" title="クリックして編集">' + btn.name + '</span>' +
             '<span class="cfg-row-price" style="min-width:55px;">' + btn.price + '円</span>' +
             '<select onchange="cfgChangeBtnCat(' + btn.price + ',\'' + btn.name.replace(/'/g,"\\'") + '\',this.value)" style="font-size:0.75rem;padding:2px 4px;border:1px solid #ccc;border-radius:6px;margin-right:6px;cursor:pointer;" title="所属タブを変更">' + catOptions + '</select>' +
-            '<button class="cfg-del-btn" onclick="cfgDelBtn(' + btn.price + ',\'' + btn.name.replace(/'/g,"\\'") + '\')">🗑</button>' +
+            '<button type="button" onclick="openBtnEditModal(' + btn.price + ',\'' + btn.name.replace(/'/g,"\\'") + '\')" style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:2px 4px;margin-right:2px;" title="中身を編集">✏️</button>' +
+            '<button class="cfg-del-btn" onclick="cfgDelBtn(' + btn.price + ',\'' + btn.name.replace(/'/g,"\\'") + '\')" title="削除">🗑</button>' +
         '</div>';
     }).join('');
 }
@@ -2909,6 +2959,125 @@ function renderCfgDiscList() {
             '<button class="cfg-del-btn" onclick="cfgDelDisc(' + amt + ')">🗑</button>' +
         '</div>';
     }).join('');
+}
+
+// ═══ ボタンの中身編集（名前・金額・絵文字・タブ） ════
+var editSelectedEmoji = '🍬';
+
+function openBtnEditModal(price, name) {
+    var btn = customButtons.find(function(b){ return b.price === price && b.name === name; });
+    if (!btn) return;
+    
+    document.getElementById('edit-btn-orig-price').value = btn.price;
+    document.getElementById('edit-btn-orig-name').value  = btn.name;
+    
+    editSelectedEmoji = btn.emoji || '🍬';
+    document.getElementById('edit-btn-emoji').value = editSelectedEmoji;
+    document.getElementById('edit-emoji-pick-btn').textContent = editSelectedEmoji;
+    
+    document.getElementById('edit-btn-name').value = btn.name;
+    document.getElementById('edit-btn-price').value = btn.price;
+    
+    var catSelect = document.getElementById('edit-btn-category');
+    catSelect.innerHTML = customCategories.map(function(c) {
+        return '<option value="' + c + '"' + (btn.category === c ? ' selected' : '') + '>' + c + '</option>';
+    }).join('');
+    
+    document.getElementById('edit-btn-error').textContent = '';
+    closeEditEmojiPicker();
+    document.getElementById('btn-edit-modal-overlay').classList.add('show');
+}
+
+function closeBtnEditModal() {
+    document.getElementById('btn-edit-modal-overlay').classList.remove('show');
+    closeEditEmojiPicker();
+}
+
+function saveBtnEdit() {
+    var origPrice = parseInt(document.getElementById('edit-btn-orig-price').value);
+    var origName  = document.getElementById('edit-btn-orig-name').value;
+    
+    var newEmoji  = document.getElementById('edit-btn-emoji').value || '🍬';
+    var newName   = document.getElementById('edit-btn-name').value.trim();
+    var newPrice  = parseInt(document.getElementById('edit-btn-price').value);
+    var newCat    = document.getElementById('edit-btn-category').value;
+    var err       = document.getElementById('edit-btn-error');
+    
+    if (!newName) {
+        err.textContent = 'なまえを入力してください';
+        return;
+    }
+    if (!newPrice || newPrice < 1) {
+        err.textContent = '単価を1以上で入力してください';
+        return;
+    }
+    err.textContent = '';
+    
+    var btn = customButtons.find(function(b){ return b.price === origPrice && b.name === origName; });
+    if (btn) {
+        btn.emoji    = newEmoji;
+        btn.name     = newName;
+        btn.price    = newPrice;
+        btn.category = newCat;
+        btn.fixed    = false;
+        
+        cfgSaveToGas();
+        renderCategoryTabs();
+        renderGrid();
+        renderCfgBtnList();
+        closeBtnEditModal();
+    }
+}
+
+function toggleEditEmojiPicker(e) {
+    e.stopPropagation();
+    var pop = document.getElementById('edit-emoji-picker-pop');
+    pop.classList.toggle('open');
+    if (pop.classList.contains('open')) initEditEmojiPicker();
+}
+
+function closeEditEmojiPicker() {
+    var pop = document.getElementById('edit-emoji-picker-pop');
+    if (pop) pop.classList.remove('open');
+}
+
+function initEditEmojiPicker() {
+    var tabsEl = document.getElementById('edit-emoji-tabs');
+    var cats = Object.keys(EMOJI_CATS);
+    tabsEl.innerHTML = '';
+    cats.forEach(function(cat, i) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'emoji-tab' + (i === 0 ? ' active' : '');
+        btn.textContent = cat;
+        btn.onclick = function() {
+            document.querySelectorAll('#edit-emoji-tabs .emoji-tab').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            renderEditEmojiGrid(cat);
+        };
+        tabsEl.appendChild(btn);
+    });
+    renderEditEmojiGrid(cats[0]);
+}
+
+function renderEditEmojiGrid(cat) {
+    var gridEl = document.getElementById('edit-emoji-grid-pick');
+    gridEl.innerHTML = '';
+    EMOJI_CATS[cat].forEach(function(em) {
+        var cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'emoji-cell' + (em === editSelectedEmoji ? ' picked' : '');
+        cell.textContent = em;
+        cell.onclick = function() {
+            editSelectedEmoji = em;
+            document.getElementById('edit-btn-emoji').value = em;
+            document.getElementById('edit-emoji-pick-btn').textContent = em;
+            document.querySelectorAll('#edit-emoji-grid-pick .emoji-cell').forEach(function(c) { c.classList.remove('picked'); });
+            cell.classList.add('picked');
+            closeEditEmojiPicker();
+        };
+        gridEl.appendChild(cell);
+    });
 }
 
 function cfgChangeBtnCat(price, name, newCat) {
