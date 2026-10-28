@@ -651,21 +651,34 @@ GAS.getSettings = function() {
     var map = {};
     (rows || []).forEach(function(r) { map[r.key] = r.value; });
     return {
-      customButtons:   JSON.parse(map['customButtons']   || '[]'),
-      customDiscounts: JSON.parse(map['customDiscounts'] || '[]'),
-      regiDefaults:    JSON.parse(map['regiDefaults']    || '{}')
+      customButtons:    JSON.parse(map['customButtons']    || '[]'),
+      customDiscounts:  JSON.parse(map['customDiscounts']  || '[]'),
+      customCategories: JSON.parse(map['customCategories'] || 'null'),
+      regiDefaults:     JSON.parse(map['regiDefaults']     || '{}')
     };
   });
 };
 
 // ─ saveSettings ─
-GAS.saveSettings = function(customButtonsJson, customDiscountsJson) {
+GAS.saveSettings = function(customButtonsJson, customDiscountsJson, customCategoriesJson) {
   var btnStr      = typeof customButtonsJson   === 'string' ? customButtonsJson   : JSON.stringify(customButtonsJson);
   var discountStr = typeof customDiscountsJson  === 'string' ? customDiscountsJson  : JSON.stringify(customDiscountsJson);
-  return Promise.all([
+  var promises = [
     sbFetch('settings', { method:'POST', body:JSON.stringify({ key:'customButtons',   value:btnStr      }), prefer:'resolution=merge-duplicates,return=representation' }),
     sbFetch('settings', { method:'POST', body:JSON.stringify({ key:'customDiscounts', value:discountStr }), prefer:'resolution=merge-duplicates,return=representation' })
-  ]).then(function() { return 'OK'; });
+  ];
+  if (customCategoriesJson !== undefined && customCategoriesJson !== null) {
+    var catStr = typeof customCategoriesJson === 'string' ? customCategoriesJson : JSON.stringify(customCategoriesJson);
+    promises.push(sbFetch('settings', { method:'POST', body:JSON.stringify({ key:'customCategories', value:catStr }), prefer:'resolution=merge-duplicates,return=representation' }));
+  }
+  return Promise.all(promises).then(function() { return 'OK'; });
+};
+
+// ─ saveCategories ─
+GAS.saveCategories = function(customCategoriesJson) {
+  var catStr = typeof customCategoriesJson === 'string' ? customCategoriesJson : JSON.stringify(customCategoriesJson);
+  return sbFetch('settings', { method:'POST', body:JSON.stringify({ key:'customCategories', value:catStr }), prefer:'resolution=merge-duplicates,return=representation' })
+    .then(function() { return 'OK'; });
 };
 
 // ─ saveRegiDefaults ─
