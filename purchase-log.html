@@ -1926,15 +1926,45 @@ function loadCategoriesForExpiry() {
 }
 
 function populateCategoryDropdown() {
+  // 1. 賞味期限フィルターのカテゴリ
   var sel = document.getElementById('expCategoryFilter');
-  if (!sel) return;
-  var cur = sel.value;
-  var html = '<option value="">全カテゴリ</option>';
-  ALL_CATEGORIES.forEach(function(cat) {
-    html += '<option value="' + escapeHtml(cat) + '"' + (cat === cur ? ' selected' : '') + '>' + escapeHtml(cat) + '</option>';
-  });
-  sel.innerHTML = html;
-  if (cur) sel.value = cur;
+  if (sel) {
+    var cur = sel.value;
+    var html = '<option value="">全カテゴリ</option>';
+    ALL_CATEGORIES.forEach(function(cat) {
+      html += '<option value="' + escapeHtml(cat) + '"' + (cat === cur ? ' selected' : '') + '>' + escapeHtml(cat) + '</option>';
+    });
+    sel.innerHTML = html;
+    if (cur) sel.value = cur;
+  }
+
+  // 2. 新規お菓子登録フォームのカテゴリ（inlineProdCat）
+  var inlineSel = document.getElementById('inlineProdCat');
+  if (inlineSel) {
+    var curInline = inlineSel.value;
+    var inlineHtml = '';
+    ALL_CATEGORIES.forEach(function(cat) {
+      inlineHtml += '<option value="' + escapeHtml(cat) + '"' + (cat === curInline ? ' selected' : '') + '>' + escapeHtml(cat) + '</option>';
+    });
+    inlineSel.innerHTML = inlineHtml;
+    if (curInline && ALL_CATEGORIES.indexOf(curInline) >= 0) {
+      inlineSel.value = curInline;
+    }
+  }
+
+  // 3. 価格台帳フィルターのカテゴリ（priceCatFilter）
+  var priceSel = document.getElementById('priceCatFilter');
+  if (priceSel) {
+    var curPrice = priceSel.value;
+    var priceHtml = '<option value="">全カテゴリ ▼</option>';
+    ALL_CATEGORIES.forEach(function(cat) {
+      priceHtml += '<option value="' + escapeHtml(cat) + '"' + (cat === curPrice ? ' selected' : '') + '>' + escapeHtml(cat) + '</option>';
+    });
+    priceSel.innerHTML = priceHtml;
+    if (curPrice && ALL_CATEGORIES.indexOf(curPrice) >= 0) {
+      priceSel.value = curPrice;
+    }
+  }
 }
 
 // ================= SETTINGS: CATEGORY MANAGEMENT =================
@@ -3524,6 +3554,9 @@ var IS_INLINE_NEW_PROD = false;
 function toggleInlineNewProd() {
   closeModal('productModal');
   IS_INLINE_NEW_PROD = true;
+  if (typeof populateCategoryDropdown === 'function') {
+    populateCategoryDropdown();
+  }
   document.getElementById('normalProdView').style.display = 'none';
   document.getElementById('inlineNewProdView').style.display = 'block';
   document.getElementById('selectedProdBox').style.borderColor = 'var(--grn)';
