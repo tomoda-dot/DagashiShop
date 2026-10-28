@@ -1828,7 +1828,12 @@ function initSettings() {
             updated = true;
         }
         if (Array.isArray(data.customButtons) && data.customButtons.length > 0) {
-            customButtons = data.customButtons;
+            var raw = data.customButtons;
+            raw.forEach(function(b) {
+                b.fixed = false;
+                b.category = getItemCategory(b);
+            });
+            customButtons = raw;
             localStorage.setItem('customButtons', JSON.stringify(customButtons));
             updated = true;
         }
@@ -1928,14 +1933,32 @@ const BTN_TEXT_COLORS = [
     '#fff','#fff','#fff','#fff','#fff','#fff',
     '#5a4030','#3d4036','#fff','#3d4036','#5a4030','#fff',
 ];
-const FIXED_BUTTONS = [
-    { price:10,  name:'10円菓子',  emoji:'🍭', category:'駄菓子', fixed:true },
-    { price:20,  name:'20円菓子',  emoji:'🍫', category:'駄菓子', fixed:true },
-    { price:30,  name:'30円菓子',  emoji:'🍿', category:'駄菓子', fixed:true },
-    { price:40,  name:'40円菓子',  emoji:'🍬', category:'駄菓子', fixed:true },
-    { price:50,  name:'50円菓子',  emoji:'🍩', category:'駄菓子', fixed:true },
-    { price:60,  name:'60円菓子',  emoji:'🧁', category:'駄菓子', fixed:true },
-    { price:100, name:'100円菓子', emoji:'🎁', category:'駄菓子', fixed:true },
+const INITIAL_DEFAULT_BUTTONS = [
+    { price:5,   name:'5円',        emoji:'🍬', category:'駄菓子', fixed:false },
+    { price:10,  name:'10円菓子',   emoji:'🍭', category:'駄菓子', fixed:false },
+    { price:15,  name:'15円菓子',   emoji:'🍩', category:'駄菓子', fixed:false },
+    { price:20,  name:'20円菓子',   emoji:'🍫', category:'駄菓子', fixed:false },
+    { price:25,  name:'25円菓子',   emoji:'🍪', category:'駄菓子', fixed:false },
+    { price:30,  name:'30円菓子',   emoji:'🍿', category:'駄菓子', fixed:false },
+    { price:35,  name:'35円菓子',   emoji:'🥜', category:'駄菓子', fixed:false },
+    { price:40,  name:'40円菓子',   emoji:'🍬', category:'駄菓子', fixed:false },
+    { price:45,  name:'45円菓子',   emoji:'🥜', category:'駄菓子', fixed:false },
+    { price:50,  name:'50円菓子',   emoji:'🍩', category:'駄菓子', fixed:false },
+    { price:55,  name:'55円菓子',   emoji:'🍡', category:'駄菓子', fixed:false },
+    { price:60,  name:'60円菓子',   emoji:'🧁', category:'駄菓子', fixed:false },
+    { price:70,  name:'70円菓子',   emoji:'🍬', category:'駄菓子', fixed:false },
+    { price:80,  name:'80円菓子',   emoji:'🍨', category:'駄菓子', fixed:false },
+    { price:100, name:'100円菓子',  emoji:'🎁', category:'駄菓子', fixed:false },
+    { price:110, name:'110円菓子',  emoji:'🎂', category:'駄菓子', fixed:false },
+    { price:150, name:'150円',      emoji:'🍢', category:'駄菓子', fixed:false },
+    { price:170, name:'170円',      emoji:'🦁', category:'駄菓子', fixed:false },
+    { price:200, name:'200円ブレスレット', emoji:'💞', category:'物販', fixed:false },
+    { price:250, name:'250円',      emoji:'🎪', category:'物販', fixed:false },
+    { price:300, name:'300円ブレスレット', emoji:'🌹', category:'物販', fixed:false },
+    { price:500, name:'ブレスレット', emoji:'🍬', category:'物販', fixed:false },
+    { price:1500, name:'1500円カバン', emoji:'📦', category:'物販', fixed:false },
+    { price:2000, name:'2000円',    emoji:'🍬', category:'物販', fixed:false },
+    { price:2500, name:'2500円',    emoji:'🎒', category:'物販', fixed:false }
 ];
 
 function getItemCategory(btn) {
@@ -1949,11 +1972,37 @@ function getItemCategory(btn) {
     return '駄菓子';
 }
 
+function loadCustomButtons() {
+    try {
+        var raw = JSON.parse(localStorage.getItem('customButtons') || '[]');
+        if (!Array.isArray(raw) || raw.length === 0) {
+            raw = INITIAL_DEFAULT_BUTTONS.map(function(b){ return Object.assign({}, b); });
+        } else {
+            // 初期ボタンの不足分を補完
+            INITIAL_DEFAULT_BUTTONS.forEach(function(initBtn) {
+                var exists = raw.some(function(b) {
+                    return b.price === initBtn.price && b.name === initBtn.name;
+                });
+                if (!exists) {
+                    raw.push(Object.assign({}, initBtn));
+                }
+            });
+        }
+        raw.forEach(function(b) {
+            b.fixed = false;
+            b.category = getItemCategory(b);
+        });
+        return raw;
+    } catch(e) {
+        return INITIAL_DEFAULT_BUTTONS.map(function(b){ return Object.assign({}, b); });
+    }
+}
+
 let customButtons = loadCustomButtons();
 
 function allButtons() {
-    return [...FIXED_BUTTONS, ...customButtons].map(function(btn) {
-        return Object.assign({}, btn, { category: getItemCategory(btn) });
+    return customButtons.map(function(btn) {
+        return Object.assign({}, btn, { category: getItemCategory(btn), fixed: false });
     }).sort((a, b) => a.price - b.price);
 }
 
@@ -2843,10 +2892,8 @@ function renderCfgBtnList() {
             '<span class="cfg-row-emoji">' + btn.emoji + '</span>' +
             '<span class="cfg-row-name" style="flex:1;">' + btn.name + '</span>' +
             '<span class="cfg-row-price" style="min-width:55px;">' + btn.price + '円</span>' +
-            (btn.fixed
-                ? '<span class="cfg-fixed-badge" style="margin-right:4px;">固定</span><span style="font-size:0.75rem;color:#8a8070;background:#eee;padding:2px 6px;border-radius:4px;">[' + btn.category + ']</span>'
-                : '<select onchange="cfgChangeBtnCat(' + btn.price + ',\'' + btn.name.replace(/'/g,"\\'") + '\',this.value)" style="font-size:0.75rem;padding:2px 4px;border:1px solid #ccc;border-radius:6px;margin-right:6px;cursor:pointer;" title="所属タブを変更">' + catOptions + '</select>' +
-                  '<button class="cfg-del-btn" onclick="cfgDelBtn(' + btn.price + ',\'' + btn.name.replace(/'/g,"\\'") + '\')">🗑</button>') +
+            '<select onchange="cfgChangeBtnCat(' + btn.price + ',\'' + btn.name.replace(/'/g,"\\'") + '\',this.value)" style="font-size:0.75rem;padding:2px 4px;border:1px solid #ccc;border-radius:6px;margin-right:6px;cursor:pointer;" title="所属タブを変更">' + catOptions + '</select>' +
+            '<button class="cfg-del-btn" onclick="cfgDelBtn(' + btn.price + ',\'' + btn.name.replace(/'/g,"\\'") + '\')">🗑</button>' +
         '</div>';
     }).join('');
 }
@@ -2856,13 +2903,10 @@ function renderCfgDiscList() {
     if (!list) return;
     var all = allDiscounts().sort(function(a,b){ return a - b; });
     list.innerHTML = all.map(function(amt) {
-        var isFixed = FIXED_DISCOUNTS.indexOf(amt) >= 0;
         return '<div class="cfg-row" style="background:#fdf6e3;">' +
             '<span class="cfg-row-emoji">🎟</span>' +
             '<span class="cfg-row-name">-' + amt + '円 割引券</span>' +
-            (isFixed
-                ? '<span class="cfg-fixed-badge">固定</span>'
-                : '<button class="cfg-del-btn" onclick="cfgDelDisc(' + amt + ')">🗑</button>') +
+            '<button class="cfg-del-btn" onclick="cfgDelDisc(' + amt + ')">🗑</button>' +
         '</div>';
     }).join('');
 }
