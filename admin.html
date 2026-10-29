@@ -427,7 +427,7 @@
     <button onclick="switchTab('detail')"  id="tab-detail"  class="flex-1 py-3 text-sm text-gray-500">📋 明細管理</button>
     <button onclick="switchTab('savings')" id="tab-savings" class="flex-1 py-3 text-sm text-gray-500">💰 積立金管理</button>
     <button onclick="switchTab('pettycash')" id="tab-pettycash" class="flex-1 py-3 text-sm text-gray-500">💴 小口現金</button>
-    <button onclick="switchTab('creditcard')" id="tab-creditcard" class="flex-1 py-3 text-sm text-gray-500">💳 クレジットカード</button>
+    <button onclick="switchTab('creditcard')" id="tab-creditcard" class="flex-1 py-3 text-sm text-gray-500">💳 ガソリンカード</button>
     <button onclick="switchTab('config')"  id="tab-config"  class="flex-1 py-3 text-sm text-gray-500">⚙️ 設定</button>
   </nav>
 
@@ -2698,7 +2698,7 @@
 
       const tbody = document.getElementById('creditcard-tbody');
       if (monthRows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-slate-400 py-12">この月のクレジットカード・レシート記録はありません</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-slate-400 py-12">この月のガソリンカード・レシート記録はありません</td></tr>';
         return;
       }
 
