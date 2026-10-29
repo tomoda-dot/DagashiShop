@@ -1867,30 +1867,39 @@ function loadCustomCategories() {
 
 function saveCustomCategories() {
     localStorage.setItem('regi_categories', JSON.stringify(customCategories));
-    if (typeof GAS !== 'undefined' && GAS.saveCategories) {
+    if (typeof syncBroadcastChannel !== 'undefined' && syncBroadcastChannel) {
+        try { syncBroadcastChannel.postMessage({ type: 'settings_changed', timestamp: Date.now() }); } catch(e) {}
+    }
+    if (typeof GAS !== 'undefined' && GAS.saveSettings) {
+        GAS.saveSettings(JSON.stringify(customButtons), JSON.stringify(customDiscounts), JSON.stringify(customCategories))
+            .then(function() {
+                if (typeof showRegiToast === 'function') showRegiToast('タブ設定を保存しました');
+            }).catch(function(){});
+    } else if (typeof GAS !== 'undefined' && GAS.saveCategories) {
         GAS.saveCategories(JSON.stringify(customCategories)).catch(function(){});
     }
 }
 
 // ═══ 設定の保存・読み込み ════════════════════════════
-function loadCustomButtons() {
-    try { return JSON.parse(localStorage.getItem('customButtons') || '[]'); }
-    catch(e) { return []; }
-}
 function loadCustomDiscounts() {
     try { return JSON.parse(localStorage.getItem('customDiscounts') || '[]'); }
     catch(e) { return []; }
 }
 
-// 起動時：Supabaseから設定を取得
-function initSettings() {
-    GAS.getSettings().then(function(data) {
+// 起動時・定期同期：Supabaseから設定を取得
+function initSettings(isSilent) {
+    if (typeof GAS === 'undefined' || !GAS.getSettings) return Promise.resolve();
+    return GAS.getSettings().then(function(data) {
         if (!data) return;
         let updated = false;
         if (Array.isArray(data.customCategories) && data.customCategories.length > 0) {
-            customCategories = data.customCategories;
-            localStorage.setItem('regi_categories', JSON.stringify(customCategories));
-            updated = true;
+            var oldCat = JSON.stringify(customCategories);
+            var newCat = JSON.stringify(data.customCategories);
+            if (oldCat !== newCat) {
+                customCategories = data.customCategories;
+                localStorage.setItem('regi_categories', JSON.stringify(customCategories));
+                updated = true;
+            }
         }
         if (Array.isArray(data.customButtons) && data.customButtons.length > 0) {
             var raw = data.customButtons;
@@ -1898,21 +1907,35 @@ function initSettings() {
                 b.fixed = false;
                 b.category = getItemCategory(b);
             });
-            customButtons = raw;
-            localStorage.setItem('customButtons', JSON.stringify(customButtons));
-            updated = true;
+            var oldBtns = JSON.stringify(customButtons);
+            var newBtns = JSON.stringify(raw);
+            if (oldBtns !== newBtns) {
+                customButtons = raw;
+                localStorage.setItem('customButtons', JSON.stringify(customButtons));
+                updated = true;
+            }
         }
         if (Array.isArray(data.customDiscounts) && data.customDiscounts.length > 0) {
-            customDiscounts = data.customDiscounts;
-            localStorage.setItem('customDiscounts', JSON.stringify(customDiscounts));
-            updated = true;
+            var oldDisc = JSON.stringify(customDiscounts);
+            var newDisc = JSON.stringify(data.customDiscounts);
+            if (oldDisc !== newDisc) {
+                customDiscounts = data.customDiscounts;
+                localStorage.setItem('customDiscounts', JSON.stringify(customDiscounts));
+                updated = true;
+            }
         }
-        if (updated) {
+        if (updated || !isSilent) {
             renderCategoryTabs();
             renderGrid();
             renderDiscountGrid();
+            if (typeof renderCfgBtnList === 'function') renderCfgBtnList();
+            if (typeof renderCfgDiscList === 'function') renderCfgDiscList();
+            if (typeof renderCfgTabList === 'function') renderCfgTabList();
+            if (typeof updateCfgCategorySelects === 'function') updateCfgCategorySelects();
         }
-    }).catch(function() {});
+    }).catch(function(err) {
+        console.warn('initSettings failed:', err);
+    });
 }
 
 // ═══ 割引券定義 ══════════════════════════════════
@@ -2039,28 +2062,16 @@ function getItemCategory(btn) {
 
 function loadCustomButtons() {
     try {
-        var raw = JSON.parse(localStorage.getItem('customButtons') || '[]');
-        if (!Array.isArray(raw) || raw.length === 0) {
-            raw = INITIAL_DEFAULT_BUTTONS.map(function(b){ return Object.assign({}, b); });
-        } else {
-            // 初期ボタンの不足分を補完
-            INITIAL_DEFAULT_BUTTONS.forEach(function(initBtn) {
-                var exists = raw.some(function(b) {
-                    return b.price === initBtn.price && b.name === initBtn.name;
-                });
-                if (!exists) {
-                    raw.push(Object.assign({}, initBtn));
-                }
+        var raw = JSON.parse(localStorage.getItem('customButtons') || 'null');
+        if (Array.isArray(raw) && raw.length > 0) {
+            raw.forEach(function(b) {
+                b.fixed = false;
+                b.category = getItemCategory(b);
             });
+            return raw;
         }
-        raw.forEach(function(b) {
-            b.fixed = false;
-            b.category = getItemCategory(b);
-        });
-        return raw;
-    } catch(e) {
-        return INITIAL_DEFAULT_BUTTONS.map(function(b){ return Object.assign({}, b); });
-    }
+    } catch(e) {}
+    return INITIAL_DEFAULT_BUTTONS.map(function(b){ return Object.assign({}, b); });
 }
 
 let customButtons = loadCustomButtons();
@@ -3108,10 +3119,30 @@ function cfgChangeBtnCat(price, name, newCat) {
 }
 
 function cfgSaveToGas() {
-    GAS.saveSettings(JSON.stringify(customButtons), JSON.stringify(customDiscounts), JSON.stringify(customCategories)).catch(function(){});
     localStorage.setItem('customButtons', JSON.stringify(customButtons));
     localStorage.setItem('customDiscounts', JSON.stringify(customDiscounts));
     localStorage.setItem('regi_categories', JSON.stringify(customCategories));
+
+    if (typeof syncBroadcastChannel !== 'undefined' && syncBroadcastChannel) {
+        try {
+            syncBroadcastChannel.postMessage({ type: 'settings_changed', timestamp: Date.now() });
+        } catch(e) {}
+    }
+
+    if (typeof GAS !== 'undefined' && GAS.saveSettings) {
+        GAS.saveSettings(JSON.stringify(customButtons), JSON.stringify(customDiscounts), JSON.stringify(customCategories))
+            .then(function() {
+                if (typeof showRegiToast === 'function') {
+                    showRegiToast('設定をクラウドに保存しました');
+                }
+            })
+            .catch(function(err) {
+                console.error('Failed to save settings:', err);
+                if (typeof showRegiToast === 'function') {
+                    showRegiToast('クラウド保存に失敗しました');
+                }
+            });
+    }
 }
 
 function cfgAddBtn() {
@@ -3266,11 +3297,42 @@ loadThemeSettings();
 renderCategoryTabs();
 renderGrid();
 renderDiscountGrid();
-initSettings();
+initSettings(false);
 updateSalesBadge();
 updateQueueBadge();
 document.getElementById('sales-badge').addEventListener('click', openSalesModal);
 setTimeout(function() { sendQueueAsync(); }, 1000);
+
+// ═══ マルチデバイス・他タブ自動同期 ═══
+var syncBroadcastChannel = null;
+try {
+    if (typeof BroadcastChannel !== 'undefined') {
+        syncBroadcastChannel = new BroadcastChannel('dagashi_regi_sync');
+        syncBroadcastChannel.onmessage = function(ev) {
+            if (ev.data && ev.data.type === 'settings_changed') {
+                initSettings(false);
+            }
+        };
+    }
+} catch(e) {}
+
+// 画面表示復帰時（タブ切り替えや端末のスリープ解除時）に最新設定・売上を即時再同期
+window.addEventListener('focus', function() {
+    initSettings(true);
+    updateSalesBadge();
+});
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        initSettings(true);
+        updateSalesBadge();
+    }
+});
+
+// 15秒ごとの定期バックグラウンド同期（他端末でのボタン変更や売上を自動反映）
+setInterval(function() {
+    initSettings(true);
+    updateSalesBadge();
+}, 15000);
 
 // 単価ボタン連打時のダブルタップズーム防止（タップの取りこぼし・押しミスを防止）
 (function(){
