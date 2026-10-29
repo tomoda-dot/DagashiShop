@@ -1126,7 +1126,7 @@
 
 <!-- 売上確認モーダル -->
 <div class="modal-overlay" id="sales-modal">
-    <div class="sales-modal-inner">
+    <div class="sales-modal-inner" style="max-width: 480px; width: 92vw; max-height: 85vh; display: flex; flex-direction: column;">
         <div class="sales-modal-header">
             <span>📊 本日の売上</span>
             <div style="display:flex;gap:8px;">
@@ -1136,6 +1136,7 @@
         </div>
         <div class="sales-total-big" id="sales-total-big">0円</div>
         <div class="sales-count" id="sales-count">0件のお会計</div>
+        <div class="sales-breakdown" id="sales-breakdown" style="flex: 1; overflow-y: auto; margin-top: 10px;"></div>
     </div>
 </div>
 
@@ -1485,20 +1486,24 @@ function refreshSalesModal() {
 }
 
 function renderSalesModalFromGas(data) {
-    document.getElementById('sales-total-big').textContent = data.total + '円';
-    document.getElementById('sales-count').textContent = data.count + '件のお会計';
+    var totalEl = document.getElementById('sales-total-big');
+    if (totalEl) totalEl.textContent = (data.total || 0).toLocaleString() + '円';
+    var countEl = document.getElementById('sales-count');
+    if (countEl) countEl.textContent = (data.count || 0) + '件のお会計';
 
     var breakdown = document.getElementById('sales-breakdown');
-    if (!data.items || data.items.length === 0) {
-        breakdown.innerHTML = '<div style="color:#ccc;text-align:center;padding:12px;">まだ売上がありません</div>';
-    } else {
-        breakdown.innerHTML = data.items.map(function(d) {
-            return '<div class="sales-item-row">' +
-                '<span class="sales-item-name">' + d.name + '</span>' +
-                '<span style="color:#888;font-size:0.8rem;">×' + d.qty + '</span>' +
-                '<span class="sales-item-amt">' + d.subtotal + '円</span>' +
-            '</div>';
-        }).join('');
+    if (breakdown) {
+        if (!data.items || data.items.length === 0) {
+            breakdown.innerHTML = '<div style="color:#ccc;text-align:center;padding:12px;">まだ売上がありません</div>';
+        } else {
+            breakdown.innerHTML = data.items.map(function(d) {
+                return '<div class="sales-item-row">' +
+                    '<span class="sales-item-name">' + d.name + '</span>' +
+                    '<span style="color:#888;font-size:0.8rem;">×' + d.qty + '</span>' +
+                    '<span class="sales-item-amt">' + (d.subtotal || 0).toLocaleString() + '円</span>' +
+                '</div>';
+            }).join('');
+        }
     }
 }
 
@@ -1507,8 +1512,10 @@ function renderSalesModalLocal() {
     var todaySales = salesLog.filter(function(s){ return s.date === today; });
     var total = todaySales.reduce(function(sum, s){ return sum + s.total; }, 0);
 
-    document.getElementById('sales-total-big').textContent = total + '円';
-    document.getElementById('sales-count').textContent = todaySales.length + '件のお会計';
+    var totalEl = document.getElementById('sales-total-big');
+    if (totalEl) totalEl.textContent = total.toLocaleString() + '円';
+    var countEl = document.getElementById('sales-count');
+    if (countEl) countEl.textContent = todaySales.length + '件のお会計';
 
     var itemMap = {};
     todaySales.forEach(function(s) {
@@ -1522,17 +1529,19 @@ function renderSalesModalLocal() {
     });
 
     var breakdown = document.getElementById('sales-breakdown');
-    var entries = Object.entries(itemMap).sort(function(a,b){ return b[1].subtotal - a[1].subtotal; });
-    if (entries.length === 0) {
-        breakdown.innerHTML = '<div style="color:#ccc;text-align:center;padding:12px;">まだ売上がありません</div>';
-    } else {
-        breakdown.innerHTML = entries.map(function(e) {
-            return '<div class="sales-item-row">' +
-                '<span class="sales-item-name">' + e[0] + '</span>' +
-                '<span style="color:#888;font-size:0.8rem;">×' + e[1].qty + '</span>' +
-                '<span class="sales-item-amt">' + e[1].subtotal + '円</span>' +
-            '</div>';
-        }).join('');
+    if (breakdown) {
+        var entries = Object.entries(itemMap).sort(function(a,b){ return b[1].subtotal - a[1].subtotal; });
+        if (entries.length === 0) {
+            breakdown.innerHTML = '<div style="color:#ccc;text-align:center;padding:12px;">まだ売上がありません</div>';
+        } else {
+            breakdown.innerHTML = entries.map(function(e) {
+                return '<div class="sales-item-row">' +
+                    '<span class="sales-item-name">' + e[0] + '</span>' +
+                    '<span style="color:#888;font-size:0.8rem;">×' + e[1].qty + '</span>' +
+                    '<span class="sales-item-amt">' + e[1].subtotal.toLocaleString() + '円</span>' +
+                '</div>';
+            }).join('');
+        }
     }
 }
 
