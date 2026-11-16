@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" width="320" height="320">
+  <!-- Warm cream background with rounded corners -->
+  <rect width="320" height="320" rx="44" fill="#fcf6ea"/>
+  <!-- Subtle polka dots -->
+  <g fill="#f0e2c8" opacity="0.65">
+    <circle cx="40" cy="40" r="5"/><circle cx="100" cy="32" r="4"/><circle cx="280" cy="48" r="5"/>
+    <circle cx="32" cy="140" r="4"/><circle cx="290" cy="150" r="5"/><circle cx="45" cy="275" r="5"/>
+    <circle cx="275" cy="275" r="4"/>
+  </g>
+
+  <!-- Clipboard / Tablet body -->
+  <rect x="62" y="54" width="196" height="232" rx="22" fill="#e5b887" stroke="#4a2e1b" stroke-width="6"/>
+  <rect x="76" y="70" width="168" height="200" rx="14" fill="#fffdf9" stroke="#4a2e1b" stroke-width="5"/>
+
+  <!-- Top Header Banner (Porte Forest Green) -->
+  <path d="M76 84 C76 76 82 70 90 70 L230 70 C238 70 244 76 244 84 L244 114 L76 114 Z" fill="#68a885" stroke="#4a2e1b" stroke-width="5"/>
+  <text x="160" y="99" font-family="'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', sans-serif" font-size="20" font-weight="900" fill="#ffffff" text-anchor="middle">研修アカデミー</text>
+
+  <!-- Video player screen inside tablet -->
+  <rect x="92" y="126" width="136" height="64" rx="10" fill="#eaf4ee" stroke="#4a2e1b" stroke-width="4"/>
+  <circle cx="160" cy="158" r="18" fill="#f49576" stroke="#4a2e1b" stroke-width="4"/>
+  <polygon points="155,149 155,167 170,158" fill="#ffffff"/>
+
+  <!-- Checklist items -->
+  <rect x="92" y="202" width="22" height="22" rx="5" fill="#cfe8d7" stroke="#4a2e1b" stroke-width="3.5"/>
+  <path d="M97 213 L102 218 L110 207" fill="none" stroke="#2e7d32" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="122" y="206" width="98" height="14" rx="7" fill="#e8dfd1"/>
+
+  <rect x="92" y="232" width="22" height="22" rx="5" fill="#cfe8d7" stroke="#4a2e1b" stroke-width="3.5"/>
+  <path d="M97 243 L102 248 L110 237" fill="none" stroke="#2e7d32" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="122" y="236" width="82" height="14" rx="7" fill="#e8dfd1"/>
+
+  <!-- Cute Graduation Cap on top -->
+  <g transform="translate(160, 46)">
+    <polygon points="0,-24 -48,-4 0,14 48,-4" fill="#3b5e49" stroke="#4a2e1b" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M-24,6 L-24,18 C-24,24 24,24 24,18 L24,6" fill="#527d63" stroke="#4a2e1b" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M34,-2 L42,18" fill="none" stroke="#f4b942" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="42" cy="20" r="5" fill="#f4b942" stroke="#4a2e1b" stroke-width="3"/>
+  </g>
+
+  <!-- Sparkles -->
+  <path d="M42 92 L46 102 L56 106 L46 110 L42 120 L38 110 L28 106 L38 102 Z" fill="#f4b942"/>
+  <path d="M278 96 L281 104 L289 107 L281 110 L278 118 L275 110 L267 107 L275 104 Z" fill="#f49576"/>
+</svg>
