@@ -2401,7 +2401,7 @@ let receiveStr = '';
 function openCheckout() {
     if (cart.length === 0) return;
     if (atariMode) cancelAtariMode();
-    receiveStr = '';
+    receiveStr = '0';
     tenkeyMode = 'receive';
     document.getElementById('point-use-input').value = '';
     setTenkeyMode('receive');
@@ -2453,8 +2453,12 @@ function tenkey(digit) {
         el.value = (el.value || '') + digit;
         updateReceiveDisplay();
     } else {
-        if (receiveStr.length >= 6) return;
-        receiveStr += digit;
+        if (receiveStr === '0') {
+            receiveStr = String(digit);
+        } else {
+            if (receiveStr.length >= 6) return;
+            receiveStr += digit;
+        }
         updateReceiveDisplay();
     }
 }
@@ -2464,7 +2468,7 @@ function tenkeyDel() {
         el.value = (el.value || '').slice(0, -1);
         updateReceiveDisplay();
     } else {
-        receiveStr = receiveStr.slice(0, -1);
+        receiveStr = receiveStr.slice(0, -1) || '0';
         updateReceiveDisplay();
     }
 }
