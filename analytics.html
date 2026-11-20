@@ -190,14 +190,13 @@ function initMonthSelector() {
 
 function onPeriodChange() {
   var type = document.getElementById('period-type').value;
-  document.getElementById('month-selector-wrap').style.display = (type === 'week' || type === 'day') ? '' : 'none';
+  document.getElementById('month-selector-wrap').style.display = (type === 'custom') ? 'none' : '';
   document.getElementById('custom-range-wrap').style.display = (type === 'custom') ? 'flex' : 'none';
   if (type !== 'custom') loadAll();
 }
 
 function getDateRange() {
   var type = document.getElementById('period-type').value;
-  var now = new Date();
   var from, to;
   var fmtD = function(dt) {
     return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
@@ -207,8 +206,10 @@ function getDateRange() {
     to   = document.getElementById('date-to').value;
     if (!from || !to) return null;
   } else if (type === 'month') {
-    var startD = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-    var endD   = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    var ym = document.getElementById('month-selector').value;
+    var y = parseInt(ym.split('-')[0], 10), m = parseInt(ym.split('-')[1], 10);
+    var startD = new Date(y, m - 12, 1);
+    var endD   = new Date(y, m, 0);
     from = fmtD(startD);
     to   = fmtD(endD);
   } else {
