@@ -96,12 +96,7 @@
     <!-- 売上推移 -->
     <div id="pane-trend" class="p-4">
       <div class="flex items-center justify-between mb-3">
-        <div class="text-sm font-bold text-slate-600">売上推移</div>
-        <select id="trend-unit" onchange="renderTrend()">
-          <option value="day">日別</option>
-          <option value="week">週別</option>
-          <option value="month">月別</option>
-        </select>
+        <div class="text-sm font-bold text-slate-600" id="trend-title">売上推移</div>
       </div>
       <div style="height:280px;"><canvas id="chart-trend"></canvas></div>
     </div>
@@ -195,7 +190,7 @@ function initMonthSelector() {
 
 function onPeriodChange() {
   var type = document.getElementById('period-type').value;
-  document.getElementById('month-selector-wrap').style.display = (type === 'custom') ? 'none' : '';
+  document.getElementById('month-selector-wrap').style.display = (type === 'week' || type === 'day') ? '' : 'none';
   document.getElementById('custom-range-wrap').style.display = (type === 'custom') ? 'flex' : 'none';
   if (type !== 'custom') loadAll();
 }
@@ -204,25 +199,23 @@ function getDateRange() {
   var type = document.getElementById('period-type').value;
   var now = new Date();
   var from, to;
+  var fmtD = function(dt) {
+    return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+  };
   if (type === 'custom') {
     from = document.getElementById('date-from').value;
     to   = document.getElementById('date-to').value;
     if (!from || !to) return null;
   } else if (type === 'month') {
+    var startD = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    var endD   = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    from = fmtD(startD);
+    to   = fmtD(endD);
+  } else {
     var ym = document.getElementById('month-selector').value;
     from = ym + '-01';
     var d = new Date(parseInt(ym.split('-')[0]), parseInt(ym.split('-')[1]), 0);
     to = ym + '-' + (d.getDate() < 10 ? '0' : '') + d.getDate();
-  } else if (type === 'week') {
-    var ym2 = document.getElementById('month-selector').value;
-    from = ym2 + '-01';
-    var d2 = new Date(parseInt(ym2.split('-')[0]), parseInt(ym2.split('-')[1]), 0);
-    to = ym2 + '-' + (d2.getDate() < 10 ? '0' : '') + d2.getDate();
-  } else {
-    var ym3 = document.getElementById('month-selector').value;
-    from = ym3 + '-01';
-    var d3 = new Date(parseInt(ym3.split('-')[0]), parseInt(ym3.split('-')[1]), 0);
-    to = ym3 + '-' + (d3.getDate() < 10 ? '0' : '') + d3.getDate();
   }
   return { from: from, to: to };
 }
@@ -300,7 +293,18 @@ function renderKPI() {
 // ── 売上推移 ───────────────────────────────────────
 var chartTrend = null;
 function renderTrend() {
-  var unit = document.getElementById('trend-unit').value;
+  var periodType = document.getElementById('period-type').value;
+  var unit = periodType;
+  if (periodType === 'custom') {
+    if (g_daily.length > 90) unit = 'month';
+    else if (g_daily.length > 35) unit = 'week';
+    else unit = 'day';
+  }
+  var titleEl = document.getElementById('trend-title');
+  if (titleEl) {
+    var labelMap = { month: '月別売上推移（直近12ヶ月）', week: '週別売上推移', day: '日別売上推移' };
+    titleEl.textContent = labelMap[unit] || '売上推移';
+  }
   var grouped = {};
 
   g_daily.forEach(function(r) {
