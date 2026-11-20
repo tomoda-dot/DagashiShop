@@ -75,8 +75,9 @@
 <main class="max-w-6xl mx-auto p-4 space-y-4">
 
   <!-- KPIカード -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="kpi-area">
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-3" id="kpi-area">
     <div class="kpi"><div class="kpi-label">売上合計</div><div class="kpi-value text-emerald-600" id="kpi-sales">—</div></div>
+    <div class="kpi"><div class="kpi-label">1日平均売上</div><div class="kpi-value text-sky-600" id="kpi-daily-avg">—</div><div class="text-xs text-slate-400 mt-1" id="kpi-biz-days">—</div></div>
     <div class="kpi"><div class="kpi-label">販売件数</div><div class="kpi-value text-blue-600" id="kpi-orders">—</div></div>
     <div class="kpi"><div class="kpi-label">1件あたり売上</div><div class="kpi-value text-violet-600" id="kpi-avg">—</div></div>
     <div class="kpi"><div class="kpi-label">販売商品点数</div><div class="kpi-value text-orange-500" id="kpi-items">—</div></div>
@@ -84,8 +85,9 @@
 
   <!-- タブ -->
   <div class="card">
-    <div class="border-b border-slate-100 px-4 flex gap-0">
+    <div class="border-b border-slate-100 px-4 flex gap-0 overflow-x-auto">
       <button class="tab-btn active" onclick="switchTab('trend')" id="tab-trend">📈 売上推移</button>
+      <button class="tab-btn" onclick="switchTab('monthly')" id="tab-monthly">📅 月別売上</button>
       <button class="tab-btn" onclick="switchTab('ranking')" id="tab-ranking">🏆 売れ筋ランキング</button>
       <button class="tab-btn" onclick="switchTab('price')" id="tab-price">💴 値段別構成</button>
       <button class="tab-btn" onclick="switchTab('hourly')" id="tab-hourly">🕐 時間帯別</button>
@@ -102,6 +104,29 @@
         </select>
       </div>
       <div style="height:280px;"><canvas id="chart-trend"></canvas></div>
+    </div>
+
+    <!-- 月別売上 -->
+    <div id="pane-monthly" class="p-4 hidden">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div class="text-sm font-bold text-slate-600">月別売上・1日平均売上（直近12ヶ月）</div>
+        <div class="text-xs text-slate-400">※1日平均売上＝月別売上 ÷ 営業日数（売上が1円以上あった日）</div>
+      </div>
+      <div style="height:260px;" class="mb-5"><canvas id="chart-monthly"></canvas></div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
+              <th class="py-2.5 px-3 text-left font-bold">対象月</th>
+              <th class="py-2.5 px-3 text-right font-bold">月別売上</th>
+              <th class="py-2.5 px-3 text-right font-bold">営業日数</th>
+              <th class="py-2.5 px-3 text-right font-bold">1日平均売上</th>
+              <th class="py-2.5 px-3 text-right font-bold">前月比</th>
+            </tr>
+          </thead>
+          <tbody id="monthly-table-body"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- 売れ筋ランキング -->
@@ -242,6 +267,7 @@ async function loadAll() {
     renderRanking();
     renderPrice();
     renderHourly();
+    loadMonthlySummary();
   } catch(e) {
     console.error(e);
   }
@@ -260,10 +286,15 @@ function renderKPI() {
   var totalQty   = g_items.reduce(function(s, r){ return s + (Number(r.qty)||0); }, 0);
   var avgSales   = orderCount > 0 ? Math.round(totalSales / orderCount) : 0;
 
-  document.getElementById('kpi-sales').textContent   = '¥' + totalSales.toLocaleString();
-  document.getElementById('kpi-orders').textContent  = orderCount.toLocaleString() + '件';
-  document.getElementById('kpi-avg').textContent     = '¥' + avgSales.toLocaleString();
-  document.getElementById('kpi-items').textContent   = totalQty.toLocaleString() + '個';
+  var bizDays    = g_daily.filter(function(r){ return (Number(r.sales_total)||0) > 0; }).length;
+  var dailyAvg   = bizDays > 0 ? Math.round(totalSales / bizDays) : 0;
+
+  document.getElementById('kpi-sales').textContent     = '¥' + totalSales.toLocaleString();
+  document.getElementById('kpi-daily-avg').textContent = '¥' + dailyAvg.toLocaleString();
+  document.getElementById('kpi-biz-days').textContent  = bizDays > 0 ? ('営業日 ' + bizDays + '日') : '営業日 0日';
+  document.getElementById('kpi-orders').textContent    = orderCount.toLocaleString() + '件';
+  document.getElementById('kpi-avg').textContent       = '¥' + avgSales.toLocaleString();
+  document.getElementById('kpi-items').textContent     = totalQty.toLocaleString() + '個';
 }
 
 // ── 売上推移 ───────────────────────────────────────
@@ -455,8 +486,142 @@ function renderHourly() {
   });
 }
 
+// ── 月別売上・1日平均 ───────────────────────────────
+var chartMonthly = null;
+async function loadMonthlySummary() {
+  var now = new Date();
+  var endD = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  var startD = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+  var fmtD = function(dt) {
+    return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+  };
+  var headers = { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON };
+  try {
+    var rows = await fetch(
+      SUPABASE_URL + '/rest/v1/daily_summary?date=gte.' + fmtD(startD) + '&date=lte.' + fmtD(endD) + '&select=date,sales_total&order=date.asc',
+      { headers: headers }
+    ).then(function(r){ return r.json(); });
+    rows = Array.isArray(rows) ? rows : [];
+
+    var map = {};
+    var months = [];
+    for (var i = -11; i <= 0; i++) {
+      var d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      var ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      months.push(ym);
+      map[ym] = { ym: ym, label: d.getFullYear() + '年' + (d.getMonth() + 1) + '月', sales: 0, bizDays: 0 };
+    }
+    rows.forEach(function(r) {
+      var ym = String(r.date || '').substring(0, 7);
+      if (!map[ym]) return;
+      var s = Number(r.sales_total) || 0;
+      map[ym].sales += s;
+      if (s > 0) map[ym].bizDays++;
+    });
+
+    var list = months.map(function(ym) {
+      var m = map[ym];
+      m.dailyAvg = m.bizDays > 0 ? Math.round(m.sales / m.bizDays) : 0;
+      return m;
+    });
+
+    renderMonthlyChart(list);
+    renderMonthlyTable(list);
+  } catch(e) {
+    console.error('loadMonthlySummary error:', e);
+  }
+}
+
+function renderMonthlyChart(list) {
+  var canvas = document.getElementById('chart-monthly');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (chartMonthly) chartMonthly.destroy();
+  chartMonthly = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: list.map(function(m){ return m.ym.replace('-', '/'); }),
+      datasets: [
+        {
+          label: '月別売上（円）',
+          data: list.map(function(m){ return m.sales; }),
+          backgroundColor: 'rgba(16,185,129,0.75)',
+          borderRadius: 6,
+          yAxisID: 'y'
+        },
+        {
+          label: '1日平均売上（円）',
+          data: list.map(function(m){ return m.dailyAvg; }),
+          type: 'line',
+          borderColor: 'rgba(249,115,22,1)',
+          backgroundColor: 'rgba(249,115,22,0.15)',
+          borderWidth: 2.5,
+          pointRadius: 4,
+          tension: 0.2,
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        y: {
+          type: 'linear',
+          position: 'left',
+          beginAtZero: true,
+          ticks: { callback: function(v){ return '¥' + v.toLocaleString(); } }
+        },
+        y1: {
+          type: 'linear',
+          position: 'right',
+          beginAtZero: true,
+          grid: { drawOnChartArea: false },
+          ticks: { callback: function(v){ return '¥' + v.toLocaleString(); } }
+        }
+      }
+    }
+  });
+}
+
+function renderMonthlyTable(list) {
+  var tbody = document.getElementById('monthly-table-body');
+  if (!tbody) return;
+  var totalSales = 0, totalDays = 0;
+  list.forEach(function(m){ totalSales += m.sales; totalDays += m.bizDays; });
+  var totalAvg = totalDays > 0 ? Math.round(totalSales / totalDays) : 0;
+
+  var html = '';
+  for (var i = list.length - 1; i >= 0; i--) {
+    var m = list[i];
+    var prev = i > 0 ? list[i - 1] : null;
+    var diffHtml = '<span class="text-slate-400">—</span>';
+    if (prev && prev.sales > 0) {
+      var pct = Math.round(((m.sales - prev.sales) / prev.sales) * 1000) / 10;
+      var cls = pct >= 0 ? 'text-emerald-600' : 'text-red-500';
+      diffHtml = '<span class="' + cls + ' font-bold">' + (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%</span>';
+    }
+    html += '<tr class="border-b border-slate-100 hover:bg-slate-50">' +
+      '<td class="py-2.5 px-3 font-bold text-slate-700">' + m.label + '</td>' +
+      '<td class="py-2.5 px-3 text-right font-bold text-emerald-600">¥' + m.sales.toLocaleString() + '</td>' +
+      '<td class="py-2.5 px-3 text-right text-slate-600">' + m.bizDays + '日</td>' +
+      '<td class="py-2.5 px-3 text-right font-bold text-sky-600">¥' + m.dailyAvg.toLocaleString() + '</td>' +
+      '<td class="py-2.5 px-3 text-right">' + diffHtml + '</td>' +
+      '</tr>';
+  }
+  html += '<tr class="bg-slate-50 font-bold border-t-2 border-slate-200">' +
+    '<td class="py-2.5 px-3 text-slate-700">12ヶ月合計 / 平均</td>' +
+    '<td class="py-2.5 px-3 text-right text-emerald-700">¥' + totalSales.toLocaleString() + '</td>' +
+    '<td class="py-2.5 px-3 text-right text-slate-700">' + totalDays + '日</td>' +
+    '<td class="py-2.5 px-3 text-right text-sky-700">¥' + totalAvg.toLocaleString() + '</td>' +
+    '<td class="py-2.5 px-3 text-right text-slate-400">—</td>' +
+    '</tr>';
+  tbody.innerHTML = html;
+}
+
 // ── タブ切り替え ────────────────────────────────────
-var PANES = ['trend','ranking','price','hourly'];
+var PANES = ['trend','monthly','ranking','price','hourly'];
 function switchTab(name) {
   PANES.forEach(function(p) {
     document.getElementById('pane-' + p).classList.toggle('hidden', p !== name);
