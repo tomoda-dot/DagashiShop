@@ -1961,6 +1961,19 @@
       renderSummary(g_allData.filter(item => item["日付"] && item["日付"].startsWith(sel)));
     }
 
+    function formatDateWithDow(val) {
+      if (!val) return '';
+      const s = String(val).trim();
+      const m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+      if (!m) return s;
+      const y = parseInt(m[1], 10);
+      const mo = parseInt(m[2], 10);
+      const d = parseInt(m[3], 10);
+      const dt = new Date(y, mo - 1, d);
+      const dows = ['日', '月', '火', '水', '木', '金', '土'];
+      return `${s} (${dows[dt.getDay()]})`;
+    }
+
     function renderSummary(data) {
       const container = document.getElementById('summary-cards');
       if (!data || data.length === 0) {
@@ -1974,7 +1987,7 @@
           <div class="card p-4 border-l-4 ${diff < 0 ? 'border-red-500' : 'border-blue-500'}">
             <div class="flex justify-between items-start mb-2 text-left">
               <div>
-                <h3 class="font-bold text-lg text-gray-800">${item["日付"]}</h3>
+                <h3 class="font-bold text-lg text-gray-800">${formatDateWithDow(item["日付"])}</h3>
                 <p class="text-xs text-gray-500 font-mono">📍 ${item["販売場所"] || '---'}</p>
               </div>
               <span class="text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-400">更新: ${item["最終更新時刻"] || '---'}</span>
@@ -2391,7 +2404,7 @@
         const rowClass = isDeposit ? 'deposit-row' : 'withdrawal-row';
         const clickable = r.type === 'withdrawal' && r.id ? `onclick="openSavingsEditModal(${r.id})" style="cursor:pointer;" title="クリックで編集・削除"` : '';
         return `<tr class="${rowClass}" ${clickable}>
-          <td class="font-mono text-sm">${r.date}</td>
+          <td class="font-mono text-sm">${formatDateWithDow(r.date)}</td>
           <td class="text-slate-600">${r.partner || ''}</td>
           <td class="text-slate-600">${r.content || ''}</td>
           <td class="text-right font-mono font-bold text-blue-600">${r.deposit > 0 ? '¥' + r.deposit.toLocaleString() : ''}</td>
@@ -2403,7 +2416,7 @@
       // 前月繰越行を末尾に表示
       if (carryover !== 0) {
         html += `<tr class="carryover-row">
-          <td class="font-mono text-sm">${month}-01</td>
+          <td class="font-mono text-sm">${formatDateWithDow(month + '-01')}</td>
           <td></td>
           <td>📋 前月繰越</td>
           <td></td>
@@ -2577,7 +2590,7 @@
         const isDeposit = r.type === '入金';
         const amount = Number(r.amount) || 0;
         return `<tr class="${isDeposit ? 'deposit-row' : 'withdrawal-row'}" onclick="openPettyCashEditModal(${r.id})" style="cursor:pointer;" title="クリックで編集・削除">
-          <td class="font-mono text-sm">${r.date}</td>
+          <td class="font-mono text-sm">${formatDateWithDow(r.date)}</td>
           <td>${isDeposit ? '<span class="text-blue-600 font-bold">入金</span>' : '<span class="text-red-500 font-bold">出金</span>'}</td>
           <td class="text-slate-600">${r.reason || ''}</td>
           <td class="text-slate-500 text-sm">${r.memo || ''}</td>
@@ -2589,7 +2602,7 @@
 
       if (carryover !== 0) {
         html += `<tr class="carryover-row">
-          <td class="font-mono text-sm">${month}-01</td>
+          <td class="font-mono text-sm">${formatDateWithDow(month + '-01')}</td>
           <td></td><td>📋 前月繰越</td><td></td><td></td><td></td>
           <td class="text-right font-mono font-black text-sky-700 text-base">¥${carryover.toLocaleString()}</td>
         </tr>`;
@@ -3419,7 +3432,7 @@
 
         return '<tr class="cursor-pointer hover:bg-blue-50/40 transition" onclick="openCreditCardEditModal(' + r.id + ')" title="クリックして編集">'
           + '<td class="text-center font-mono text-xs text-slate-400">' + (sorted.length - idx) + '</td>'
-          + '<td class="font-mono text-sm font-bold text-slate-700">' + r.date + '</td>'
+          + '<td class="font-mono text-sm font-bold text-slate-700">' + formatDateWithDow(r.date) + '</td>'
           + '<td class="text-center">' + statusBadge + '</td>'
           + '<td class="text-xs font-bold text-slate-600">' + (vehicle !== '-' ? '<span class="bg-slate-100 px-1.5 py-0.5 rounded">' + vehicle + '</span>' : '-') + '</td>'
           + '<td class="font-medium text-slate-800">' + supplier + '</td>'
