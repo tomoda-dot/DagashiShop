@@ -1,25 +1,121 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>📊 売上管理システム</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
-    * { touch-action: manipulation; }
-    body { background-color: #f1f5f9; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; touch-action: manipulation; }
-    .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
-    .card { background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }    .loading-overlay { background: rgba(255,255,255,0.8); display: none; position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
-    .regi-container .denom-label { font-size: 0.95rem; font-weight: 800; color: #334155; min-width: 70px; text-align: right; letter-spacing: -0.02em; }
-    .regi-container .input-box { border: 2px solid #cbd5e1; border-radius: 8px; text-align: center; font-family: monospace; font-size: 1.1rem; font-weight: 800; width: 80px; height: 44px; padding: 0 4px; background: #fff; color: #0f172a; outline: none; transition: border-color 0.15s; touch-action: manipulation; }
-    .regi-container .input-box:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
-    .regi-container .step-btn { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 900; cursor: pointer; border: none; user-select: none; -webkit-user-select: none; touch-action: manipulation; transition: background 0.15s, transform 0.1s; }
-    .regi-container .step-btn:active { transform: scale(0.92); }
-    .regi-container .step-btn-minus { color: #dc2626; background: #fee2e2; }
-    .regi-container .step-btn-minus:hover { background: #fca5a5; }
-    .regi-container .step-btn-plus { color: #2563eb; background: #dbeafe; }
-    .regi-container .step-btn-plus:hover { background: #bfdbfe; }
+    * {
+      touch-action: manipulation;
+    }
+
+    body {
+      background-color: #f1f5f9;
+      font-family: sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    .tab-active {
+      border-bottom: 3px solid #3b82f6;
+      color: #3b82f6;
+      font-weight: bold;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .loading-overlay {
+      background: rgba(255, 255, 255, 0.8);
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .regi-container .denom-label {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #334155;
+      min-width: 70px;
+      text-align: right;
+      letter-spacing: -0.02em;
+    }
+
+    .regi-container .input-box {
+      border: 2px solid #cbd5e1;
+      border-radius: 8px;
+      text-align: center;
+      font-family: monospace;
+      font-size: 1.1rem;
+      font-weight: 800;
+      width: 80px;
+      height: 44px;
+      padding: 0 4px;
+      background: #fff;
+      color: #0f172a;
+      outline: none;
+      transition: border-color 0.15s;
+      touch-action: manipulation;
+    }
+
+    .regi-container .input-box:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .regi-container .step-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 900;
+      cursor: pointer;
+      border: none;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .regi-container .step-btn:active {
+      transform: scale(0.92);
+    }
+
+    .regi-container .step-btn-minus {
+      color: #dc2626;
+      background: #fee2e2;
+    }
+
+    .regi-container .step-btn-minus:hover {
+      background: #fca5a5;
+    }
+
+    .regi-container .step-btn-plus {
+      color: #2563eb;
+      background: #dbeafe;
+    }
+
+    .regi-container .step-btn-plus:hover {
+      background: #bfdbfe;
+    }
+
     /* レジ締め金種コンテナ（PC用ベース設定：左列=10,000〜100、右列=50〜1の完全2列配置） */
     #denom-container {
       display: grid;
@@ -39,9 +135,11 @@
         justify-content: flex-start !important;
         scrollbar-width: none;
       }
+
       nav::-webkit-scrollbar {
         display: none;
       }
+
       nav button {
         flex: 0 0 auto !important;
         padding: 12px 18px !important;
@@ -59,10 +157,12 @@
         height: 100% !important;
         max-height: 100% !important;
       }
-      #content-regi > div {
+
+      #content-regi>div {
         width: 100% !important;
         flex: none !important;
       }
+
       #denom-container {
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
@@ -80,20 +180,26 @@
         height: 100% !important;
         max-height: 100% !important;
       }
+
       .summary-detail-table {
         table-layout: auto !important;
         min-width: 860px;
       }
-      .pettycash-table, .savings-table {
+
+      .pettycash-table,
+      .savings-table {
         table-layout: auto !important;
         min-width: 680px;
       }
-      #content-savings > .no-print,
-      #content-pettycash > .no-print {
+
+      #content-savings>.no-print,
+      #content-pettycash>.no-print {
         flex-wrap: wrap !important;
         gap: 8px !important;
       }
-      #content-savings, #content-pettycash {
+
+      #content-savings,
+      #content-pettycash {
         height: 100% !important;
         max-height: 100% !important;
         overflow-y: auto !important;
@@ -106,31 +212,38 @@
       header {
         padding: 8px 12px !important;
       }
+
       header h1 {
         font-size: 1rem !important;
       }
+
       #denom-container {
         grid-template-columns: 1fr !important;
         grid-auto-flow: row !important;
         grid-template-rows: none !important;
         gap: 6px !important;
       }
+
       #content-regi {
         padding: 8px 8px 90px 8px !important;
         gap: 12px !important;
       }
+
       .denom-row {
         padding: 6px 8px !important;
       }
+
       .regi-container .denom-label {
         font-size: 0.88rem !important;
         min-width: 58px !important;
         white-space: nowrap !important;
         flex-shrink: 0 !important;
       }
+
       .denom-controls {
         gap: 4px !important;
       }
+
       .roll-select {
         width: 48px !important;
         height: 36px !important;
@@ -138,11 +251,13 @@
         padding: 0 2px !important;
         flex-shrink: 0 !important;
       }
+
       .roll-spacer {
         width: 48px !important;
         height: 36px !important;
         flex-shrink: 0 !important;
       }
+
       .regi-container .step-btn {
         width: 36px !important;
         height: 36px !important;
@@ -150,6 +265,7 @@
         border-radius: 8px !important;
         flex-shrink: 0 !important;
       }
+
       .regi-container .input-box {
         width: 56px !important;
         height: 36px !important;
@@ -158,12 +274,13 @@
         border-radius: 6px !important;
         flex-shrink: 0 !important;
       }
+
       .top-back-btn {
         padding: 8px 16px !important;
         font-size: 12px !important;
         bottom: 12px !important;
         right: 12px !important;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.2) !important;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2) !important;
       }
     }
 
@@ -173,64 +290,123 @@
         font-size: 0.82rem !important;
         min-width: 52px !important;
       }
-      .roll-select, .roll-spacer {
+
+      .roll-select,
+      .roll-spacer {
         width: 42px !important;
       }
+
       .regi-container .step-btn {
         width: 32px !important;
         height: 32px !important;
         font-size: 1.1rem !important;
       }
+
       .regi-container .input-box {
         width: 48px !important;
         height: 32px !important;
         font-size: 0.95rem !important;
       }
     }
-    #notification { display: none; position: fixed; top: 20px; right: 20px; z-index: 1000; min-width: 250px; }
-    details summary::-webkit-details-marker { display: none; }
+
+    #notification {
+      display: none;
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      min-width: 250px;
+    }
+
+    details summary::-webkit-details-marker {
+      display: none;
+    }
 
     /* 明細テーブル */
 
     /* 印刷用スタイル */
-    .no-print { }
-    .print-only { display: none !important; }
+    .no-print {}
+
+    .print-only {
+      display: none !important;
+    }
+
     @media print {
-      body { background: white !important; height: auto !important; overflow: visible !important; }
-      header, nav, .no-print, .loading-overlay,
-      #content-summary, #content-regi, #content-detail, #content-config, #content-pettycash,
-      .edit-modal-overlay, #savings-add-modal { display: none !important; }
+      body {
+        background: white !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
 
-      main { overflow: visible !important; height: auto !important; }
+      header,
+      nav,
+      .no-print,
+      .loading-overlay,
+      #content-summary,
+      #content-regi,
+      #content-detail,
+      #content-config,
+      #content-pettycash,
+      .edit-modal-overlay,
+      #savings-add-modal {
+        display: none !important;
+      }
+
+      main {
+        overflow: visible !important;
+        height: auto !important;
+      }
+
       #content-savings {
-        display: flex !important; overflow: visible !important;
-        height: auto !important; padding: 0 !important;
-      }
-      #content-savings > div:last-child {
-        overflow: visible !important; height: auto !important;
-        box-shadow: none !important; border: none !important;
+        display: flex !important;
+        overflow: visible !important;
+        height: auto !important;
+        padding: 0 !important;
       }
 
-      .print-only { display: block !important; }
+      #content-savings>div:last-child {
+        overflow: visible !important;
+        height: auto !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
 
-      .detail-table { font-size: 8pt; }
+      .print-only {
+        display: block !important;
+      }
+
+      .detail-table {
+        font-size: 8pt;
+      }
+
       .detail-table th {
-        background: #333 !important; color: white !important;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact;
-        padding: 3px 6px; font-size: 7pt;
+        background: #333 !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        padding: 3px 6px;
+        font-size: 7pt;
       }
+
       .detail-table td {
-        padding: 2px 6px; border-bottom: 1px solid #ccc;
-        font-size: 8pt; line-height: 1.3;
+        padding: 2px 6px;
+        border-bottom: 1px solid #ccc;
+        font-size: 8pt;
+        line-height: 1.3;
       }
+
       .detail-table tr.carryover-row td {
         background: #e8f4f8 !important;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact;
-        border-top: 1.5px solid #666; border-bottom: 1.5px solid #666;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        border-top: 1.5px solid #666;
+        border-bottom: 1.5px solid #666;
       }
+
       .detail-table tr.withdrawal-row td {
         background: #fff0f0 !important;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
 
       @page {
@@ -239,172 +415,505 @@
       }
     }
 
-    .detail-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; table-layout: auto; }
+    .detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      table-layout: auto;
+    }
+
     .detail-table th {
-      background: #1e293b; color: white;
-      padding: 10px 12px; text-align: center;
-      font-size: 0.75rem; font-weight: 700;
-      letter-spacing: 0.05em; white-space: nowrap;
-      position: sticky; top: 0; z-index: 10;
+      background: #1e293b;
+      color: white;
+      padding: 10px 12px;
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
-    .detail-table th.text-right { text-align: center !important; }
-    .detail-table td.text-right { text-align: right !important; }
-    .detail-table th, .detail-table td {
-      border-right: 1px solid rgba(148,163,184,0.25);
+
+    .detail-table th.text-right {
+      text-align: center !important;
     }
+
+    .detail-table td.text-right {
+      text-align: right !important;
+    }
+
+    .detail-table th,
+    .detail-table td {
+      border-right: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
     .detail-table th {
-      border-right: 1px solid rgba(255,255,255,0.15);
+      border-right: 1px solid rgba(255, 255, 255, 0.15);
     }
-    .detail-table th:last-child, .detail-table td:last-child {
+
+    .detail-table th:last-child,
+    .detail-table td:last-child {
       border-right: none;
     }
+
     .detail-table td {
-      padding: 8px 12px; border-bottom: 1px solid #f1f5f9;
-      white-space: nowrap; color: #334155;
+      padding: 8px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      white-space: nowrap;
+      color: #334155;
       min-width: 60px;
     }
+
     .detail-table th:nth-child(7),
-    .detail-table td:nth-child(7) { min-width: 80px; }
+    .detail-table td:nth-child(7) {
+      min-width: 80px;
+    }
+
     .detail-table th:nth-child(8),
     .detail-table td:nth-child(8),
     .detail-table th:nth-child(9),
-    .detail-table td:nth-child(9) { min-width: 75px; }
-    .detail-table tr:hover td { background: #f8fafc; }
-    .detail-table tr.free-row td  { background: #fff7ed; }
-    .detail-table tr.disc-row td  { background: #fefce8; }
-    .detail-table tr.void-row td  { background: #f8fafc; color: #94a3b8; text-decoration: line-through; opacity: 0.6; }
-    .detail-table tr.carryover-row td {
-      background: #f0f9ff; font-weight: 700; color: #0369a1;
-      border-top: 2px solid #7dd3fc; border-bottom: 2px solid #7dd3fc;
+    .detail-table td:nth-child(9) {
+      min-width: 75px;
     }
-    .detail-table tr.deposit-row td  { }
-    .detail-table tr.withdrawal-row td { background: #fef2f2; }
+
+    .detail-table tr:hover td {
+      background: #f8fafc;
+    }
+
+    .detail-table tr.free-row td {
+      background: #fff7ed;
+    }
+
+    .detail-table tr.disc-row td {
+      background: #fefce8;
+    }
+
+    .detail-table tr.void-row td {
+      background: #f8fafc;
+      color: #94a3b8;
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+
+    .detail-table tr.carryover-row td {
+      background: #f0f9ff;
+      font-weight: 700;
+      color: #0369a1;
+      border-top: 2px solid #7dd3fc;
+      border-bottom: 2px solid #7dd3fc;
+    }
+
+    .detail-table tr.deposit-row td {}
+
+    .detail-table tr.withdrawal-row td {
+      background: #fef2f2;
+    }
 
     /* 小口現金テーブル：列幅を固定してヘッダーとずれないように */
-    .pettycash-table { table-layout: fixed; }
-    .pettycash-table th:nth-child(1), .pettycash-table td:nth-child(1) { width: 13%; }
-    .pettycash-table th:nth-child(2), .pettycash-table td:nth-child(2) { width: 8%; }
-    .pettycash-table th:nth-child(3), .pettycash-table td:nth-child(3) { width: 14%; }
-    .pettycash-table th:nth-child(4), .pettycash-table td:nth-child(4) { width: 30%; white-space: normal; }
-    .pettycash-table th:nth-child(5), .pettycash-table td:nth-child(5) { width: 12%; }
-    .pettycash-table th:nth-child(6), .pettycash-table td:nth-child(6) { width: 12%; }
-    .pettycash-table th:nth-child(7), .pettycash-table td:nth-child(7) { width: 11%; }
+    .pettycash-table {
+      table-layout: fixed;
+    }
+
+    .pettycash-table th:nth-child(1),
+    .pettycash-table td:nth-child(1) {
+      width: 13%;
+    }
+
+    .pettycash-table th:nth-child(2),
+    .pettycash-table td:nth-child(2) {
+      width: 8%;
+    }
+
+    .pettycash-table th:nth-child(3),
+    .pettycash-table td:nth-child(3) {
+      width: 14%;
+    }
+
+    .pettycash-table th:nth-child(4),
+    .pettycash-table td:nth-child(4) {
+      width: 30%;
+      white-space: normal;
+    }
+
+    .pettycash-table th:nth-child(5),
+    .pettycash-table td:nth-child(5) {
+      width: 12%;
+    }
+
+    .pettycash-table th:nth-child(6),
+    .pettycash-table td:nth-child(6) {
+      width: 12%;
+    }
+
+    .pettycash-table th:nth-child(7),
+    .pettycash-table td:nth-child(7) {
+      width: 11%;
+    }
 
     /* 明細管理テーブル：列幅を固定 */
-    .summary-detail-table { table-layout: fixed; }
-    .summary-detail-table th:nth-child(1), .summary-detail-table td:nth-child(1) { width: 13%; }
-    .summary-detail-table th:nth-child(2), .summary-detail-table td:nth-child(2) { width: 12%; }
-    .summary-detail-table th:nth-child(3), .summary-detail-table td:nth-child(3) { width: 7%; }
-    .summary-detail-table th:nth-child(4), .summary-detail-table td:nth-child(4) { width: 20%; white-space: normal; }
-    .summary-detail-table th:nth-child(5), .summary-detail-table td:nth-child(5) { width: 9%; }
-    .summary-detail-table th:nth-child(6), .summary-detail-table td:nth-child(6) { width: 7%; }
-    .summary-detail-table th:nth-child(7), .summary-detail-table td:nth-child(7) { width: 9%; }
-    .summary-detail-table th:nth-child(8), .summary-detail-table td:nth-child(8) { width: 9%; }
-    .summary-detail-table th:nth-child(9), .summary-detail-table td:nth-child(9) { width: 8%; }
-    .summary-detail-table th:nth-child(10), .summary-detail-table td:nth-child(10) { width: 6%; }
-    .summary-detail-table th:nth-child(11), .summary-detail-table td:nth-child(11) { width: 10%; min-width: 90px; }
+    .summary-detail-table {
+      table-layout: fixed;
+    }
+
+    .summary-detail-table th:nth-child(1),
+    .summary-detail-table td:nth-child(1) {
+      width: 13%;
+    }
+
+    .summary-detail-table th:nth-child(2),
+    .summary-detail-table td:nth-child(2) {
+      width: 12%;
+    }
+
+    .summary-detail-table th:nth-child(3),
+    .summary-detail-table td:nth-child(3) {
+      width: 7%;
+    }
+
+    .summary-detail-table th:nth-child(4),
+    .summary-detail-table td:nth-child(4) {
+      width: 20%;
+      white-space: normal;
+    }
+
+    .summary-detail-table th:nth-child(5),
+    .summary-detail-table td:nth-child(5) {
+      width: 9%;
+    }
+
+    .summary-detail-table th:nth-child(6),
+    .summary-detail-table td:nth-child(6) {
+      width: 7%;
+    }
+
+    .summary-detail-table th:nth-child(7),
+    .summary-detail-table td:nth-child(7) {
+      width: 9%;
+    }
+
+    .summary-detail-table th:nth-child(8),
+    .summary-detail-table td:nth-child(8) {
+      width: 9%;
+    }
+
+    .summary-detail-table th:nth-child(9),
+    .summary-detail-table td:nth-child(9) {
+      width: 8%;
+    }
+
+    .summary-detail-table th:nth-child(10),
+    .summary-detail-table td:nth-child(10) {
+      width: 6%;
+    }
+
+    .summary-detail-table th:nth-child(11),
+    .summary-detail-table td:nth-child(11) {
+      width: 10%;
+      min-width: 90px;
+    }
 
     /* 積立金管理テーブル：列幅を固定 */
-    .savings-table { table-layout: fixed; }
-    .savings-table th:nth-child(1), .savings-table td:nth-child(1) { width: 14%; }
-    .savings-table th:nth-child(2), .savings-table td:nth-child(2) { width: 16%; }
-    .savings-table th:nth-child(3), .savings-table td:nth-child(3) { width: 28%; white-space: normal; }
-    .savings-table th:nth-child(4), .savings-table td:nth-child(4) { width: 14%; }
-    .savings-table th:nth-child(5), .savings-table td:nth-child(5) { width: 14%; }
-    .savings-table th:nth-child(6), .savings-table td:nth-child(6) { width: 14%; }
+    .savings-table {
+      table-layout: fixed;
+    }
+
+    .savings-table th:nth-child(1),
+    .savings-table td:nth-child(1) {
+      width: 14%;
+    }
+
+    .savings-table th:nth-child(2),
+    .savings-table td:nth-child(2) {
+      width: 16%;
+    }
+
+    .savings-table th:nth-child(3),
+    .savings-table td:nth-child(3) {
+      width: 28%;
+      white-space: normal;
+    }
+
+    .savings-table th:nth-child(4),
+    .savings-table td:nth-child(4) {
+      width: 14%;
+    }
+
+    .savings-table th:nth-child(5),
+    .savings-table td:nth-child(5) {
+      width: 14%;
+    }
+
+    .savings-table th:nth-child(6),
+    .savings-table td:nth-child(6) {
+      width: 14%;
+    }
 
     .badge {
-      display: inline-block; padding: 2px 8px;
-      border-radius: 999px; font-size: 0.7rem; font-weight: 700;
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
     }
-    .badge-normal { background: #dbeafe; color: #1e40af; }
-    .badge-free   { background: #fed7aa; color: #9a3412; }
-    .badge-disc   { background: #fef08a; color: #854d0e; }
-    .badge-void   { background: #f1f5f9; color: #94a3b8; }
+
+    .badge-normal {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .badge-free {
+      background: #fed7aa;
+      color: #9a3412;
+    }
+
+    .badge-disc {
+      background: #fef08a;
+      color: #854d0e;
+    }
+
+    .badge-void {
+      background: #f1f5f9;
+      color: #94a3b8;
+    }
 
     /* 操作ボタン */
     .btn-edit {
-      background: #eff6ff; border: 1px solid #bfdbfe;
-      color: #1d4ed8; border-radius: 6px; padding: 3px 8px;
-      font-size: 0.72rem; font-weight: 700; cursor: pointer;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
       white-space: nowrap;
     }
+
     .btn-void {
-      background: #fff1f2; border: 1px solid #fecdd3;
-      color: #be123c; border-radius: 6px; padding: 3px 8px;
-      font-size: 0.72rem; font-weight: 700; cursor: pointer;
-      white-space: nowrap; margin-left: 4px;
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      color: #be123c;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      margin-left: 4px;
     }
-    .btn-edit:hover { background: #dbeafe; }
-    .btn-void:hover { background: #ffe4e6; }
+
+    .btn-edit:hover {
+      background: #dbeafe;
+    }
+
+    .btn-void:hover {
+      background: #ffe4e6;
+    }
 
     /* 編集モーダル */
     .edit-modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5); z-index: 200;
-      align-items: center; justify-content: center;
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
     }
-    .edit-modal-overlay.show { display: flex; }
+
+    .edit-modal-overlay.show {
+      display: flex;
+    }
+
     .edit-modal {
-      background: white; border-radius: 16px;
-      padding: 24px; width: 90vw; max-width: 500px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      width: 90vw;
+      max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
     }
-    .edit-modal h3 { font-size: 1rem; font-weight: 800; color: #1e293b; margin-bottom: 16px; }
-    .edit-field { display: flex; flex-direction: column; gap: 3px; margin-bottom: 12px; }
-    .edit-label { font-size: 0.72rem; font-weight: 700; color: #64748b; }
+
+    .edit-modal h3 {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #1e293b;
+      margin-bottom: 16px;
+    }
+
+    .edit-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-bottom: 12px;
+    }
+
+    .edit-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #64748b;
+    }
+
     .edit-input {
-      border: 2px solid #e2e8f0; border-radius: 8px;
-      padding: 8px 10px; font-size: 0.9rem; color: #1e293b; outline: none;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.9rem;
+      color: #1e293b;
+      outline: none;
     }
-    .edit-input:focus { border-color: #3b82f6; }
-    .edit-actions { display: flex; gap: 8px; margin-top: 16px; }
+
+    .edit-input:focus {
+      border-color: #3b82f6;
+    }
+
+    .edit-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
     .btn-save-edit {
-      flex: 1; background: #2563eb; color: white; border: none;
-      border-radius: 10px; padding: 12px; font-weight: 800;
-      font-size: 0.95rem; cursor: pointer;
+      flex: 1;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
     }
+
     .btn-cancel-edit {
-      background: #f1f5f9; color: #64748b; border: none;
-      border-radius: 10px; padding: 12px; font-weight: 700;
-      font-size: 0.95rem; cursor: pointer;
+      background: #f1f5f9;
+      color: #64748b;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
     }
 
     /* 日付ピッカー */
     #detail-date-input {
-      border: 2px solid #cbd5e1; border-radius: 8px;
-      padding: 6px 12px; font-size: 0.9rem; font-weight: 700;
-      color: #334155; outline: none; cursor: pointer;
+      border: 2px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #334155;
+      outline: none;
+      cursor: pointer;
       background: white;
     }
-    #detail-date-input:focus { border-color: #3b82f6; }
+
+    #detail-date-input:focus {
+      border-color: #3b82f6;
+    }
+
+    /* Windowsの日付形式による空カッコ () を防ぎ曜日を正しく表示するカスタム日付ラッパー */
+    .jp-date-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .jp-date-wrap.w-full {
+      display: flex;
+      width: 100%;
+    }
+
+    input[type="date"].jp-date-enhanced::-webkit-datetime-edit,
+    input[type="date"].jp-date-enhanced::-webkit-datetime-edit-fields-wrapper,
+    input[type="date"].jp-date-enhanced::-webkit-datetime-edit-text,
+    input[type="date"].jp-date-enhanced::-webkit-datetime-edit-year-field,
+    input[type="date"].jp-date-enhanced::-webkit-datetime-edit-month-field,
+    input[type="date"].jp-date-enhanced::-webkit-datetime-edit-day-field {
+      color: transparent !important;
+      opacity: 0 !important;
+    }
+
+    .jp-date-overlay {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      white-space: nowrap;
+      user-select: none;
+    }
 
     /* 集計バー */
     .summary-bar {
-      display: flex; gap: 16px; flex-wrap: wrap;
-      background: white; border-radius: 10px;
-      padding: 10px 16px; margin-bottom: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: white;
+      border-radius: 10px;
+      padding: 10px 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
     }
-    .summary-item { text-align: center; }
-    .summary-item .label { font-size: 0.68rem; color: #94a3b8; font-weight: 700; }
-    .summary-item .value { font-size: 1.1rem; font-weight: 800; color: #1e293b; }
-    .summary-item .value.green { color: #16a34a; }
-    .summary-item .value.red   { color: #dc2626; }
+
+    .summary-item {
+      text-align: center;
+    }
+
+    .summary-item .label {
+      font-size: 0.68rem;
+      color: #94a3b8;
+      font-weight: 700;
+    }
+
+    .summary-item .value {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #1e293b;
+    }
+
+    .summary-item .value.green {
+      color: #16a34a;
+    }
+
+    .summary-item .value.red {
+      color: #dc2626;
+    }
 
     .top-back-btn {
-      position: fixed; bottom: 20px; right: 20px; z-index: 9999;
-      background: #f49576; color: white; border: none;
-      padding: 14px 24px; border-radius: 50px; font-weight: bold;
-      font-size: 14px; text-decoration: none; font-family: sans-serif;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3); opacity: 0.85; transition: 0.3s;
-      display: inline-flex; align-items: center; justify-content: center;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      background: #f49576;
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 50px;
+      font-weight: bold;
+      font-size: 14px;
+      text-decoration: none;
+      font-family: sans-serif;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      opacity: 0.85;
+      transition: 0.3s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
-    .top-back-btn:hover { opacity: 1; transform: scale(1.05); }
+
+    .top-back-btn:hover {
+      opacity: 1;
+      transform: scale(1.05);
+    }
   </style>
 </head>
+
 <body>
-<a href="index.html" class="top-back-btn">メニューに戻る</a>
+  <a href="index.html" class="top-back-btn">メニューに戻る</a>
 
   <div id="notification" class="p-4 rounded-lg shadow-xl font-bold text-white transition-all duration-300"></div>
 
@@ -423,12 +932,14 @@
 
   <nav class="bg-white flex border-b sticky z-40">
     <button onclick="switchTab('summary')" id="tab-summary" class="flex-1 py-3 text-sm tab-active">📊 日計表</button>
-    <button onclick="switchTab('regi')"    id="tab-regi"    class="flex-1 py-3 text-sm text-gray-500">🧮 レジ締め入力</button>
-    <button onclick="switchTab('detail')"  id="tab-detail"  class="flex-1 py-3 text-sm text-gray-500">📋 明細管理</button>
+    <button onclick="switchTab('regi')" id="tab-regi" class="flex-1 py-3 text-sm text-gray-500">🧮 レジ締め入力</button>
+    <button onclick="switchTab('detail')" id="tab-detail" class="flex-1 py-3 text-sm text-gray-500">📋 明細管理</button>
     <button onclick="switchTab('savings')" id="tab-savings" class="flex-1 py-3 text-sm text-gray-500">💰 積立金管理</button>
-    <button onclick="switchTab('pettycash')" id="tab-pettycash" class="flex-1 py-3 text-sm text-gray-500">💴 小口現金</button>
-    <button onclick="switchTab('creditcard')" id="tab-creditcard" class="flex-1 py-3 text-sm text-gray-500">💳 ガソリンカード</button>
-    <button onclick="switchTab('config')"  id="tab-config"  class="flex-1 py-3 text-sm text-gray-500">⚙️ 設定</button>
+    <button onclick="switchTab('pettycash')" id="tab-pettycash" class="flex-1 py-3 text-sm text-gray-500">💴
+      小口現金</button>
+    <button onclick="switchTab('creditcard')" id="tab-creditcard" class="flex-1 py-3 text-sm text-gray-500">💳
+      ガソリンカード</button>
+    <button onclick="switchTab('config')" id="tab-config" class="flex-1 py-3 text-sm text-gray-500">⚙️ 設定</button>
   </nav>
 
   <main class="flex-1 overflow-hidden relative">
@@ -439,7 +950,9 @@
     <!-- 日計表 -->
     <section id="content-summary" class="p-4 max-w-4xl mx-auto overflow-y-auto h-full">
       <div class="flex items-center gap-3 mb-4">
-        <select id="month-selector" class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none" onchange="filterDataByMonth()"></select>
+        <select id="month-selector"
+          class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+          onchange="filterDataByMonth()"></select>
         <span class="text-sm text-slate-400 font-medium" id="summary-count"></span>
       </div>
       <div id="summary-cards" class="grid gap-4"></div>
@@ -451,13 +964,20 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col">
           <div class="flex flex-wrap justify-between items-center gap-2 mb-3 pb-2 border-b border-slate-100">
             <div class="flex items-center gap-2">
-              <input type="date" id="target-date-input" class="text-base md:text-lg font-bold text-slate-700 border-2 border-blue-300 rounded-xl px-3 py-1.5 outline-none shadow-sm focus:border-blue-500" onchange="onDateChange()" />
+              <input type="date" id="target-date-input"
+                class="text-base md:text-lg font-bold text-slate-700 border-2 border-blue-300 rounded-xl px-3 py-1.5 outline-none shadow-sm focus:border-blue-500"
+                onchange="onDateChange()" />
               <h2 id="target-date-display" class="text-lg font-bold text-slate-700 italic hidden"></h2>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-              <button onclick="clearRegiCounts()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1 active:scale-95">🧹 クリア</button>
-              <button onclick="applyRegiDefaults(true)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1 active:scale-95">📥 初期値</button>
-              <select id="in-location" class="bg-blue-50 border-2 border-blue-200 text-blue-700 font-bold px-3 py-1.5 rounded-xl text-xs md:text-sm outline-none cursor-pointer">
+              <button onclick="clearRegiCounts()"
+                class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1 active:scale-95">🧹
+                クリア</button>
+              <button onclick="applyRegiDefaults(true)"
+                class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1 active:scale-95">📥
+                初期値</button>
+              <select id="in-location"
+                class="bg-blue-50 border-2 border-blue-200 text-blue-700 font-bold px-3 py-1.5 rounded-xl text-xs md:text-sm outline-none cursor-pointer">
                 <option value="事業所" selected>事業所</option>
                 <option value="外販">外販</option>
               </select>
@@ -488,11 +1008,14 @@
               <span class="text-slate-500 font-medium">固定準備金</span>
               <div class="flex items-center gap-1">
                 <span class="text-slate-400 text-sm">¥</span>
-                <input type="number" id="in-fixed" class="font-bold font-mono text-right border-2 border-slate-200 rounded-lg px-2 py-1 w-28 outline-none focus:border-blue-300" value="33300" oninput="onFixedChange()">
+                <input type="number" id="in-fixed"
+                  class="font-bold font-mono text-right border-2 border-slate-200 rounded-lg px-2 py-1 w-28 outline-none focus:border-blue-300"
+                  value="33300" oninput="onFixedChange()">
               </div>
             </div>
             <div class="flex justify-between items-center border-b border-slate-50 pb-1">
-              <select id="reconcile-type" onchange="onReconcileTypeChange()" class="bg-blue-50 border-2 border-blue-200 text-blue-700 font-bold px-2 py-1 rounded-lg text-xs md:text-sm outline-none cursor-pointer">
+              <select id="reconcile-type" onchange="onReconcileTypeChange()"
+                class="bg-blue-50 border-2 border-blue-200 text-blue-700 font-bold px-2 py-1 rounded-lg text-xs md:text-sm outline-none cursor-pointer">
                 <option value="sales" selected>本日の売上合計</option>
                 <option value="savings">積立金</option>
                 <option value="pettycash">小口現金</option>
@@ -505,9 +1028,12 @@
             </div>
             <div class="text-left">
               <label class="text-xs font-bold text-slate-400 mb-1 block uppercase">備考</label>
-              <textarea id="in-memo" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-2 text-sm focus:border-blue-300 outline-none transition" rows="2" placeholder="備考を入力"></textarea>
+              <textarea id="in-memo"
+                class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-2 text-sm focus:border-blue-300 outline-none transition"
+                rows="2" placeholder="備考を入力"></textarea>
             </div>
-            <button onclick="executeSave()" id="save-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl font-bold text-sm shadow flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+            <button onclick="executeSave()" id="save-btn"
+              class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl font-bold text-sm shadow flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
               <span class="material-icons text-sm">cloud_done</span> 保存して確定
             </button>
           </div>
@@ -522,7 +1048,8 @@
       <div class="flex items-center gap-3 flex-shrink-0" style="flex-wrap:wrap;">
         <label class="text-sm font-bold text-slate-600">📅 日付：</label>
         <input type="date" id="detail-date-input" onchange="loadDetailData()">
-        <button onclick="loadDetailData()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+        <button onclick="loadDetailData()"
+          class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">search</span> 表示
         </button>
         <input type="text" id="detail-search" placeholder="商品名・金額で検索..." oninput="filterDetailTable()"
@@ -577,7 +1104,9 @@
             </tr>
           </thead>
           <tbody id="detail-tbody">
-            <tr><td colspan="10" class="text-center text-slate-400 py-12">日付を選択して「表示」を押してください</td></tr>
+            <tr>
+              <td colspan="10" class="text-center text-slate-400 py-12">日付を選択して「表示」を押してください</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -586,7 +1115,8 @@
     <!-- クレジットカード管理（ガソリン等・レシート提出） -->
     <section id="content-creditcard" class="hidden h-full flex flex-col p-4 gap-3 overflow-hidden">
       <!-- 案内バナー -->
-      <div class="bg-blue-50 border border-blue-200 text-blue-800 px-3.5 py-2 rounded-xl text-xs flex items-center justify-between no-print">
+      <div
+        class="bg-blue-50 border border-blue-200 text-blue-800 px-3.5 py-2 rounded-xl text-xs flex items-center justify-between no-print">
         <div class="flex items-center gap-2">
           <span class="material-icons text-blue-600 text-base">receipt_long</span>
           <span><b>事務方決済・現場レシート管理：</b> カード代金は事務方口座から引き落とされます。現場では給油レシートを記録・保管し、月末に印刷して事務方へ提出します（小口現金残高には影響しません）。</span>
@@ -595,17 +1125,23 @@
 
       <!-- 操作バー -->
       <div class="flex items-center gap-3 flex-shrink-0 no-print">
-        <select id="creditcard-month-selector" class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none" onchange="filterCreditCardByMonth()"></select>
-        <button onclick="loadCreditCardData()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+        <select id="creditcard-month-selector"
+          class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+          onchange="filterCreditCardByMonth()"></select>
+        <button onclick="loadCreditCardData()"
+          class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">refresh</span> 更新
         </button>
-        <button onclick="openCreditCardModal()" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+        <button onclick="openCreditCardModal()"
+          class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">receipt</span> レシートを記録
         </button>
-        <button onclick="printCreditCardReport()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+        <button onclick="printCreditCardReport()"
+          class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">print</span> 提出用印刷
         </button>
-        <button onclick="exportCreditCardCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+        <button onclick="exportCreditCardCSV()"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">file_download</span> CSV
         </button>
         <span id="creditcard-status" class="text-sm text-slate-400 font-medium"></span>
@@ -638,7 +1174,9 @@
             </tr>
           </thead>
           <tbody id="creditcard-tbody">
-            <tr><td colspan="9" class="text-center text-slate-400 py-12">「更新」を押してデータを読み込んでください</td></tr>
+            <tr>
+              <td colspan="9" class="text-center text-slate-400 py-12">「更新」を押してデータを読み込んでください</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -649,14 +1187,19 @@
 
       <!-- 操作バー -->
       <div class="flex items-center gap-3 flex-shrink-0 no-print">
-        <select id="savings-month-selector" class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none" onchange="filterSavingsByMonth()"></select>
-        <button onclick="loadSavingsData()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+        <select id="savings-month-selector"
+          class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+          onchange="filterSavingsByMonth()"></select>
+        <button onclick="loadSavingsData()"
+          class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">refresh</span> 更新
         </button>
-        <button onclick="openSavingsAddModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+        <button onclick="openSavingsAddModal()"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">add</span> 出金を追加
         </button>
-        <button onclick="printSavings()" class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+        <button onclick="printSavings()"
+          class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">print</span> 印刷
         </button>
         <span id="savings-status" class="text-sm text-slate-400 font-medium"></span>
@@ -691,7 +1234,9 @@
             </tr>
           </thead>
           <tbody id="savings-tbody">
-            <tr><td colspan="6" class="text-center text-slate-400 py-12">「更新」を押してデータを読み込んでください</td></tr>
+            <tr>
+              <td colspan="6" class="text-center text-slate-400 py-12">「更新」を押してデータを読み込んでください</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -702,17 +1247,23 @@
 
       <!-- 操作バー -->
       <div class="flex items-center gap-3 flex-shrink-0 no-print">
-        <select id="pettycash-month-selector" class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none" onchange="filterPettyCashByMonth()"></select>
-        <button onclick="loadPettyCashData()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+        <select id="pettycash-month-selector"
+          class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+          onchange="filterPettyCashByMonth()"></select>
+        <button onclick="loadPettyCashData()"
+          class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">refresh</span> 更新
         </button>
-        <button onclick="openPettyCashModal('入金')" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+        <button onclick="openPettyCashModal('入金')"
+          class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">add</span> 入金を追加
         </button>
-        <button onclick="openPettyCashModal('出金')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+        <button onclick="openPettyCashModal('出金')"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">remove</span> 出金を追加
         </button>
-        <button onclick="printPettyCash()" class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+        <button onclick="printPettyCash()"
+          class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
           <span class="material-icons text-sm">print</span> 印刷
         </button>
         <span id="pettycash-status" class="text-sm text-slate-400 font-medium"></span>
@@ -739,67 +1290,35 @@
             </tr>
           </thead>
           <tbody id="pettycash-tbody">
-            <tr><td colspan="8" class="text-center text-slate-400 py-12">「更新」を押してデータを読み込んでください</td></tr>
+            <tr>
+              <td colspan="8" class="text-center text-slate-400 py-12">「更新」を押してデータを読み込んでください</td>
+            </tr>
           </tbody>
         </table>
       </div>
     </section>
 
     <!-- 小口現金 編集モーダル -->
-  <div id="pettycash-edit-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
-      <h3 class="font-bold text-lg mb-4" id="pettycash-edit-title">✏️ 編集</h3>
-      <input type="hidden" id="pettycash-edit-id">
-      <input type="hidden" id="pettycash-edit-type">
-      <div class="space-y-3">
-        <div>
-          <label class="text-xs font-bold text-slate-500 block mb-1">日付</label>
-          <input type="date" id="pettycash-edit-date" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
-        </div>
-        <div>
-          <label class="text-xs font-bold text-slate-500 block mb-1">金額（円）</label>
-          <input type="number" id="pettycash-edit-amount" min="0" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
-        </div>
-        <div id="pettycash-edit-category-wrap">
-          <label class="text-xs font-bold text-slate-500 block mb-1">内訳</label>
-          <select id="pettycash-edit-category" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
-            <option value="消耗品費">消耗品費</option>
-            <option value="旅費交通費">旅費交通費</option>
-            <option value="通信費">通信費</option>
-            <option value="水道光熱費">水道光熱費</option>
-            <option value="新聞図書費">新聞図書費</option>
-            <option value="雑費">雑費</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs font-bold text-slate-500 block mb-1">内容（摘要）</label>
-          <textarea id="pettycash-edit-memo" rows="2" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none"></textarea>
-        </div>
-      </div>
-      <div class="flex gap-2 mt-5">
-        <button onclick="deletePettyCashRowById()" class="bg-red-500 hover:bg-red-400 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition">削除</button>
-        <button onclick="closePettyCashEditModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
-        <button onclick="savePettyCashEdit()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 小口現金 入出金モーダル -->
-    <div id="pettycash-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+    <div id="pettycash-edit-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
       <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
-        <h3 class="font-bold text-lg mb-4" id="pettycash-modal-title">入金を追加</h3>
+        <h3 class="font-bold text-lg mb-4" id="pettycash-edit-title">✏️ 編集</h3>
+        <input type="hidden" id="pettycash-edit-id">
+        <input type="hidden" id="pettycash-edit-type">
         <div class="space-y-3">
           <div>
             <label class="text-xs font-bold text-slate-500 block mb-1">日付</label>
-            <input type="date" id="pettycash-date" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+            <input type="date" id="pettycash-edit-date"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
           </div>
           <div>
             <label class="text-xs font-bold text-slate-500 block mb-1">金額（円）</label>
-            <input type="number" id="pettycash-amount" min="0" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="0">
+            <input type="number" id="pettycash-edit-amount" min="0"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
           </div>
-          <div id="pettycash-category-wrap">
+          <div id="pettycash-edit-category-wrap">
             <label class="text-xs font-bold text-slate-500 block mb-1">内訳</label>
-            <select id="pettycash-category" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+            <select id="pettycash-edit-category"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
               <option value="消耗品費">消耗品費</option>
               <option value="旅費交通費">旅費交通費</option>
               <option value="通信費">通信費</option>
@@ -810,12 +1329,60 @@
           </div>
           <div>
             <label class="text-xs font-bold text-slate-500 block mb-1">内容（摘要）</label>
-            <input type="text" id="pettycash-memo" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="例：コピー用紙購入、タクシー代など">
+            <textarea id="pettycash-edit-memo" rows="2"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none"></textarea>
+          </div>
+        </div>
+        <div class="flex gap-2 mt-5">
+          <button onclick="deletePettyCashRowById()"
+            class="bg-red-500 hover:bg-red-400 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition">削除</button>
+          <button onclick="closePettyCashEditModal()"
+            class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
+          <button onclick="savePettyCashEdit()"
+            class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 小口現金 入出金モーダル -->
+    <div id="pettycash-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+      <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
+        <h3 class="font-bold text-lg mb-4" id="pettycash-modal-title">入金を追加</h3>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">日付</label>
+            <input type="date" id="pettycash-date"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">金額（円）</label>
+            <input type="number" id="pettycash-amount" min="0"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="0">
+          </div>
+          <div id="pettycash-category-wrap">
+            <label class="text-xs font-bold text-slate-500 block mb-1">内訳</label>
+            <select id="pettycash-category"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+              <option value="消耗品費">消耗品費</option>
+              <option value="旅費交通費">旅費交通費</option>
+              <option value="通信費">通信費</option>
+              <option value="水道光熱費">水道光熱費</option>
+              <option value="新聞図書費">新聞図書費</option>
+              <option value="雑費">雑費</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">内容（摘要）</label>
+            <input type="text" id="pettycash-memo"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
+              placeholder="例：コピー用紙購入、タクシー代など">
           </div>
           <div>
             <label class="text-xs font-bold text-slate-500 block mb-1">支払先</label>
             <div class="flex gap-2">
-              <select id="pettycash-supplier-select" class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" onchange="onPettyCashSupplierSelect()">
+              <select id="pettycash-supplier-select"
+                class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
+                onchange="onPettyCashSupplierSelect()">
                 <option value="">-- 選択 --</option>
                 <option>やまや（ダイソー）</option>
                 <option>スギ薬局</option>
@@ -831,16 +1398,22 @@
                 <option>その他（直接入力）</option>
               </select>
             </div>
-            <input type="text" id="pettycash-supplier" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none mt-1" placeholder="支払先を入力">
+            <input type="text" id="pettycash-supplier"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none mt-1"
+              placeholder="支払先を入力">
           </div>
           <div>
             <label class="text-xs font-bold text-slate-500 block mb-1">備考（任意）</label>
-            <textarea id="pettycash-note" rows="2" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none" placeholder="その他メモ"></textarea>
+            <textarea id="pettycash-note" rows="2"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none"
+              placeholder="その他メモ"></textarea>
           </div>
         </div>
         <div class="flex gap-2 mt-5">
-          <button onclick="closePettyCashModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
-          <button onclick="savePettyCashRow()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
+          <button onclick="closePettyCashModal()"
+            class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
+          <button onclick="savePettyCashRow()"
+            class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
         </div>
       </div>
     </div>
@@ -858,11 +1431,13 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="text-xs font-bold text-slate-500 block mb-1">給油・利用日</label>
-              <input type="date" id="creditcard-date" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-mono">
+              <input type="date" id="creditcard-date"
+                class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-mono">
             </div>
             <div>
               <label class="text-xs font-bold text-slate-500 block mb-1">レシート状況</label>
-              <select id="creditcard-status-select" class="w-full border-2 border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none">
+              <select id="creditcard-status-select"
+                class="w-full border-2 border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none">
                 <option value="🧾 保管済">🧾 保管済（手元）</option>
                 <option value="📤 事務提出済">📤 事務方へ提出済</option>
                 <option value="⚠️ レシート未着">⚠️ レシート未着</option>
@@ -871,32 +1446,39 @@
           </div>
 
           <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">レシート金額（税込）<span class="text-red-500">*</span></label>
+            <label class="text-xs font-bold text-slate-500 block mb-1">レシート金額（税込）<span
+                class="text-red-500">*</span></label>
             <div class="relative">
               <span class="absolute left-3 top-2 text-slate-400 font-bold font-mono">¥</span>
-              <input type="number" id="creditcard-amount" min="1" placeholder="4700" class="w-full border-2 border-slate-200 rounded-lg pl-7 pr-3 py-2 text-base font-bold font-mono outline-none">
+              <input type="number" id="creditcard-amount" min="1" placeholder="4700"
+                class="w-full border-2 border-slate-200 rounded-lg pl-7 pr-3 py-2 text-base font-bold font-mono outline-none">
             </div>
           </div>
 
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="text-xs font-bold text-slate-500 block mb-1">対象車両</label>
-              <select id="creditcard-vehicle" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-medium">
+              <select id="creditcard-vehicle"
+                class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-medium">
                 <option value="N-BOX">N-BOX (軽自動車)</option>
                 <option value="事業所一般">事業所一般</option>
                 <option value="なし">なし</option>
               </select>
             </div>
             <div>
-              <label class="text-xs font-bold text-slate-500 block mb-1">給油量（L）<span class="text-slate-400 font-normal">※任意</span></label>
-              <input type="number" step="0.01" id="creditcard-fuel-qty" placeholder="例: 28.5" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-mono">
+              <label class="text-xs font-bold text-slate-500 block mb-1">給油量（L）<span
+                  class="text-slate-400 font-normal">※任意</span></label>
+              <input type="number" step="0.01" id="creditcard-fuel-qty" placeholder="例: 28.5"
+                class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-mono">
             </div>
           </div>
 
           <div>
             <label class="text-xs font-bold text-slate-500 block mb-1">給油所・支払先</label>
             <div class="flex gap-2 mb-1">
-              <select id="creditcard-supplier-select" class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" onchange="onCreditCardSupplierSelect()">
+              <select id="creditcard-supplier-select"
+                class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
+                onchange="onCreditCardSupplierSelect()">
                 <option value="">-- 定番先から選択 --</option>
                 <option value="エネオス（ENEOS）">エネオス（ENEOS）</option>
                 <option value="出光・アポロステーション">出光・アポロステーション</option>
@@ -907,12 +1489,15 @@
                 <option value="その他">その他（直接入力）</option>
               </select>
             </div>
-            <input type="text" id="creditcard-supplier" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="支払先を入力（例：エネオス 豊中SS）">
+            <input type="text" id="creditcard-supplier"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
+              placeholder="支払先を入力（例：エネオス 豊中SS）">
           </div>
 
           <div>
             <label class="text-xs font-bold text-slate-500 block mb-1">内訳（科目）</label>
-            <select id="creditcard-category" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+            <select id="creditcard-category"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
               <option value="旅費交通費">旅費交通費（ガソリン代・高速代等）</option>
               <option value="車両費">車両費（洗車・オイル・点検等）</option>
               <option value="消耗品費">消耗品費</option>
@@ -923,14 +1508,19 @@
 
           <div>
             <label class="text-xs font-bold text-slate-500 block mb-1">内容・メモ（摘要 / レシートNo.など）</label>
-            <input type="text" id="creditcard-memo" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="例：レギュラー満タン、洗車など">
+            <input type="text" id="creditcard-memo"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
+              placeholder="例：レギュラー満タン、洗車など">
           </div>
         </div>
 
         <div class="flex items-center gap-2 mt-5">
-          <button id="creditcard-btn-delete" onclick="deleteCreditCardRowById()" class="bg-red-500 hover:bg-red-600 text-white px-3.5 py-2.5 rounded-lg text-sm font-bold transition hidden">削除</button>
-          <button onclick="closeCreditCardModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
-          <button id="creditcard-btn-save" onclick="saveCreditCardRow()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
+          <button id="creditcard-btn-delete" onclick="deleteCreditCardRowById()"
+            class="bg-red-500 hover:bg-red-600 text-white px-3.5 py-2.5 rounded-lg text-sm font-bold transition hidden">削除</button>
+          <button onclick="closeCreditCardModal()"
+            class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
+          <button id="creditcard-btn-save" onclick="saveCreditCardRow()"
+            class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
         </div>
       </div>
     </div>
@@ -943,13 +1533,16 @@
         <div class="flex items-center gap-3 mb-4">
           <div>
             <label class="text-xs font-bold text-slate-500 block mb-1">対象年</label>
-            <select id="archive-year" class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none"></select>
+            <select id="archive-year"
+              class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none"></select>
           </div>
           <div class="flex flex-col gap-2 mt-4">
-            <button onclick="archiveDownload()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2">
+            <button onclick="archiveDownload()"
+              class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2">
               <span class="material-icons text-sm">download</span> CSVをダウンロード
             </button>
-            <button onclick="archiveDelete()" class="bg-red-500 hover:bg-red-400 text-white px-5 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2">
+            <button onclick="archiveDelete()"
+              class="bg-red-500 hover:bg-red-400 text-white px-5 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2">
               <span class="material-icons text-sm">delete</span> DBから削除（要注意）
             </button>
           </div>
@@ -957,7 +1550,8 @@
         <div id="archive-status" class="text-sm text-slate-500"></div>
         <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mt-2">
           <div class="text-xs font-bold text-amber-700">⚠ 削除前に必ずCSVをダウンロードしてください。削除後の復元はできません。</div>
-          <div class="text-xs text-amber-600 mt-1">対象：日計表（daily_summary）・積立金（savings）・明細管理（order_items）・小口現金（petty_cash）</div>
+          <div class="text-xs text-amber-600 mt-1">対象：日計表（daily_summary）・積立金（savings）・明細管理（order_items）・小口現金（petty_cash）
+          </div>
         </div>
       </div>
 
@@ -969,7 +1563,9 @@
           <div class="flex items-center gap-3 mb-3 bg-slate-50 rounded-lg px-4 py-3 border-2 border-slate-200">
             <span class="text-sm font-bold text-slate-600 w-32">合計保管額</span>
             <span class="text-xs text-slate-400">（レジ準備金＋金庫）</span>
-            <input type="number" id="cfg-total-cash" class="border-2 border-slate-300 rounded-lg px-3 py-1 text-sm font-mono w-32 text-right outline-none focus:border-blue-300 ml-auto" value="50000" min="0" oninput="calcCfgFixed()">
+            <input type="number" id="cfg-total-cash"
+              class="border-2 border-slate-300 rounded-lg px-3 py-1 text-sm font-mono w-32 text-right outline-none focus:border-blue-300 ml-auto"
+              value="50000" min="0" oninput="calcCfgFixed()">
             <span class="text-sm text-slate-500">円</span>
           </div>
           <!-- 固定準備金・金庫表示 -->
@@ -986,43 +1582,62 @@
           <div class="grid grid-cols-3 gap-2">
             <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
               <span class="text-xs font-bold text-slate-500 w-16 text-right">10,000円</span>
-              <input type="number" id="cfg-d-10000" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="0" min="0" oninput="calcCfgFixed()">
+              <input type="number" id="cfg-d-10000"
+                class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300"
+                value="0" min="0" oninput="calcCfgFixed()">
             </div>
             <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
               <span class="text-xs font-bold text-slate-500 w-16 text-right">5,000円</span>
-              <input type="number" id="cfg-d-5000" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="2" min="0" oninput="calcCfgFixed()">
+              <input type="number" id="cfg-d-5000"
+                class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300"
+                value="2" min="0" oninput="calcCfgFixed()">
             </div>
             <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
               <span class="text-xs font-bold text-slate-500 w-16 text-right">1,000円</span>
-              <input type="number" id="cfg-d-1000" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="10" min="0" oninput="calcCfgFixed()">
+              <input type="number" id="cfg-d-1000"
+                class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300"
+                value="10" min="0" oninput="calcCfgFixed()">
             </div>
             <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
               <span class="text-xs font-bold text-slate-500 w-16 text-right">500円</span>
-              <input type="number" id="cfg-d-500" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="20" min="0" oninput="calcCfgFixed()">
+              <input type="number" id="cfg-d-500"
+                class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300"
+                value="20" min="0" oninput="calcCfgFixed()">
             </div>
             <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
               <span class="text-xs font-bold text-slate-500 w-16 text-right">100円</span>
-              <input type="number" id="cfg-d-100" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="20" min="0" oninput="calcCfgFixed()">
+              <input type="number" id="cfg-d-100"
+                class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300"
+                value="20" min="0" oninput="calcCfgFixed()">
             </div>
             <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
               <span class="text-xs font-bold text-slate-500 w-16 text-right">50円</span>
-              <input type="number" id="cfg-d-50" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="20" min="0" oninput="calcCfgFixed()">
+              <input type="number" id="cfg-d-50"
+                class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300"
+                value="20" min="0" oninput="calcCfgFixed()">
             </div>
             <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
               <span class="text-xs font-bold text-slate-500 w-16 text-right">10円</span>
-              <input type="number" id="cfg-d-10" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="20" min="0" oninput="calcCfgFixed()">
+              <input type="number" id="cfg-d-10"
+                class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300"
+                value="20" min="0" oninput="calcCfgFixed()">
             </div>
             <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
               <span class="text-xs font-bold text-slate-500 w-16 text-right">5円</span>
-              <input type="number" id="cfg-d-5" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="20" min="0" oninput="calcCfgFixed()">
+              <input type="number" id="cfg-d-5"
+                class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300"
+                value="20" min="0" oninput="calcCfgFixed()">
             </div>
             <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
               <span class="text-xs font-bold text-slate-500 w-16 text-right">1円</span>
-              <input type="number" id="cfg-d-1" class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300" value="0" min="0" oninput="calcCfgFixed()">
+              <input type="number" id="cfg-d-1"
+                class="border-2 border-slate-200 rounded-lg px-2 py-1 text-sm font-mono w-16 text-right outline-none focus:border-blue-300"
+                value="0" min="0" oninput="calcCfgFixed()">
             </div>
           </div>
         </div>
-        <button onclick="cfgSaveRegiDefaults()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
+        <button onclick="cfgSaveRegiDefaults()"
+          class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
           💾 レジ締め初期値を保存
         </button>
       </div>
@@ -1039,25 +1654,32 @@
       <div class="space-y-3">
         <div>
           <label class="text-xs font-bold text-slate-500 block mb-1">日付</label>
-          <input type="date" id="savings-edit-date" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+          <input type="date" id="savings-edit-date"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
         </div>
         <div>
           <label class="text-xs font-bold text-slate-500 block mb-1">取引先</label>
-          <input type="text" id="savings-edit-partner" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="例：ジュントウ">
+          <input type="text" id="savings-edit-partner"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="例：ジュントウ">
         </div>
         <div>
           <label class="text-xs font-bold text-slate-500 block mb-1">内容</label>
-          <input type="text" id="savings-edit-content" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="例：駄菓子">
+          <input type="text" id="savings-edit-content"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="例：駄菓子">
         </div>
         <div>
           <label class="text-xs font-bold text-slate-500 block mb-1">出金額（円）</label>
-          <input type="number" id="savings-edit-withdrawal" min="0" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+          <input type="number" id="savings-edit-withdrawal" min="0"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
         </div>
       </div>
       <div class="flex gap-2 mt-5">
-        <button onclick="deleteSavingsRow()" class="bg-red-500 hover:bg-red-400 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition">削除</button>
-        <button onclick="closeSavingsEditModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
-        <button onclick="saveSavingsEdit()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
+        <button onclick="deleteSavingsRow()"
+          class="bg-red-500 hover:bg-red-400 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition">削除</button>
+        <button onclick="closeSavingsEditModal()"
+          class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
+        <button onclick="saveSavingsEdit()"
+          class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
       </div>
     </div>
   </div>
@@ -1084,7 +1706,7 @@
       </div>
       <div class="edit-actions">
         <button class="btn-cancel-edit" onclick="closeSavingsAddModal()">キャンセル</button>
-        <button class="btn-save-edit"   onclick="saveSavingsRow()">💾 追加する</button>
+        <button class="btn-save-edit" onclick="saveSavingsRow()">💾 追加する</button>
       </div>
     </div>
   </div>
@@ -1139,14 +1761,14 @@
       </div>
       <div class="edit-actions">
         <button class="btn-cancel-edit" onclick="closeEditModal()">キャンセル</button>
-        <button class="btn-save-edit"   onclick="saveEdit()">💾 保存する</button>
+        <button class="btn-save-edit" onclick="saveEdit()">💾 保存する</button>
       </div>
     </div>
   </div>
 
   <script>
     const DISPLAY_ORDER = [10000, 50, 5000, 10, 1000, 5, 500, 1, 100];
-    const ALL_DENOMS    = [10000, 5000, 1000, 500, 100, 50, 10, 5, 1];
+    const ALL_DENOMS = [10000, 5000, 1000, 500, 100, 50, 10, 5, 1];
     let g_fixed = 33300, g_sales = 0, g_currentDate = "";
     let g_lastUserFixed = 33300;
     let g_savingsBalance = 0, g_pettyCashBalance = 0;
@@ -1200,13 +1822,13 @@
 
     // ── タブ切り替え ──────────────────────────────
     function switchTab(tab) {
-      ['summary','regi','detail','savings','pettycash','creditcard','config'].forEach(t => {
+      ['summary', 'regi', 'detail', 'savings', 'pettycash', 'creditcard', 'config'].forEach(t => {
         document.getElementById('content-' + t).classList.toggle('hidden', t !== tab);
         document.getElementById('tab-' + t).className = t === tab
           ? 'flex-1 py-3 text-sm tab-active'
           : 'flex-1 py-3 text-sm text-gray-500';
       });
-      if (tab === 'detail')  initDetailDate();
+      if (tab === 'detail') initDetailDate();
       if (tab === 'savings') {
         if (!document.getElementById('savings-month-selector').options.length) initSavingsMonthSelector();
         loadSavingsData();
@@ -1230,7 +1852,7 @@
       for (let i = -6; i <= 1; i++) {
         const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
         const y = d.getFullYear(), m = d.getMonth() + 1;
-        const val = `${y}-${m.toString().padStart(2,'0')}`;  // ハイフン形式（daily_summaryのdate列に合わせる）
+        const val = `${y}-${m.toString().padStart(2, '0')}`;  // ハイフン形式（daily_summaryのdate列に合わせる）
         const opt = document.createElement('option');
         opt.value = val; opt.innerText = `${y}年 ${m}月`;
         if (i === 0) opt.selected = true;
@@ -1242,7 +1864,7 @@
     // 今日のJST日付を返す
     function todayJST() {
       const d = new Date();
-      const jst = new Date(d.getTime() + 9*60*60*1000);
+      const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
       return jst.toISOString().split('T')[0];
     }
 
@@ -1257,16 +1879,16 @@
     // 指定日付の売上をorder_itemsから取得
     function loadSalesForDate(dateStr) {
       document.getElementById('disp-sales').innerText = '計算中...';
-      GAS.getDetailByDate(dateStr).then(function(rows) {
+      GAS.getDetailByDate(dateStr).then(function (rows) {
         var total = 0;
-        (rows || []).forEach(function(r) {
+        (rows || []).forEach(function (r) {
           if (r[8] === '無効') return;  // status
           if ((r[2] || '').indexOf('無料') >= 0) return;  // label
           total += Number(r[5]) || 0;  // subtotal
         });
         g_sales = total;
         updateReconciliationDisplay();
-      }).catch(function() {
+      }).catch(function () {
         g_sales = 0;
         updateReconciliationDisplay();
       });
@@ -1275,7 +1897,7 @@
     function loadData() {
       document.getElementById('loading').style.display = 'flex';
 
-      GAS.getSummaryData().then(function(data) {
+      GAS.getSummaryData().then(function (data) {
         g_allData = data;
         filterDataByMonth();
 
@@ -1290,16 +1912,16 @@
 
         // order_itemsの最新レコードの日付を取得して設定
         const dateInput = document.getElementById('target-date-input');
-        return GAS.getLatestOrderDate().then(function(latestOrderDate) {
+        return GAS.getLatestOrderDate().then(function (latestOrderDate) {
           const latestDate = data.length > 0 ? data[0]['日付'] : todayJST();
           const targetDate = latestOrderDate || latestDate;
           if (!dateInput.value) dateInput.value = targetDate;
           g_currentDate = dateInput.value;
           return GAS.getDetailByDate(g_currentDate);
         });
-      }).then(function(rows) {
+      }).then(function (rows) {
         var total = 0;
-        (rows || []).forEach(function(r) {
+        (rows || []).forEach(function (r) {
           if (r[8] === '無効') return;
           if ((r[2] || '').indexOf('無料') >= 0) return;
           total += Number(r[5]) || 0;
@@ -1307,31 +1929,31 @@
         g_sales = total;
 
         // 積立金残高と小口現金残高を読み込み
-        GAS.getSavingsData().then(function(sRows) {
+        GAS.getSavingsData().then(function (sRows) {
           const lastRow = sRows && sRows.length > 0 ? sRows[sRows.length - 1] : null;
           const bal = lastRow ? lastRow.balance : 0;
           g_savingsBalance = bal;
           const el = document.getElementById('closing-savings-balance');
           if (el) el.innerText = '¥' + bal.toLocaleString();
           updateReconciliationDisplay();
-        }).catch(function(err) {
+        }).catch(function (err) {
           console.error('Savings balance load error:', err);
         });
 
-        GAS.getPettyCashData().then(function(pcRows) {
+        GAS.getPettyCashData().then(function (pcRows) {
           const lastRow = pcRows && pcRows.length > 0 ? pcRows[pcRows.length - 1] : null;
           const bal = lastRow ? lastRow.balance : 0;
           g_pettyCashBalance = bal;
           const el = document.getElementById('closing-pettycash-balance');
           if (el) el.innerText = '¥' + bal.toLocaleString();
           updateReconciliationDisplay();
-        }).catch(function(err) {
+        }).catch(function (err) {
           console.error('Petty cash balance load error:', err);
         });
 
         updateReconciliationDisplay();
         document.getElementById('loading').style.display = 'none';
-      }).catch(function() { document.getElementById('loading').style.display = 'none'; });
+      }).catch(function () { document.getElementById('loading').style.display = 'none'; });
     }
 
     function filterDataByMonth() {
@@ -1426,8 +2048,8 @@
       step(v, d);
       stopStepRepeat();
 
-      g_stepTimer = setTimeout(function() {
-        g_stepInterval = setInterval(function() {
+      g_stepTimer = setTimeout(function () {
+        g_stepInterval = setInterval(function () {
           step(v, d);
         }, 90);
       }, 280);
@@ -1489,7 +2111,7 @@
     function executeSave() {
       const btn = document.getElementById('save-btn');
       btn.disabled = true;
-      const actual = parseInt(document.getElementById('total-actual').innerText.replace(/[¥,]/g,''));
+      const actual = parseInt(document.getElementById('total-actual').innerText.replace(/[¥,]/g, ''));
       GAS.saveClosingData({
         date: g_currentDate,
         salesTotal: g_sales,
@@ -1497,11 +2119,11 @@
         fixedCash: parseInt(document.getElementById('in-fixed').value) || 33300,
         location: document.getElementById('in-location').value,
         memo: document.getElementById('in-memo').value
-      }).then(function(msg) {
+      }).then(function (msg) {
         showNotify(msg, 'success');
         btn.disabled = false;
         loadData();
-      }).catch(function(e) {
+      }).catch(function (e) {
         showNotify('エラー: ' + e, 'error');
         btn.disabled = false;
       });
@@ -1512,10 +2134,10 @@
       const el = document.getElementById('detail-date-input');
       if (!el.value) {
         const latestDate = g_allData && g_allData.length > 0 ? g_allData[0]['日付'] : todayJST();
-        GAS.getLatestOrderDate().then(function(latestOrderDate) {
+        GAS.getLatestOrderDate().then(function (latestOrderDate) {
           el.value = latestOrderDate || latestDate;
           loadDetailData();
-        }).catch(function() {
+        }).catch(function () {
           el.value = latestDate;
           loadDetailData();
         });
@@ -1533,11 +2155,11 @@
       document.getElementById('detail-status').textContent = '読み込み中...';
       document.getElementById('detail-summary-bar').style.display = 'none';
 
-      GAS.getDetailByDate(searchDate).then(function(rows) {
-          renderDetailTable(rows, searchDate);
-        }).catch(function(e) {
-          document.getElementById('detail-status').textContent = 'エラー: ' + e;
-        });
+      GAS.getDetailByDate(searchDate).then(function (rows) {
+        renderDetailTable(rows, searchDate);
+      }).catch(function (e) {
+        document.getElementById('detail-status').textContent = 'エラー: ' + e;
+      });
     }
 
     function renderDetailTable(rows, date) {
@@ -1552,11 +2174,11 @@
         renderDetailRows(g_allDetailRows);
         return;
       }
-      const filtered = g_allDetailRows.filter(function(r) {
-        const label    = String(r[2] || '').toLowerCase();
-        const price    = String(r[3] || '');
+      const filtered = g_allDetailRows.filter(function (r) {
+        const label = String(r[2] || '').toLowerCase();
+        const price = String(r[3] || '');
         const subtotal = String(r[5] || '');
-        const orderId  = String(r[0] || '').toLowerCase();
+        const orderId = String(r[0] || '').toLowerCase();
         return label.includes(q) || price.includes(q) || subtotal.includes(q) || orderId.includes(q);
       });
       renderDetailRows(filtered);
@@ -1581,43 +2203,43 @@
       rows.forEach(r => {
         if (String(r[8]) === '無効') return;
         orderIds.add(r[0]);
-        const label    = String(r[2] || '');
-        const qty      = Number(r[4]) || 1;
+        const label = String(r[2] || '');
+        const qty = Number(r[4]) || 1;
         const subtotal = Number(r[5]) || 0;
         if (label.includes('割引') || label.includes('ポイント') || subtotal < 0) totalDisc += Math.abs(subtotal);
         else if (label.includes('無料') || label.includes('当')) freeCount += qty;
         else totalSales += subtotal;
       });
 
-      document.getElementById('d-count').textContent    = orderIds.size + '件';
-      document.getElementById('d-total').textContent    = '¥' + totalSales.toLocaleString();
+      document.getElementById('d-count').textContent = orderIds.size + '件';
+      document.getElementById('d-total').textContent = '¥' + totalSales.toLocaleString();
       document.getElementById('d-discount').textContent = '¥' + totalDisc.toLocaleString();
-      document.getElementById('d-net').textContent      = '¥' + (totalSales - totalDisc).toLocaleString();
-      document.getElementById('d-free').textContent     = freeCount + '件';
-      document.getElementById('d-rows').textContent     = rows.length + '行';
+      document.getElementById('d-net').textContent = '¥' + (totalSales - totalDisc).toLocaleString();
+      document.getElementById('d-free').textContent = freeCount + '件';
+      document.getElementById('d-rows').textContent = rows.length + '行';
       document.getElementById('detail-summary-bar').style.display = 'flex';
       document.getElementById('detail-status').textContent = rows.length + '件';
 
       tbody.innerHTML = rows.map(r => {
-        const label   = String(r[2] || '');
-        const status  = String(r[8] || '');
-        const rowNum  = r[9]; // 行番号
+        const label = String(r[2] || '');
+        const status = String(r[8] || '');
+        const rowNum = r[9]; // 行番号
         const subtotal = Number(r[5]);
-        const isVoid  = status === '無効';
-        const isDisc  = label.includes('割引') || label.includes('ポイント') || subtotal < 0;
-        const isFree  = label.includes('無料') || label.includes('当');
+        const isVoid = status === '無効';
+        const isDisc = label.includes('割引') || label.includes('ポイント') || subtotal < 0;
+        const isFree = label.includes('無料') || label.includes('当');
 
         let rowClass = isVoid ? 'void-row' : (isDisc ? 'disc-row' : (isFree ? 'free-row' : ''));
-        let badge    = isVoid
+        let badge = isVoid
           ? `<span class="badge badge-void">無効</span>`
           : isDisc ? `<span class="badge badge-disc">割引</span>`
-          : isFree ? `<span class="badge badge-free">無料</span>`
-          : `<span class="badge badge-normal">通常</span>`;
+            : isFree ? `<span class="badge badge-free">無料</span>`
+              : `<span class="badge badge-normal">通常</span>`;
 
-        const price    = Number(r[3]);
-        const qty      = Number(r[4]) || 1;
-        const deposit  = Number(r[6]);
-        const change   = Number(r[7]);
+        const price = Number(r[3]);
+        const qty = Number(r[4]) || 1;
+        const deposit = Number(r[6]);
+        const change = Number(r[7]);
 
         // 操作ボタン（無効行には「有効に戻す」を表示）
         const ops = isVoid
@@ -1626,16 +2248,16 @@
              <button class="btn-void" onclick="voidRow(${rowNum})">🚫 無効</button>`;
 
         return `<tr class="${rowClass}">
-          <td class="font-mono text-xs text-slate-400">${String(r[0]).replace('ID:','')}</td>
-          <td>${r[1] ? r[1].replace('T',' ').replace(/\+00:00$/,'').substring(0,16) : ''}</td>
+          <td class="font-mono text-xs text-slate-400">${String(r[0]).replace('ID:', '')}</td>
+          <td>${r[1] ? r[1].replace('T', ' ').replace(/\+00:00$/, '').substring(0, 16) : ''}</td>
           <td>${badge}</td>
           <td class="font-semibold">${label}</td>
           <td class="text-right font-mono">${price.toLocaleString()}円</td>
           <td class="text-center">${qty}</td>
-          <td class="text-right font-mono font-bold ${isDisc?'text-amber-600':'text-blue-600'}">${subtotal.toLocaleString()}円</td>
-          <td class="text-right font-mono text-slate-500">${deposit ? deposit.toLocaleString()+'円' : '-'}</td>
-          <td class="text-right font-mono text-slate-500">${change!==undefined&&change!==''?change.toLocaleString()+'円':'-'}</td>
-          <td><span class="text-xs ${isVoid?'text-slate-400':'text-slate-600'}">${status}</span></td>
+          <td class="text-right font-mono font-bold ${isDisc ? 'text-amber-600' : 'text-blue-600'}">${subtotal.toLocaleString()}円</td>
+          <td class="text-right font-mono text-slate-500">${deposit ? deposit.toLocaleString() + '円' : '-'}</td>
+          <td class="text-right font-mono text-slate-500">${change !== undefined && change !== '' ? change.toLocaleString() + '円' : '-'}</td>
+          <td><span class="text-xs ${isVoid ? 'text-slate-400' : 'text-slate-600'}">${status}</span></td>
           <td>${ops}</td>
         </tr>`;
       }).join('');
@@ -1644,26 +2266,26 @@
     // ── 無効化 ────────────────────────────────────
     function voidRow(rowNumber) {
       if (!confirm('この行を「無効」にしますか？')) return;
-      GAS.invalidateDetailRow(rowNumber).then(function(msg) {
-          showNotify(msg, 'success');
-          loadDetailData();
-        }).catch(function(e) {
-          showNotify('エラー: ' + e, 'error');
-        });
+      GAS.invalidateDetailRow(rowNumber).then(function (msg) {
+        showNotify(msg, 'success');
+        loadDetailData();
+      }).catch(function (e) {
+        showNotify('エラー: ' + e, 'error');
+      });
     }
 
     // ── 編集モーダル ──────────────────────────────
     function openEditModal(r) {
-      document.getElementById('edit-row-number').value  = r[9];
-      document.getElementById('edit-order-id').value   = r[0] || '';
-      document.getElementById('edit-timestamp').value  = r[1] || '';
-      document.getElementById('edit-label').value      = r[2] || '';
-      document.getElementById('edit-price').value      = r[3] || 0;
-      document.getElementById('edit-qty').value        = r[4] || 1;
-      document.getElementById('edit-subtotal').value   = r[5] || 0;
-      document.getElementById('edit-deposit').value    = r[6] || 0;
-      document.getElementById('edit-change').value     = r[7] || 0;
-      document.getElementById('edit-status').value     = r[8] || '有効';
+      document.getElementById('edit-row-number').value = r[9];
+      document.getElementById('edit-order-id').value = r[0] || '';
+      document.getElementById('edit-timestamp').value = r[1] || '';
+      document.getElementById('edit-label').value = r[2] || '';
+      document.getElementById('edit-price').value = r[3] || 0;
+      document.getElementById('edit-qty').value = r[4] || 1;
+      document.getElementById('edit-subtotal').value = r[5] || 0;
+      document.getElementById('edit-deposit').value = r[6] || 0;
+      document.getElementById('edit-change').value = r[7] || 0;
+      document.getElementById('edit-status').value = r[8] || '有効';
       document.getElementById('edit-modal-overlay').classList.add('show');
     }
     function closeEditModal() {
@@ -1676,19 +2298,19 @@
         document.getElementById('edit-timestamp').value,
         document.getElementById('edit-label').value,
         parseFloat(document.getElementById('edit-price').value) || 0,
-        parseInt(document.getElementById('edit-qty').value)     || 1,
+        parseInt(document.getElementById('edit-qty').value) || 1,
         parseFloat(document.getElementById('edit-subtotal').value) || 0,
-        parseFloat(document.getElementById('edit-deposit').value)  || 0,
-        parseFloat(document.getElementById('edit-change').value)   || 0,
+        parseFloat(document.getElementById('edit-deposit').value) || 0,
+        parseFloat(document.getElementById('edit-change').value) || 0,
         document.getElementById('edit-status').value,
       ];
-      GAS.updateDetailRow(rowNumber, values).then(function(msg) {
-          showNotify(msg, 'success');
-          closeEditModal();
-          loadDetailData();
-        }).catch(function(e) {
-          showNotify('エラー: ' + e, 'error');
-        });
+      GAS.updateDetailRow(rowNumber, values).then(function (msg) {
+        showNotify(msg, 'success');
+        closeEditModal();
+        loadDetailData();
+      }).catch(function (e) {
+        showNotify('エラー: ' + e, 'error');
+      });
     }
 
     // ── 積立金管理 ───────────────────────────────
@@ -1700,7 +2322,7 @@
       for (let i = -6; i <= 1; i++) {
         const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
         const y = d.getFullYear(), m = d.getMonth() + 1;
-        const val = `${y}-${m.toString().padStart(2,'0')}`;  // ハイフン形式（daily_summaryのdate列に合わせる）
+        const val = `${y}-${m.toString().padStart(2, '0')}`;  // ハイフン形式（daily_summaryのdate列に合わせる）
         const opt = document.createElement('option');
         opt.value = val; opt.innerText = `${y}年 ${m}月`;
         if (i === 0) opt.selected = true;
@@ -1712,12 +2334,12 @@
 
     function loadSavingsData() {
       document.getElementById('savings-status').textContent = '読み込み中...';
-      GAS.getSavingsData().then(function(rows) {
-          g_allSavingsData = rows || [];
-          filterSavingsByMonth();
-        }).catch(function(e) {
-          document.getElementById('savings-status').textContent = 'エラー: ' + e;
-        });
+      GAS.getSavingsData().then(function (rows) {
+        g_allSavingsData = rows || [];
+        filterSavingsByMonth();
+      }).catch(function (e) {
+        document.getElementById('savings-status').textContent = 'エラー: ' + e;
+      });
     }
 
     function filterSavingsByMonth() {
@@ -1766,7 +2388,7 @@
 
       html += sorted.map(r => {
         const isDeposit = r.type === 'deposit';
-        const rowClass  = isDeposit ? 'deposit-row' : 'withdrawal-row';
+        const rowClass = isDeposit ? 'deposit-row' : 'withdrawal-row';
         const clickable = r.type === 'withdrawal' && r.id ? `onclick="openSavingsEditModal(${r.id})" style="cursor:pointer;" title="クリックで編集・削除"` : '';
         return `<tr class="${rowClass}" ${clickable}>
           <td class="font-mono text-sm">${r.date}</td>
@@ -1795,10 +2417,10 @@
 
     function openSavingsAddModal() {
       const now = new Date();
-      const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       document.getElementById('savings-date-input').value = dateStr;
-      document.getElementById('savings-partner').value    = '';
-      document.getElementById('savings-content').value    = '';
+      document.getElementById('savings-partner').value = '';
+      document.getElementById('savings-content').value = '';
       document.getElementById('savings-withdrawal').value = '';
       document.getElementById('savings-add-modal').classList.add('show');
     }
@@ -1867,24 +2489,24 @@
     }
 
     function saveSavingsRow() {
-      const dateInput  = document.getElementById('savings-date-input').value;
-      const partner    = document.getElementById('savings-partner').value.trim();
-      const content    = document.getElementById('savings-content').value.trim();
+      const dateInput = document.getElementById('savings-date-input').value;
+      const partner = document.getElementById('savings-partner').value.trim();
+      const content = document.getElementById('savings-content').value.trim();
       const withdrawal = parseInt(document.getElementById('savings-withdrawal').value) || 0;
 
-      if (!dateInput)     { showNotify('日付を選択してください', 'error'); return; }
+      if (!dateInput) { showNotify('日付を選択してください', 'error'); return; }
       if (withdrawal <= 0) { showNotify('出金額を入力してください', 'error'); return; }
 
       const parts = dateInput.split('-');
       const dateStr = `${parts[0]}/${parts[1]}/${parts[2]}`;
 
-      GAS.addSavingsRow({ date: dateStr, partner: partner, content: content, withdrawal: withdrawal }).then(function(msg) {
-          showNotify(msg, 'success');
-          closeSavingsAddModal();
-          loadSavingsData();
-        }).catch(function(e) {
-          showNotify('エラー: ' + e, 'error');
-        });
+      GAS.addSavingsRow({ date: dateStr, partner: partner, content: content, withdrawal: withdrawal }).then(function (msg) {
+        showNotify(msg, 'success');
+        closeSavingsAddModal();
+        loadSavingsData();
+      }).catch(function (e) {
+        showNotify('エラー: ' + e, 'error');
+      });
     }
     // ── 小口現金タブ ──────────────────────────────
     function initPettyCashMonthSelector() {
@@ -1894,7 +2516,7 @@
       for (let i = -6; i <= 1; i++) {
         const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
         const y = d.getFullYear(), m = d.getMonth() + 1;
-        const val = `${y}-${m.toString().padStart(2,'0')}`;
+        const val = `${y}-${m.toString().padStart(2, '0')}`;
         const opt = document.createElement('option');
         opt.value = val; opt.innerText = `${y}年 ${m}月`;
         if (i === 0) opt.selected = true;
@@ -1906,12 +2528,12 @@
 
     function loadPettyCashData() {
       document.getElementById('pettycash-status').textContent = '読み込み中...';
-      GAS.getPettyCashData().then(function(rows) {
-          g_allPettyCashData = rows || [];
-          filterPettyCashByMonth();
-        }).catch(function(e) {
-          document.getElementById('pettycash-status').textContent = 'エラー: ' + e;
-        });
+      GAS.getPettyCashData().then(function (rows) {
+        g_allPettyCashData = rows || [];
+        filterPettyCashByMonth();
+      }).catch(function (e) {
+        document.getElementById('pettycash-status').textContent = 'エラー: ' + e;
+      });
     }
 
     function filterPettyCashByMonth() {
@@ -1981,7 +2603,7 @@
     function openPettyCashModal(type) {
       g_pettyCashType = type;
       const now = new Date();
-      const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       document.getElementById('pettycash-modal-title').textContent = (type === '入金' ? '入金を追加' : '出金を追加');
       document.getElementById('pettycash-date').value = dateStr;
       document.getElementById('pettycash-amount').value = '';
@@ -2002,11 +2624,11 @@
 
     function savePettyCashRow() {
       const dateInput = document.getElementById('pettycash-date').value;
-      const amount    = parseInt(document.getElementById('pettycash-amount').value) || 0;
-      const category  = g_pettyCashType === '出金' ? document.getElementById('pettycash-category').value : '';
-      const memo      = document.getElementById('pettycash-memo').value.trim();
-      const supplier  = document.getElementById('pettycash-supplier').value.trim();
-      const note      = document.getElementById('pettycash-note').value.trim();
+      const amount = parseInt(document.getElementById('pettycash-amount').value) || 0;
+      const category = g_pettyCashType === '出金' ? document.getElementById('pettycash-category').value : '';
+      const memo = document.getElementById('pettycash-memo').value.trim();
+      const supplier = document.getElementById('pettycash-supplier').value.trim();
+      const note = document.getElementById('pettycash-note').value.trim();
       // memo列：支払先 / 内容 / 備考 の形式で結合
       const memoStr = [memo, supplier, note].filter(Boolean).join(' / ');
 
@@ -2014,13 +2636,13 @@
       if (amount <= 0) { showNotify('金額を入力してください', 'error'); return; }
       if (g_pettyCashType === '出金' && !category) { showNotify('内訳を選択してください', 'error'); return; }
 
-      GAS.addPettyCashRow({ date: dateInput, type: g_pettyCashType, amount: amount, reason: category, memo: memoStr }).then(function() {
-          showNotify('保存しました', 'success');
-          closePettyCashModal();
-          loadPettyCashData();
-        }).catch(function(e) {
-          showNotify('エラー: ' + e, 'error');
-        });
+      GAS.addPettyCashRow({ date: dateInput, type: g_pettyCashType, amount: amount, reason: category, memo: memoStr }).then(function () {
+        showNotify('保存しました', 'success');
+        closePettyCashModal();
+        loadPettyCashData();
+      }).catch(function (e) {
+        showNotify('エラー: ' + e, 'error');
+      });
     }
 
     function openPettyCashEditModal(id) {
@@ -2049,12 +2671,12 @@
     }
 
     function savePettyCashEdit() {
-      const id     = document.getElementById('pettycash-edit-id').value;
-      const type   = document.getElementById('pettycash-edit-type').value;
-      const date   = document.getElementById('pettycash-edit-date').value;
+      const id = document.getElementById('pettycash-edit-id').value;
+      const type = document.getElementById('pettycash-edit-type').value;
+      const date = document.getElementById('pettycash-edit-date').value;
       const amount = parseInt(document.getElementById('pettycash-edit-amount').value) || 0;
       const reason = type === '出金' ? document.getElementById('pettycash-edit-category').value : '';
-      const memo   = document.getElementById('pettycash-edit-memo').value.trim();
+      const memo = document.getElementById('pettycash-edit-memo').value.trim();
       if (!date) { showNotify('日付を入力してください', 'error'); return; }
       if (amount <= 0) { showNotify('金額を入力してください', 'error'); return; }
       // PATCH
@@ -2097,19 +2719,19 @@
 
     function deletePettyCashRow(id) {
       if (!confirm('この記録を削除しますか？')) return;
-      GAS.deletePettyCashRow(id).then(function() {
-          showNotify('削除しました', 'success');
-          loadPettyCashData();
-        }).catch(function(e) {
-          showNotify('エラー: ' + e, 'error');
-        });
+      GAS.deletePettyCashRow(id).then(function () {
+        showNotify('削除しました', 'success');
+        loadPettyCashData();
+      }).catch(function (e) {
+        showNotify('エラー: ' + e, 'error');
+      });
     }
 
     function printPettyCash() {
       const sel = document.getElementById('pettycash-month-selector');
       const monthLabel = sel.options[sel.selectedIndex].innerText;
       const selectedMonth = sel.value;
-      const CATS = ['消耗品費','旅費交通費','通信費','水道光熱費','新聞図書費','雑費'];
+      const CATS = ['消耗品費', '旅費交通費', '通信費', '水道光熱費', '新聞図書費', '雑費'];
 
       // 選択月のデータ（昇順）
       const monthRows = g_allPettyCashData.filter(r => r.date && r.date.startsWith(selectedMonth));
@@ -2131,13 +2753,13 @@
         <td>前月繰越</td>
         <td class="num">${carryover ? carryover.toLocaleString() : ''}</td>
         <td class="num"></td>
-        ${CATS.map(()=>'<td class="num"></td>').join('')}
+        ${CATS.map(() => '<td class="num"></td>').join('')}
         <td class="num bold">${carryover.toLocaleString()}</td>
       </tr>`;
 
       monthRows.forEach(r => {
         const d = new Date(r.date);
-        const md = `${d.getMonth()+1}/${d.getDate()}`;
+        const md = `${d.getMonth() + 1}/${d.getDate()}`;
         const amount = Number(r.amount) || 0;
         const isDeposit = r.type === '入金';
         if (isDeposit) totalReceive += amount; else totalPay += amount;
@@ -2162,7 +2784,7 @@
         <td class="num"></td>
       </tr>`;
 
-      const finalBalance = monthRows.length ? monthRows[monthRows.length-1].balance : carryover;
+      const finalBalance = monthRows.length ? monthRows[monthRows.length - 1].balance : carryover;
 
       var pw = window.open('', '_blank', 'width=1100,height=750');
       pw.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -2238,10 +2860,10 @@
     }
 
     function saveSavingsEdit() {
-      const id         = document.getElementById('savings-edit-id').value;
-      const date       = document.getElementById('savings-edit-date').value;
-      const partner    = document.getElementById('savings-edit-partner').value.trim();
-      const content    = document.getElementById('savings-edit-content').value.trim();
+      const id = document.getElementById('savings-edit-id').value;
+      const date = document.getElementById('savings-edit-date').value;
+      const partner = document.getElementById('savings-edit-partner').value.trim();
+      const content = document.getElementById('savings-edit-content').value.trim();
       const withdrawal = parseInt(document.getElementById('savings-edit-withdrawal').value) || 0;
       if (!date) { showNotify('日付を入力してください', 'error'); return; }
       if (withdrawal <= 0) { showNotify('出金額を入力してください', 'error'); return; }
@@ -2276,7 +2898,7 @@
 
     async function fetchTableAsCSV(t) {
       const from = t.fromVal || `${t.year}-01-01`;
-      const to   = t.toVal   || `${t.year}-12-31`;
+      const to = t.toVal || `${t.year}-12-31`;
       const PAGE = 1000;
       let allRows = [];
       let offset = 0;
@@ -2337,7 +2959,7 @@
             header: ['日時', '注文ID', '商品名', '単価', '個数', '小計', '預り金', 'おつり', '状態'],
             filename: `明細管理_${year}.csv`,
             fromVal: `${year}-01-01T00:00:00`,
-            toVal:   `${year}-12-31T23:59:59`
+            toVal: `${year}-12-31T23:59:59`
           },
           {
             table: 'petty_cash', dateCol: 'date', year,
@@ -2359,7 +2981,7 @@
         }
         status.textContent = `✅ ${count}ファイルをダウンロードしました（${year}年）`;
         showNotify(`${count}ファイルをダウンロードしました`, 'success');
-      } catch(e) {
+      } catch (e) {
         status.textContent = '❌ エラー: ' + e.message;
         showNotify('エラー: ' + e.message, 'error');
       }
@@ -2373,7 +2995,7 @@
 
       const status = document.getElementById('archive-status');
       const from = `${year}-01-01`;
-      const to   = `${year}-12-31`;
+      const to = `${year}-12-31`;
       const nextYear = String(parseInt(year) + 1);
       const carryDate = `${nextYear}-01-01`;
 
@@ -2413,7 +3035,7 @@
           fetch(`${SUPABASE_URL}/rest/v1/savings?date=lte.${to}&select=withdrawal`,
             { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON } })
         ]);
-        const dailyRows   = await dailyRes.json();
+        const dailyRows = await dailyRes.json();
         const savingsRows = await savingsRes.json();
         let svBalance = 0;
         dailyRows.forEach(r => { svBalance += (Number(r.sales_total) || 0) + (Number(r.diff) || 0); });
@@ -2438,10 +3060,10 @@
 
         // ── 各テーブルの対象年データを削除 ──
         const targets = [
-          { table: 'daily_summary', col: 'date',       from, to },
-          { table: 'savings',       col: 'date',       from, to },
-          { table: 'order_items',   col: 'ts',   from: `${year}-01-01T00:00:00`, to: `${year}-12-31T23:59:59` },
-          { table: 'petty_cash',    col: 'date',       from, to }
+          { table: 'daily_summary', col: 'date', from, to },
+          { table: 'savings', col: 'date', from, to },
+          { table: 'order_items', col: 'ts', from: `${year}-01-01T00:00:00`, to: `${year}-12-31T23:59:59` },
+          { table: 'petty_cash', col: 'date', from, to }
         ];
         for (const t of targets) {
           status.textContent = `${t.table} を削除中...`;
@@ -2465,7 +3087,7 @@
           + `（${carryDate}付けで繰越行を自動挿入しました）`;
         showNotify(`${year}年のデータを削除し繰越行を挿入しました`, 'success');
 
-      } catch(e) {
+      } catch (e) {
         status.textContent = '❌ エラー: ' + e.message;
         showNotify('エラー: ' + e.message, 'error');
       }
@@ -2473,26 +3095,26 @@
 
     // ── 設定タブ ──────────────────────────────────
     function loadConfigData() {
-      GAS.getSettings().then(function(data) {
-          if (!data) data = {};
-          if (data.regiDefaults) {
-            var d = data.regiDefaults;
-            [10000,5000,1000,500,100,50,10,5,1].forEach(function(v) {
-              if (d['d'+v] !== undefined) document.getElementById('cfg-d-'+v).value = d['d'+v];
-            });
-            if (d.totalCash !== undefined) {
-              document.getElementById('cfg-total-cash').value = d.totalCash;
-            }
+      GAS.getSettings().then(function (data) {
+        if (!data) data = {};
+        if (data.regiDefaults) {
+          var d = data.regiDefaults;
+          [10000, 5000, 1000, 500, 100, 50, 10, 5, 1].forEach(function (v) {
+            if (d['d' + v] !== undefined) document.getElementById('cfg-d-' + v).value = d['d' + v];
+          });
+          if (d.totalCash !== undefined) {
+            document.getElementById('cfg-total-cash').value = d.totalCash;
           }
-          calcCfgFixed();
-        }).catch(function() {});
+        }
+        calcCfgFixed();
+      }).catch(function () { });
     }
 
     function calcCfgFixed() {
-      var denoms = [10000,5000,1000,500,100,50,10,5,1];
+      var denoms = [10000, 5000, 1000, 500, 100, 50, 10, 5, 1];
       var total = 0;
-      denoms.forEach(function(v) {
-        var el = document.getElementById('cfg-d-'+v);
+      denoms.forEach(function (v) {
+        var el = document.getElementById('cfg-d-' + v);
         total += v * (parseInt(el.value) || 0);
       });
       var totalCash = parseInt(document.getElementById('cfg-total-cash').value) || 50000;
@@ -2511,10 +3133,10 @@
         fixedCash: parseInt(document.getElementById('cfg-fixed-cash').value) || 33300,
         totalCash: parseInt(document.getElementById('cfg-total-cash').value) || 50000
       };
-      [10000,5000,1000,500,100,50,10,5,1].forEach(v => {
-        defaults['d'+v] = parseInt(document.getElementById('cfg-d-'+v).value) || 0;
+      [10000, 5000, 1000, 500, 100, 50, 10, 5, 1].forEach(v => {
+        defaults['d' + v] = parseInt(document.getElementById('cfg-d-' + v).value) || 0;
       });
-      GAS.saveRegiDefaults(JSON.stringify(defaults)).then(function() { showNotify('レジ締め初期値を保存しました', 'success'); }).catch(function(e) { showNotify('エラー: ' + e, 'error'); });
+      GAS.saveRegiDefaults(JSON.stringify(defaults)).then(function () { showNotify('レジ締め初期値を保存しました', 'success'); }).catch(function (e) { showNotify('エラー: ' + e, 'error'); });
     }
 
     // 各金種の入力値を0にクリアする
@@ -2531,34 +3153,34 @@
 
     // レジ締め初期値を適用（ボタン押下時）
     function applyRegiDefaults(showMsg) {
-      GAS.getSettings().then(function(data) {
-          if (data && data.regiDefaults) {
-            const d = data.regiDefaults;
-            if (d.fixedCash !== undefined) {
-              g_fixed = d.fixedCash;
-              g_lastUserFixed = d.fixedCash;
-              const typeEl = document.getElementById('reconcile-type');
-              if (typeEl && typeEl.value !== 'sales') {
-                document.getElementById('in-fixed').value = 0;
-                g_fixed = 0;
-              } else {
-                document.getElementById('in-fixed').value = d.fixedCash;
-              }
+      GAS.getSettings().then(function (data) {
+        if (data && data.regiDefaults) {
+          const d = data.regiDefaults;
+          if (d.fixedCash !== undefined) {
+            g_fixed = d.fixedCash;
+            g_lastUserFixed = d.fixedCash;
+            const typeEl = document.getElementById('reconcile-type');
+            if (typeEl && typeEl.value !== 'sales') {
+              document.getElementById('in-fixed').value = 0;
+              g_fixed = 0;
+            } else {
+              document.getElementById('in-fixed').value = d.fixedCash;
             }
-            [10000,5000,1000,500,100,50,10,5,1].forEach(v => {
-              const el = document.getElementById('in-'+v);
-              if (el && d['d'+v] !== undefined) el.value = d['d'+v];
-              const rollEl = document.getElementById('roll-' + v);
-              if (rollEl) rollEl.value = 0;
-            });
-            calculate();
-            if (showMsg) showNotify('初期値を読み込みました', 'success');
-          } else {
-            if (showMsg) showNotify('初期値が未設定です。設定タブで保存してください', 'error');
           }
-        }).catch(function() {
-          if (showMsg) showNotify('読み込みエラー', 'error');
-        });
+          [10000, 5000, 1000, 500, 100, 50, 10, 5, 1].forEach(v => {
+            const el = document.getElementById('in-' + v);
+            if (el && d['d' + v] !== undefined) el.value = d['d' + v];
+            const rollEl = document.getElementById('roll-' + v);
+            if (rollEl) rollEl.value = 0;
+          });
+          calculate();
+          if (showMsg) showNotify('初期値を読み込みました', 'success');
+        } else {
+          if (showMsg) showNotify('初期値が未設定です。設定タブで保存してください', 'error');
+        }
+      }).catch(function () {
+        if (showMsg) showNotify('読み込みエラー', 'error');
+      });
     }
 
     function showNotify(msg, type) {
@@ -2571,19 +3193,95 @@
 
     // ── 時計 ─────────────────────────────────────
     function updateClock() {
-      document.getElementById('clock').innerText = new Date().toLocaleTimeString('ja-JP', {hour12:false});
+      document.getElementById('clock').innerText = new Date().toLocaleTimeString('ja-JP', { hour12: false });
     }
 
-  
-</script>
-<script src="supabase-config.js"></script>
-<script src="supabase-adapter.js"></script>
-<script>
-    document.addEventListener('dblclick', function(e) {
+
+    // ── 日付入力ボックスの曜日付き日本語表示（Windowsの空カッコ () 対策） ──
+    function formatJpDateWithDow(val) {
+      if (!val) return '----年--月--日(-)';
+      const parts = String(val).split('-');
+      if (parts.length !== 3) return val;
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const d = parseInt(parts[2], 10);
+      if (!y || !m || !d) return val;
+      const dt = new Date(y, m - 1, d);
+      const dows = ['日', '月', '火', '水', '木', '金', '土'];
+      const dow = dows[dt.getDay()];
+      return `${y}年${String(m).padStart(2, '0')}月${String(d).padStart(2, '0')}日(${dow})`;
+    }
+
+    function initJapaneseDateInputs() {
+      const protoDesc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+      document.querySelectorAll('input[type="date"]').forEach(inp => {
+        if (inp.classList.contains('jp-date-enhanced')) return;
+        inp.classList.add('jp-date-enhanced');
+
+        const wrap = document.createElement('div');
+        wrap.className = 'jp-date-wrap' + (inp.classList.contains('w-full') ? ' w-full' : '');
+        inp.parentNode.insertBefore(wrap, inp);
+        wrap.appendChild(inp);
+
+        // カレンダーアイコンと文字が重ならないよう最小幅と右余白を確保
+        if (inp.id === 'target-date-input') {
+          inp.style.minWidth = '225px';
+          inp.style.paddingRight = '2.2rem';
+        } else if (!inp.classList.contains('w-full')) {
+          inp.style.minWidth = '195px';
+          inp.style.paddingRight = '2rem';
+        }
+
+        const overlay = document.createElement('span');
+        overlay.className = 'jp-date-overlay';
+        const cs = window.getComputedStyle(inp);
+        overlay.style.fontSize = cs.fontSize;
+        overlay.style.fontWeight = cs.fontWeight;
+        overlay.style.color = cs.color;
+        overlay.style.left = cs.paddingLeft || '12px';
+        wrap.appendChild(overlay);
+
+        const syncOverlay = () => {
+          const curVal = protoDesc ? protoDesc.get.call(inp) : inp.getAttribute('value');
+          overlay.textContent = formatJpDateWithDow(curVal);
+        };
+
+        if (protoDesc && protoDesc.get && protoDesc.set) {
+          Object.defineProperty(inp, 'value', {
+            configurable: true,
+            enumerable: true,
+            get: function () {
+              return protoDesc.get.call(this);
+            },
+            set: function (v) {
+              protoDesc.set.call(this, v);
+              syncOverlay();
+            }
+          });
+        }
+
+        inp.addEventListener('input', syncOverlay);
+        inp.addEventListener('change', syncOverlay);
+        inp.addEventListener('click', function () {
+          if (this.showPicker) {
+            try { this.showPicker(); } catch (e) { }
+          }
+        });
+        syncOverlay();
+      });
+    }
+
+
+  </script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-adapter.js"></script>
+  <script>
+    document.addEventListener('dblclick', function (e) {
       e.preventDefault();
     }, { passive: false });
 
     window.onload = () => {
+      initJapaneseDateInputs();
       initMonthSelector();
       initSavingsMonthSelector();
       initPettyCashMonthSelector();
@@ -2596,10 +3294,10 @@
       try {
         var params = new URLSearchParams(location.search);
         var requestedTab = params.get('tab') || location.hash.replace('#', '');
-        if (requestedTab && ['summary','regi','detail','savings','pettycash','config'].indexOf(requestedTab) >= 0) {
+        if (requestedTab && ['summary', 'regi', 'detail', 'savings', 'pettycash', 'config'].indexOf(requestedTab) >= 0) {
           switchTab(requestedTab);
         }
-      } catch(e){}
+      } catch (e) { }
     };
 
     // ── クレジットカード管理タブ（レシート提出用） ───────────
@@ -3022,6 +3720,7 @@
       URL.revokeObjectURL(url);
     }
 
-</script>
+  </script>
 </body>
+
 </html>
