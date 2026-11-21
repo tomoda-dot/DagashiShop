@@ -125,7 +125,24 @@
       gap: 8px 24px;
     }
 
-    /* レジ締め・明細管理 タブレット・レスポンシブ最適化 (1024px以下) */
+    /* レジ締め・明細管理 タブレット・レスポンシブ最適化 (1200px以下) */
+    @media (max-width: 1200px) {
+      #content-regi {
+        flex-direction: column !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        padding: 12px 12px 90px 12px !important;
+        gap: 16px !important;
+        height: 100% !important;
+        max-height: 100% !important;
+      }
+
+      #content-regi>div {
+        width: 100% !important;
+        flex: none !important;
+      }
+    }
+
     @media (max-width: 1024px) {
       nav {
         overflow-x: auto !important;
@@ -147,25 +164,9 @@
         white-space: nowrap !important;
       }
 
-      /* スクロール修正：height: auto ではなく height: 100% と max-height: 100% で内部スクロールを確実に動作させる */
-      #content-regi {
-        flex-direction: column !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch;
-        padding: 12px 12px 90px 12px !important;
-        gap: 16px !important;
-        height: 100% !important;
-        max-height: 100% !important;
-      }
-
-      #content-regi>div {
-        width: 100% !important;
-        flex: none !important;
-      }
-
       #denom-container {
         display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         grid-auto-flow: column !important;
         grid-template-rows: repeat(5, auto) !important;
         max-height: none !important;
@@ -183,27 +184,43 @@
 
       .summary-detail-table {
         table-layout: auto !important;
-        min-width: 860px;
+        min-width: 920px;
       }
 
       .pettycash-table,
       .savings-table {
         table-layout: auto !important;
-        min-width: 680px;
+        min-width: 760px;
+      }
+
+      .creditcard-table {
+        table-layout: auto !important;
+        min-width: 960px;
       }
 
       #content-savings>.no-print,
-      #content-pettycash>.no-print {
+      #content-pettycash>.no-print,
+      #content-creditcard>.no-print {
         flex-wrap: wrap !important;
         gap: 8px !important;
       }
 
       #content-savings,
-      #content-pettycash {
+      #content-pettycash,
+      #content-creditcard {
         height: 100% !important;
         max-height: 100% !important;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch;
+      }
+    }
+
+    @media (max-width: 768px) {
+      #denom-container {
+        grid-template-columns: 1fr !important;
+        grid-auto-flow: row !important;
+        grid-template-rows: none !important;
+        gap: 6px !important;
       }
     }
 
@@ -511,143 +528,208 @@
       background: #fef2f2;
     }
 
-    /* 小口現金テーブル：列幅を固定してヘッダーとずれないように */
+    /* 小口現金テーブル：列の重なりを防ぐため auto レイアウト＋最小幅を確保 */
     .pettycash-table {
-      table-layout: fixed;
+      table-layout: auto;
+      min-width: 760px;
     }
 
     .pettycash-table th:nth-child(1),
     .pettycash-table td:nth-child(1) {
-      width: 13%;
+      width: 150px;
+      min-width: 145px;
+      white-space: nowrap;
     }
 
     .pettycash-table th:nth-child(2),
     .pettycash-table td:nth-child(2) {
-      width: 8%;
+      width: 75px;
+      min-width: 70px;
+      white-space: nowrap;
     }
 
     .pettycash-table th:nth-child(3),
     .pettycash-table td:nth-child(3) {
-      width: 14%;
+      width: 120px;
+      min-width: 105px;
+      white-space: nowrap;
     }
 
     .pettycash-table th:nth-child(4),
     .pettycash-table td:nth-child(4) {
-      width: 30%;
+      min-width: 180px;
       white-space: normal;
+      word-break: break-word;
     }
 
     .pettycash-table th:nth-child(5),
-    .pettycash-table td:nth-child(5) {
-      width: 12%;
-    }
-
+    .pettycash-table td:nth-child(5),
     .pettycash-table th:nth-child(6),
-    .pettycash-table td:nth-child(6) {
-      width: 12%;
-    }
-
+    .pettycash-table td:nth-child(6),
     .pettycash-table th:nth-child(7),
     .pettycash-table td:nth-child(7) {
-      width: 11%;
+      width: 115px;
+      min-width: 100px;
+      white-space: nowrap;
     }
 
-    /* 明細管理テーブル：列幅を固定 */
+    /* ガソリンカードテーブル：列幅と最小幅を専用定義して日付被りを完全防止 */
+    .creditcard-table {
+      table-layout: auto;
+      min-width: 960px;
+    }
+
+    .creditcard-table th:nth-child(1),
+    .creditcard-table td:nth-child(1) {
+      width: 52px;
+      min-width: 52px;
+      white-space: nowrap;
+    }
+
+    .creditcard-table th:nth-child(2),
+    .creditcard-table td:nth-child(2) {
+      width: 150px;
+      min-width: 145px;
+      white-space: nowrap;
+    }
+
+    .creditcard-table th:nth-child(3),
+    .creditcard-table td:nth-child(3) {
+      width: 120px;
+      min-width: 115px;
+      white-space: nowrap;
+    }
+
+    .creditcard-table th:nth-child(4),
+    .creditcard-table td:nth-child(4) {
+      width: 100px;
+      min-width: 95px;
+      white-space: nowrap;
+    }
+
+    .creditcard-table th:nth-child(5),
+    .creditcard-table td:nth-child(5) {
+      min-width: 150px;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .creditcard-table th:nth-child(6),
+    .creditcard-table td:nth-child(6) {
+      width: 90px;
+      min-width: 85px;
+      white-space: nowrap;
+    }
+
+    .creditcard-table th:nth-child(7),
+    .creditcard-table td:nth-child(7) {
+      width: 115px;
+      min-width: 105px;
+      white-space: nowrap;
+    }
+
+    .creditcard-table th:nth-child(8),
+    .creditcard-table td:nth-child(8) {
+      min-width: 160px;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .creditcard-table th:nth-child(9),
+    .creditcard-table td:nth-child(9) {
+      width: 115px;
+      min-width: 105px;
+      white-space: nowrap;
+    }
+
+    /* 明細管理テーブル：列の重なりを防ぐため auto レイアウト＋最小幅を確保 */
     .summary-detail-table {
-      table-layout: fixed;
+      table-layout: auto;
+      min-width: 920px;
     }
 
     .summary-detail-table th:nth-child(1),
     .summary-detail-table td:nth-child(1) {
-      width: 13%;
+      min-width: 110px;
+      white-space: nowrap;
     }
 
     .summary-detail-table th:nth-child(2),
     .summary-detail-table td:nth-child(2) {
-      width: 12%;
+      min-width: 140px;
+      white-space: nowrap;
     }
 
     .summary-detail-table th:nth-child(3),
     .summary-detail-table td:nth-child(3) {
-      width: 7%;
+      min-width: 70px;
+      white-space: nowrap;
     }
 
     .summary-detail-table th:nth-child(4),
     .summary-detail-table td:nth-child(4) {
-      width: 20%;
+      min-width: 160px;
       white-space: normal;
+      word-break: break-word;
     }
 
     .summary-detail-table th:nth-child(5),
-    .summary-detail-table td:nth-child(5) {
-      width: 9%;
-    }
-
+    .summary-detail-table td:nth-child(5),
     .summary-detail-table th:nth-child(6),
-    .summary-detail-table td:nth-child(6) {
-      width: 7%;
-    }
-
+    .summary-detail-table td:nth-child(6),
     .summary-detail-table th:nth-child(7),
-    .summary-detail-table td:nth-child(7) {
-      width: 9%;
-    }
-
+    .summary-detail-table td:nth-child(7),
     .summary-detail-table th:nth-child(8),
-    .summary-detail-table td:nth-child(8) {
-      width: 9%;
-    }
-
+    .summary-detail-table td:nth-child(8),
     .summary-detail-table th:nth-child(9),
-    .summary-detail-table td:nth-child(9) {
-      width: 8%;
-    }
-
+    .summary-detail-table td:nth-child(9),
     .summary-detail-table th:nth-child(10),
     .summary-detail-table td:nth-child(10) {
-      width: 6%;
+      white-space: nowrap;
     }
 
     .summary-detail-table th:nth-child(11),
     .summary-detail-table td:nth-child(11) {
-      width: 10%;
-      min-width: 90px;
+      min-width: 110px;
+      white-space: nowrap;
     }
 
-    /* 積立金管理テーブル：列幅を固定 */
+    /* 積立金管理テーブル：列の重なりを防ぐため auto レイアウト＋最小幅を確保 */
     .savings-table {
-      table-layout: fixed;
+      table-layout: auto;
+      min-width: 760px;
     }
 
     .savings-table th:nth-child(1),
     .savings-table td:nth-child(1) {
-      width: 14%;
+      width: 150px;
+      min-width: 145px;
+      white-space: nowrap;
     }
 
     .savings-table th:nth-child(2),
     .savings-table td:nth-child(2) {
-      width: 16%;
+      min-width: 130px;
+      white-space: normal;
+      word-break: break-word;
     }
 
     .savings-table th:nth-child(3),
     .savings-table td:nth-child(3) {
-      width: 28%;
+      min-width: 180px;
       white-space: normal;
+      word-break: break-word;
     }
 
     .savings-table th:nth-child(4),
-    .savings-table td:nth-child(4) {
-      width: 14%;
-    }
-
+    .savings-table td:nth-child(4),
     .savings-table th:nth-child(5),
-    .savings-table td:nth-child(5) {
-      width: 14%;
-    }
-
+    .savings-table td:nth-child(5),
     .savings-table th:nth-child(6),
     .savings-table td:nth-child(6) {
-      width: 14%;
+      width: 130px;
+      min-width: 115px;
+      white-space: nowrap;
     }
 
     .badge {
@@ -820,11 +902,16 @@
       position: relative;
       display: inline-flex;
       align-items: center;
+      max-width: 100%;
     }
 
     .jp-date-wrap.w-full {
       display: flex;
       width: 100%;
+    }
+
+    input[type="date"].jp-date-enhanced {
+      padding-right: 2.2rem !important;
     }
 
     input[type="date"].jp-date-enhanced::-webkit-datetime-edit,
@@ -839,11 +926,14 @@
 
     .jp-date-overlay {
       position: absolute;
-      left: 14px;
+      left: 12px;
+      right: 30px;
       top: 50%;
       transform: translateY(-50%);
       pointer-events: none;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       user-select: none;
     }
 
@@ -1124,7 +1214,7 @@
       </div>
 
       <!-- 操作バー -->
-      <div class="flex items-center gap-3 flex-shrink-0 no-print">
+      <div class="flex flex-wrap items-center gap-3 flex-shrink-0 no-print">
         <select id="creditcard-month-selector"
           class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none"
           onchange="filterCreditCardByMonth()"></select>
@@ -1159,18 +1249,18 @@
 
       <!-- テーブル -->
       <div class="flex-1 overflow-auto bg-white rounded-xl shadow-sm border border-slate-200 min-h-0">
-        <table class="detail-table pettycash-table" id="creditcard-table">
+        <table class="detail-table creditcard-table" id="creditcard-table">
           <thead>
             <tr>
-              <th style="width: 50px;" class="text-center">No.</th>
-              <th style="width: 100px;">利用日</th>
-              <th style="width: 110px;" class="text-center">状況</th>
-              <th style="width: 90px;">車両</th>
-              <th style="width: 150px;">給油所・支払先</th>
+              <th style="width: 52px;" class="text-center">No.</th>
+              <th style="width: 150px;">利用日</th>
+              <th style="width: 120px;" class="text-center">状況</th>
+              <th style="width: 100px;">車両</th>
+              <th style="min-width: 150px;">給油所・支払先</th>
               <th style="width: 90px;" class="text-right">給油量</th>
-              <th style="width: 120px;">内訳</th>
-              <th>内容・メモ（摘要）</th>
-              <th style="width: 110px;" class="text-right">金額（税込）</th>
+              <th style="width: 115px;">内訳</th>
+              <th style="min-width: 160px;">内容・メモ（摘要）</th>
+              <th style="width: 115px;" class="text-right">金額（税込）</th>
             </tr>
           </thead>
           <tbody id="creditcard-tbody">
@@ -1186,7 +1276,7 @@
     <section id="content-savings" class="hidden h-full flex flex-col p-4 gap-3 overflow-hidden">
 
       <!-- 操作バー -->
-      <div class="flex items-center gap-3 flex-shrink-0 no-print">
+      <div class="flex flex-wrap items-center gap-3 flex-shrink-0 no-print">
         <select id="savings-month-selector"
           class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none"
           onchange="filterSavingsByMonth()"></select>
@@ -1246,7 +1336,7 @@
     <section id="content-pettycash" class="hidden h-full flex flex-col p-4 gap-3 overflow-hidden">
 
       <!-- 操作バー -->
-      <div class="flex items-center gap-3 flex-shrink-0 no-print">
+      <div class="flex flex-wrap items-center gap-3 flex-shrink-0 no-print">
         <select id="pettycash-month-selector"
           class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none"
           onchange="filterPettyCashByMonth()"></select>
@@ -1428,7 +1518,7 @@
         <input type="hidden" id="creditcard-edit-id">
 
         <div class="space-y-3 text-sm">
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <label class="text-xs font-bold text-slate-500 block mb-1">給油・利用日</label>
               <input type="date" id="creditcard-date"
