@@ -83,16 +83,146 @@
         [data-theme="dark"] .discount-section {
             background: #232731;
         }
+        [data-theme="dark"] .col-right {
+            border-left-color: #383e4d;
+        }
+        [data-theme="dark"] .cart-row.discount-row {
+            background: #2d291e;
+            border-color: var(--mustard);
+        }
+        [data-theme="dark"] .cart-row.free-row {
+            background: #2e2220;
+            border-color: var(--coral);
+        }
+        [data-theme="dark"] .qty-btn {
+            background: #1c1f26;
+            border-color: #383e4d;
+            color: #f0f2f5;
+        }
+        [data-theme="dark"] .cfg-input,
+        [data-theme="dark"] .cfg-modal select,
+        [data-theme="dark"] .cfg-modal input {
+            background: #1c1f26;
+            color: #f0f2f5;
+            border-color: #383e4d;
+        }
+        [data-theme="dark"] .cfg-modal select option {
+            background: #1c1f26;
+            color: #f0f2f5;
+        }
+        [data-theme="dark"] .cfg-theme-section {
+            border-color: #383e4d !important;
+        }
+        [data-theme="dark"] .cfg-col:first-child {
+            border-right-color: #383e4d;
+        }
+        [data-theme="dark"] .cfg-close,
+        [data-theme="dark"] .memory-close {
+            background: #1c1f26;
+            color: #cbd5e1;
+        }
+        [data-theme="dark"] #cfg-disc-list .cfg-row {
+            background: #2d291e !important;
+            border: 1px solid #574825;
+        }
+        [data-theme="dark"] #cfg-disc-list .cfg-row-name {
+            color: #fde68a;
+        }
+        [data-theme="dark"] .cfg-fixed-badge {
+            background: #1d2e2d;
+            color: var(--sage);
+        }
+        [data-theme="dark"] .cfg-del-btn {
+            background: #3b1c22;
+            border-color: #7f1d1d;
+            color: #fca5a5;
+        }
+        [data-theme="dark"] .emoji-pick-btn {
+            background: #1c1f26;
+            border-color: #383e4d;
+            color: #f0f2f5;
+        }
+        [data-theme="dark"] .emoji-picker-pop {
+            background: #252932;
+            border-color: #383e4d;
+        }
+        [data-theme="dark"] .emoji-cell.picked {
+            background: #3b2322;
+        }
+        [data-theme="dark"] .sales-modal-inner {
+            background: #2c303c;
+            color: #f0f2f5;
+        }
+        [data-theme="dark"] .sales-item-row {
+            border-bottom-color: #383e4d;
+        }
+        [data-theme="dark"] #ph-date-input {
+            background: #1c1f26 !important;
+            color: #f0f2f5 !important;
+            border-color: #383e4d !important;
+        }
+        [data-theme="dark"] #ph-summary-bar {
+            background: #2d291e !important;
+            border-color: #785c22 !important;
+            color: #fde68a !important;
+        }
+        [data-theme="dark"] .ph-order-card {
+            background: #222630 !important;
+            border-color: #383e4d !important;
+        }
+        [data-theme="dark"] .memory-slot {
+            border-color: #383e4d;
+        }
+        [data-theme="dark"] .memory-slot.has-data {
+            background: #1d2e2d;
+            border-color: var(--sage);
+        }
+        [data-theme="dark"] .mem-btn-del {
+            background: #1c1f26;
+            color: #94a3b8;
+        }
+        [data-theme="dark"] #point-use-input {
+            background: #1c1f26 !important;
+            color: #f0f2f5 !important;
+            border-color: #e8a854 !important;
+        }
+        [data-theme="dark"] .change-box {
+            background: #1d2e2d !important;
+            border-color: var(--sage) !important;
+        }
+        [data-theme="dark"] .checkout-left {
+            border-right-color: #383e4d;
+        }
+        [data-theme="dark"] .tenkey-preset {
+            background: #2d291e;
+            color: #fde68a;
+            border-color: var(--mustard);
+        }
+        [data-theme="dark"] .tenkey-btn.del {
+            background: #3b2023;
+            color: #ff7a59;
+        }
+        [data-theme="dark"] .receipt-btn {
+            background: #1c1f26;
+            border-color: #383e4d;
+            color: #f0f2f5;
+        }
 
         [data-theme="vivid"] {
-            --cream:   #fff9f2;
-            --coral:   #ff3838;
-            --sage:    #05c46b;
-            --mustard: #ff9f1a;
+            --cream:   #fffdf0;
+            --coral:   #ff2a55;
+            --sage:    #00c853;
+            --mustard: #ffab00;
             --brown:   #1e272e;
-            --light:   #f1f2f6;
+            --light:   #fff5fa;
             --white:   #ffffff;
         }
+        [data-theme="vivid"] .app-header {
+            background: linear-gradient(135deg, #ff2a85 0%, #ff6b00 50%, #ffb700 100%);
+            border-bottom: 3px solid #00c853;
+            color: #ffffff;
+        }
+        [data-theme="vivid"] .app-header h1 { color: #ffffff; }
 
         [data-theme="chic"] {
             --cream:   #f4f5f7;
@@ -121,23 +251,60 @@
             background: #62758c;
             border-color: #62758c;
         }
-        [data-theme="chic"] .item-btn:nth-child(odd) {
-            background: var(--sage) !important;
-            color: #ffffff !important;
+
+        /* 🌸 さくらパステル */
+        [data-theme="sakura"] {
+            --cream:   #fff5f8;
+            --coral:   #f06292;
+            --sage:    #ab47bc;
+            --mustard: #f48fb1;
+            --brown:   #4a2c38;
+            --light:   #fce4ec;
+            --white:   #ffffff;
         }
-        [data-theme="chic"] .item-btn:nth-child(odd):active {
-            background: #62758c !important;
+
+        /* 🌊 ソーダマリン */
+        [data-theme="ocean"] {
+            --cream:   #f0f9ff;
+            --coral:   #0284c7;
+            --sage:    #0d9488;
+            --mustard: #38bdf8;
+            --brown:   #0f172a;
+            --light:   #e0f2fe;
+            --white:   #ffffff;
         }
-        [data-theme="chic"] .item-btn:nth-child(even) {
-            background: var(--coral) !important;
-            color: #ffffff !important;
+
+        /* 🍵 抹茶カフェ */
+        [data-theme="matcha"] {
+            --cream:   #f4f8f2;
+            --coral:   #d97706;
+            --sage:    #4d7c0f;
+            --mustard: #a16207;
+            --brown:   #273822;
+            --light:   #e9f2e4;
+            --white:   #ffffff;
         }
-        [data-theme="chic"] .item-btn:nth-child(even):active {
-            background: #3b526f !important;
+
+        /* 🏮 昭和レトロ駄菓子屋 */
+        [data-theme="retro"] {
+            --cream:   #fbf3e4;
+            --coral:   #c0392b;
+            --sage:    #2980b9;
+            --mustard: #d35400;
+            --brown:   #3e2723;
+            --light:   #f3e5ab;
+            --white:   #fffdf7;
         }
-        [data-theme="chic"] .item-btn .btn-label {
-            background: rgba(0, 0, 0, 0.15);
-            color: #ffffff !important;
+
+        /* 🦄 ゆめかわユニコーン */
+        [data-theme="yumekawa"] {
+            --cream:   #faf5ff;
+            --coral:   #ec4899;
+            --sage:    #8b5cf6;
+            --mustard: #38bdf8;
+            --brown:   #3b1e54;
+            --light:   #f3e8ff;
+            --white:   #ffffff;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
@@ -628,10 +795,10 @@
             background: none; border: none;
             font-size: 1.3rem; cursor: pointer;
             padding: 4px 8px; border-radius: 8px;
-            transition: transform 0.3s;
+            transition: all 0.2s;
             -webkit-tap-highlight-color: transparent;
         }
-        .cfg-gear-btn:hover { transform: rotate(60deg); }
+        .cfg-gear-btn:hover { background: var(--light); transform: scale(1.05); }
 
         /* 設定モーダル */
         .cfg-modal-overlay {
@@ -1015,9 +1182,14 @@
                     <label style="font-size:0.75rem;font-weight:700;color:#8a8070;display:block;margin-bottom:4px;">🖼 画面テーマ</label>
                     <select id="cfg-theme-select" class="cfg-input" style="width:100%;cursor:pointer;" onchange="changeUiTheme(this.value)">
                         <option value="natural">🍡 ナチュラル（標準）</option>
-                        <option value="dark">🌙 ダークモード</option>
                         <option value="vivid">🎨 ビビッドポップ</option>
-                        <option value="chic">🎬 シック</option>
+                        <option value="sakura">🌸 さくらパステル</option>
+                        <option value="ocean">🌊 ソーダマリン</option>
+                        <option value="matcha">🍵 抹茶カフェ</option>
+                        <option value="retro">🏮 昭和レトロ駄菓子屋</option>
+                        <option value="yumekawa">🦄 ゆめかわユニコーン</option>
+                        <option value="chic">🎬 シックモダン</option>
+                        <option value="dark">🌙 ダークモード</option>
                     </select>
                 </div>
             </div>
@@ -1414,7 +1586,7 @@ function renderPurchaseHistoryCards(orders) {
 
         var printBtnHtml = '<button onclick="printHistoryReceipt(\'' + o.orderCode + '\')" style="background:#e0f2fe;color:#0284c7;border:1px solid #7dd3fc;border-radius:8px;padding:4px 10px;font-size:0.75rem;font-weight:800;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:4px;">🖨 レシート発行</button>';
 
-        return '<div style="background:white;border-radius:14px;border:2px solid ' + (isVoid ? '#e2e8f0' : '#e0d8cc') + ';padding:10px 12px;opacity:' + (isVoid ? '0.6' : '1') + ';">' +
+        return '<div class="ph-order-card" style="background:white;border-radius:14px;border:2px solid ' + (isVoid ? '#e2e8f0' : '#e0d8cc') + ';padding:10px 12px;opacity:' + (isVoid ? '0.6' : '1') + ';">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid #f0ebe4;">' +
                 '<div>' +
                     '<span style="font-size:1rem;font-weight:800;color:var(--brown);margin-right:8px;">🕒 ' + timeStr + '</span>' +
@@ -1652,6 +1824,44 @@ const BTN_TEXT_COLORS = [
     '#fff','#fff','#fff','#fff','#fff','#fff',
     '#5a4030','#3d4036','#fff','#3d4036','#5a4030','#fff',
 ];
+const THEME_BTN_PALETTES = {
+    natural: {
+        bg: ['#f49576','#d4a23a','#7fbfb4','#e8a87c','#c9b1d0','#95c8d8','#e6b89c','#b5c99a','#d4918b','#a8c5a0','#d4b896','#c2a5cf'],
+        fg: ['#fff','#fff','#fff','#fff','#fff','#fff','#5a4030','#3d4036','#fff','#3d4036','#5a4030','#fff']
+    },
+    vivid: {
+        bg: ['#ff2e63','#ff9f1c','#00c853','#00b4d8','#9d4edd','#ffbe0b','#fb5607','#3a86ff','#ff007f','#06d6a0','#8338ec','#ef476f'],
+        fg: ['#fff','#1a1a1a','#fff','#fff','#fff','#1a1a1a','#fff','#fff','#fff','#1a1a1a','#fff','#fff']
+    },
+    sakura: {
+        bg: ['#ffb7c5','#f48fb1','#ce93d8','#ffAB91','#f8bbd0','#e1bee7','#ffcdd2','#f06292','#ba68c8','#ffccbc','#f48fb1','#e57373'],
+        fg: ['#4a2c38','#fff','#4a2c38','#4a2c38','#4a2c38','#4a2c38','#4a2c38','#fff','#fff','#4a2c38','#fff','#fff']
+    },
+    ocean: {
+        bg: ['#38bdf8','#2dd4bf','#60a5fa','#22d3ee','#818cf8','#34d399','#0284c7','#0d9488','#4f46e5','#06b6d4','#10b981','#3b82f6'],
+        fg: ['#0f172a','#0f172a','#fff','#0f172a','#fff','#0f172a','#fff','#fff','#fff','#fff','#fff','#fff']
+    },
+    matcha: {
+        bg: ['#84cc16','#65a30d','#d97706','#a3e635','#15803d','#ca8a04','#4d7c0f','#86efac','#b45309','#22c55e','#a16207','#16a34a'],
+        fg: ['#1a2e05','#fff','#fff','#1a2e05','#fff','#fff','#fff','#14532d','#fff','#fff','#fff','#fff']
+    },
+    retro: {
+        bg: ['#e74c3c','#e67e22','#f1c40f','#16a085','#2980b9','#d35400','#c0392b','#27ae60','#8e44ad','#f39c12','#2c3e50','#a04000'],
+        fg: ['#fff','#fff','#3e2723','#fff','#fff','#fff','#fff','#fff','#fff','#3e2723','#fff','#fff']
+    },
+    yumekawa: {
+        bg: ['#f472b6','#c084fc','#60a5fa','#34d399','#fbbf24','#a78bfa','#fb7185','#38bdf8','#e879f9','#818cf8','#f9a8d4','#6ee7b7'],
+        fg: ['#fff','#fff','#fff','#1e293b','#1e293b','#fff','#fff','#0f172a','#fff','#fff','#4a154b','#064e3b']
+    },
+    chic: {
+        bg: ['#4b6584','#778ca3','#57606f','#2f3542','#a5b1c2','#747d8c','#3867d6','#4b7bec','#636e72','#2d3436','#808e9b','#485460'],
+        fg: ['#fff','#fff','#fff','#fff','#1e272e','#fff','#fff','#fff','#fff','#fff','#1e272e','#fff']
+    },
+    dark: {
+        bg: ['#e06c75','#e5c07b','#61afef','#98c379','#c678dd','#56b6c2','#d19a66','#be5046','#7f848e','#abb2bf','#e06c75','#61afef'],
+        fg: ['#181a20','#181a20','#181a20','#181a20','#181a20','#181a20','#181a20','#fff','#fff','#181a20','#181a20','#181a20']
+    }
+};
 const FIXED_BUTTONS = [
     { price:10,  name:'10円菓子',  emoji:'🍭', fixed:true },
     { price:20,  name:'20円菓子',  emoji:'🍫', fixed:true },
@@ -1671,19 +1881,23 @@ function renderGrid() {
     const grid = document.getElementById('item-grid');
     grid.innerHTML = '';
     const textColorMode = localStorage.getItem('regi_text_color') || 'black';
+    const uiTheme = localStorage.getItem('regi_ui_theme') || 'natural';
+    const palette = THEME_BTN_PALETTES[uiTheme] || THEME_BTN_PALETTES.natural;
+    const bgColors = palette.bg;
+    const fgColors = palette.fg;
 
     allButtons().forEach((btn, idx) => {
-        const ci = idx % BTN_COLORS.length;
+        const ci = idx % bgColors.length;
         const el = document.createElement('button');
         el.className = 'item-btn';
-        el.style.background = BTN_COLORS[ci];
+        el.style.background = bgColors[ci];
 
         if (textColorMode === 'black') {
             el.style.color = '#1a1a1a';
         } else if (textColorMode === 'white') {
             el.style.color = '#ffffff';
         } else {
-            el.style.color = BTN_TEXT_COLORS[ci];
+            el.style.color = fgColors[ci];
         }
 
         bindFastTap(el, () => add(btn.price, btn.name, btn.emoji));
@@ -2216,6 +2430,7 @@ function applyUiTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     var select = document.getElementById('cfg-theme-select');
     if (select) select.value = theme;
+    renderGrid();
 }
 
 function changeTextColorMode(val) {
