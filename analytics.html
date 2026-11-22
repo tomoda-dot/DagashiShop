@@ -42,6 +42,17 @@
   }
   .top-back-btn:hover { opacity: 1; transform: scale(1.05); }
 </style>
+<!-- HITOTSUGI_UNIFIED_HEADER_START -->
+<script src="https://tomoda-dot.github.io/Porte/hitotsugi-unified-header.js"></script>
+<script>
+  HitotsugiUnifiedHeader.init({
+    appId: 'analytics',
+    headerSelector: 'header',
+    title: '📊 売上分析',
+    moveSelectors: ['#period-type', '#month-selector-wrap', '#custom-range-wrap', 'button[onclick*="loadAll"]']
+  });
+</script>
+<!-- HITOTSUGI_UNIFIED_HEADER_END -->
 </head>
 <body>
 <a href="index.html" class="top-back-btn">メニューに戻る</a>
