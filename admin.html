@@ -1009,8 +1009,7 @@
       appId: 'admin',
       headerSelector: 'header',
       titleSelector: 'h1',
-      noSubbar: true,
-      moveSelectors: ['#clock', 'button[onclick*="loadData"]']
+      noSubbar: true
     });
   </script>
   <!-- HITOTSUGI_UNIFIED_HEADER_END -->
@@ -3310,7 +3309,8 @@
 
     // ── 時計 ─────────────────────────────────────
     function updateClock() {
-      document.getElementById('clock').innerText = new Date().toLocaleTimeString('ja-JP', { hour12: false });
+      var clk = document.getElementById('clock');
+      if (clk) clk.innerText = new Date().toLocaleTimeString('ja-JP', { hour12: false });
     }
 
 
