@@ -1,228 +1,466 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>駄菓子屋 ひとつぎ</title>
-<link rel="icon" type="image/jpeg" href="favicon-kuma.jpg">
-<link rel="apple-touch-icon" href="favicon-kuma.jpg">
-<style>
-  * { touch-action: manipulation; }
-  :root{
-    --bg:#eaf2f8; --tx:#3d4036; --t2:#696b60; --t3:#9a9c8f;
-    --card:#ffffff; --bd:#dbe7f0; --red:#f49576; --grn:#7bbf8c; --amb:#e8a854;
-    --r:18px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;font-family:'Hiragino Maru Gothic ProN','Rounded Mplus 1c','Meiryo',sans-serif;touch-action:manipulation;}
-  html,body{height:100%;touch-action:manipulation;}
-  body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;}
-
-  header{height:56px;min-height:56px;padding:0 20px;display:flex;align-items:center;justify-content:center;text-align:center;border-bottom:1px solid var(--bd);background:#fff;flex-shrink:0;}
-  header h1{font-size:18px;font-weight:800;letter-spacing:1px;margin:0;}
-  header p{font-size:12px;color:var(--t3);margin-top:2px;}
-
-  main{flex:1;display:flex;gap:20px;padding:20px;max-width:1100px;width:100%;margin:0 auto;min-height:0;}
-
-  /* 左カラム：商品リスト */
-  #left-col{flex:1.4;display:flex;flex-direction:column;min-height:0;}
-  #list-wrap{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-bottom:16px;}
-  .empty-msg{flex:1;display:flex;align-items:center;justify-content:center;
-    color:var(--t3);font-size:16px;font-weight:700;text-align:center;line-height:1.8;}
-
-  .item-row{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);
-    padding:16px 20px;display:flex;justify-content:space-between;align-items:center;
-    box-shadow:0 2px 8px rgba(0,0,0,0.04);animation:slideIn .25s ease-out;}
-  @keyframes slideIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-  .item-row .iname{font-size:18px;font-weight:700;}
-  .item-row .iprice{font-size:20px;font-weight:800;color:var(--red);white-space:nowrap;min-width:80px;text-align:right;}
-
-  .divider-row{background:#fff9e6;border:2px dashed var(--amb);border-radius:var(--r);
-    padding:14px 20px;display:flex;justify-content:space-between;align-items:center;
-    box-shadow:0 2px 8px rgba(0,0,0,0.04);animation:slideIn .25s ease-out;}
-  .divider-row .dname{font-size:17px;font-weight:800;color:#8a6d3b;}
-  .divider-row .dsub{font-size:20px;font-weight:900;color:var(--red);}
-
-  /* 右カラム：金額エリア */
-  #right-col{flex:1;display:flex;flex-direction:column;justify-content:center;}
-  #amount-area{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);
-    box-shadow:0 2px 8px rgba(0,0,0,0.04);overflow:hidden;}
-  .amt-row{padding:20px 28px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);}
-  .amt-row:last-child{border-bottom:none;}
-  .amt-row .al{font-size:17px;font-weight:700;color:var(--t2);}
-  .amt-row .av{font-size:30px;font-weight:900;color:var(--tx);}
-  .amt-row .av .yen{font-size:20px;margin-right:2px;}
-  .amt-row.total .av{font-size:42px;color:var(--tx);}
-  .amt-row.received .av{color:var(--t2);}
-  .amt-row.change .av{color:var(--grn);}
-
-  /* ありがとう画面 */
-  #thanks-screen{position:fixed;inset:0;background:var(--bg);display:none;
-    flex-direction:column;align-items:center;justify-content:center;z-index:5000;text-align:center;}
-  #thanks-screen.show{display:flex;}
-  #thanks-screen .emoji{font-size:80px;margin-bottom:20px;animation:pop .4s ease-out;}
-  @keyframes pop{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
-  #thanks-screen h2{font-size:32px;font-weight:900;color:var(--tx);letter-spacing:2px;}
-  #thanks-screen p{font-size:15px;color:var(--t3);margin-top:10px;}
-  .top-back-btn {
-    position: fixed; bottom: 20px; right: 20px; z-index: 9999;
-    background: #f49576; color: white; border: none;
-    padding: 14px 24px; border-radius: 50px; font-weight: bold;
-    font-size: 14px; text-decoration: none; font-family: sans-serif;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3); opacity: 0.85; transition: 0.3s;
-    display: inline-flex; align-items: center; justify-content: center;
-  }
-  .top-back-btn:hover { opacity: 1; transform: scale(1.05); }
-</style>
-</head>
-<body>
-<a href="index.html" class="top-back-btn">メニューに戻る</a>
-
-<header>
-  <h1>🍬 駄菓子屋 ひとつぎ</h1>
-</header>
-
-<main>
-  <div id="left-col">
-    <div id="list-wrap">
-      <div class="empty-msg" id="empty-msg">スマホでバーコードを<br>読み取ってください</div>
-    </div>
-  </div>
-
-  <div id="right-col">
-    <div id="amount-area">
-      <div class="amt-row total">
-        <span class="al">合計</span>
-        <span class="av"><span class="yen">¥</span><span id="total-val">0</span></span>
-      </div>
-      <div class="amt-row" id="points-row" style="display:none;">
-        <span class="al">🪙 ポイント</span>
-        <span class="av" style="color:var(--amb);"><span class="yen">-¥</span><span id="points-val">0</span></span>
-      </div>
-      <div class="amt-row received">
-        <span class="al">お預かり</span>
-        <span class="av"><span class="yen">¥</span><span id="received-val">0</span></span>
-      </div>
-      <div class="amt-row change">
-        <span class="al">おつり</span>
-        <span class="av"><span class="yen">¥</span><span id="change-val">0</span></span>
-      </div>
-    </div>
-  </div>
-</main>
-
-<div id="thanks-screen">
-  <div class="emoji">🙏</div>
-  <h2>ありがとうございました</h2>
-  <p>またお越しください</p>
-</div>
-
-<script src="supabase-config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script>
-document.addEventListener('dblclick', function(e) {
-  e.preventDefault();
-}, { passive: false });
-
-var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-// デバッグログ（無効化。問題発生時にコメントアウトを外して調査）
-var dbgEl = document.createElement('div');
-dbgEl.style.cssText = 'display:none;';
-document.body.appendChild(dbgEl);
-function dlog(msg) {
-  dbgEl.textContent += new Date().toLocaleTimeString('ja-JP') + ' ' + msg + '\n';
-  dbgEl.scrollTop = dbgEl.scrollHeight;
-}
-dlog('起動 v=' + Date.now());
-
-function renderState(state) {
-  try {
-    dlog('[1] renderState開始');
-    if (!state) { dlog('[1a] state is null'); return; }
-    dlog('[2] cart=' + JSON.stringify(state.cart) + ' typeof=' + typeof state.cart + ' thanks=' + state.thanks);
-
-    if (state.thanks) {
-      document.getElementById('thanks-screen').classList.add('show');
-      dlog('[3] thanks表示してreturn');
-      return;
-    } else {
-      document.getElementById('thanks-screen').classList.remove('show');
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>駄菓子屋 ひとつぎ</title>
+  <link rel="icon" type="image/jpeg" href="favicon-kuma.jpg">
+  <link rel="apple-touch-icon" href="favicon-kuma.jpg">
+  <style>
+    * {
+      touch-action: manipulation;
     }
-    dlog('[4] thanks処理完了');
 
-    var cart = state.cart;
-    if (typeof cart === 'string') { cart = JSON.parse(cart); dlog('[4a] cartを文字列からパース'); }
-    if (!Array.isArray(cart)) cart = [];
-    dlog('[5] cart正規化後 length=' + cart.length);
-
-    var wrap = document.getElementById('list-wrap');
-    if (!cart.length) {
-      wrap.innerHTML = '<div class="empty-msg" id="empty-msg">スマホでバーコードを<br>読み取ってください</div>';
-    } else {
-      wrap.innerHTML = cart.map(function(it) {
-        if (it.isDivider) {
-          return '<div class="divider-row">'
-            + '<div class="dname">👤 ' + it.name + ' (' + (it.count || 0) + '点)</div>'
-            + '<div class="dsub">¥' + (it.subtotal || 0).toLocaleString() + '</div>'
-            + '</div>';
-        }
-        return '<div class="item-row">'
-          + '<div class="iname">' + it.name + (it.qty > 1 ? ' ×' + it.qty : '') + '</div>'
-          + '<div class="iprice">¥' + ((it.price || 0) * (it.qty || 0)).toLocaleString() + '</div>'
-          + '</div>';
-      }).join('');
-      wrap.scrollTop = wrap.scrollHeight;
+    :root {
+      --bg: #eaf2f8;
+      --tx: #3d4036;
+      --t2: #696b60;
+      --t3: #9a9c8f;
+      --card: #ffffff;
+      --bd: #dbe7f0;
+      --red: #f49576;
+      --grn: #7bbf8c;
+      --amb: #e8a854;
+      --r: 18px;
     }
-    dlog('[6] リスト更新完了');
 
-    var total = cart.reduce(function(s, it){ return s + (it.isDivider ? 0 : (it.price || 0) * (it.qty || 0)); }, 0);
-    dlog('[7] total計算=' + total);
-    document.getElementById('total-val').textContent = total.toLocaleString();
-    var points = state.points || 0;
-    var pointsRow = document.getElementById('points-row');
-    if (points > 0) {
-      document.getElementById('points-val').textContent = points.toLocaleString();
-      pointsRow.style.display = '';
-    } else {
-      pointsRow.style.display = 'none';
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', 'Meiryo', sans-serif;
+      touch-action: manipulation;
     }
-    document.getElementById('received-val').textContent = (state.received || 0).toLocaleString();
-    document.getElementById('change-val').textContent = Math.max(0, (state.change || 0)).toLocaleString();
-    dlog('[8] 金額表示更新完了 total-val=' + document.getElementById('total-val').textContent);
-  } catch (e) {
-    dlog('[ERROR] ' + e.message + ' / ' + e.stack);
-  }
-}
 
-function fetchState() {
-  sb.from('display_state').select('*').eq('id', 1).single().then(function(res) {
-    if (res.error) { dlog('fetchState ERROR: ' + JSON.stringify(res.error)); return; }
-    if (res.data) renderState(res.data);
-    else dlog('fetchState: no data');
-  });
-}
+    html,
+    body {
+      height: 100%;
+      touch-action: manipulation;
+    }
 
-function initListener() {
-  fetchState();
-  sb.channel('display_state_channel')
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'display_state', filter: 'id=eq.1' }, function(payload) {
-      dlog('Realtime UPDATE受信');
-      renderState(payload.new);
-    })
-    .subscribe(function(status) {
-      dlog('channel status: ' + status);
-      if (status === 'SUBSCRIBED') {
-        fetchState();
+    body {
+      background: var(--bg);
+      color: var(--tx);
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      height: 56px;
+      min-height: 56px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border-bottom: 2px solid #2e5578;
+      background: linear-gradient(135deg, #3d6b94 0%, #4e80ab 100%);
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin: 0;
+    }
+
+    header p {
+      font-size: 12px;
+      color: var(--t3);
+      margin-top: 2px;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      min-height: 0;
+    }
+
+    /* 左カラム：商品リスト */
+    #left-col {
+      flex: 1.4;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    #list-wrap {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-bottom: 16px;
+    }
+
+    .empty-msg {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--t3);
+      font-size: 16px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    .item-row {
+      background: var(--card);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      animation: slideIn .25s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
       }
-    });
-  // Realtimeを主軸とし、フォールバックとして60秒周期チェック＆画面表示復帰時に取得
-  setInterval(fetchState, 60000);
-  document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) fetchState();
-  });
-}
 
-initListener();
-</script>
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .item-row .iname {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .item-row .iprice {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--red);
+      white-space: nowrap;
+      min-width: 80px;
+      text-align: right;
+    }
+
+    .divider-row {
+      background: #fff9e6;
+      border: 2px dashed var(--amb);
+      border-radius: var(--r);
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      animation: slideIn .25s ease-out;
+    }
+
+    .divider-row .dname {
+      font-size: 17px;
+      font-weight: 800;
+      color: #8a6d3b;
+    }
+
+    .divider-row .dsub {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--red);
+    }
+
+    /* 右カラム：金額エリア */
+    #right-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    #amount-area {
+      background: var(--card);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      overflow: hidden;
+    }
+
+    .amt-row {
+      padding: 20px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--bd);
+    }
+
+    .amt-row:last-child {
+      border-bottom: none;
+    }
+
+    .amt-row .al {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--t2);
+    }
+
+    .amt-row .av {
+      font-size: 30px;
+      font-weight: 900;
+      color: var(--tx);
+    }
+
+    .amt-row .av .yen {
+      font-size: 20px;
+      margin-right: 2px;
+    }
+
+    .amt-row.total .av {
+      font-size: 42px;
+      color: var(--tx);
+    }
+
+    .amt-row.received .av {
+      color: var(--t2);
+    }
+
+    .amt-row.change .av {
+      color: var(--grn);
+    }
+
+    /* ありがとう画面 */
+    #thanks-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 5000;
+      text-align: center;
+    }
+
+    #thanks-screen.show {
+      display: flex;
+    }
+
+    #thanks-screen .emoji {
+      font-size: 80px;
+      margin-bottom: 20px;
+      animation: pop .4s ease-out;
+    }
+
+    @keyframes pop {
+      from {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    #thanks-screen h2 {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--tx);
+      letter-spacing: 2px;
+    }
+
+    #thanks-screen p {
+      font-size: 15px;
+      color: var(--t3);
+      margin-top: 10px;
+    }
+
+    .top-back-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      background: #f49576;
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 50px;
+      font-weight: bold;
+      font-size: 14px;
+      text-decoration: none;
+      font-family: sans-serif;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      opacity: 0.85;
+      transition: 0.3s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .top-back-btn:hover {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+
+<body>
+  <a href="index.html" class="top-back-btn">メニューに戻る</a>
+
+  <header>
+    <h1>🍬 駄菓子屋 ひとつぎ</h1>
+  </header>
+
+  <main>
+    <div id="left-col">
+      <div id="list-wrap">
+        <div class="empty-msg" id="empty-msg">スマホでバーコードを<br>読み取ってください</div>
+      </div>
+    </div>
+
+    <div id="right-col">
+      <div id="amount-area">
+        <div class="amt-row total">
+          <span class="al">合計</span>
+          <span class="av"><span class="yen">¥</span><span id="total-val">0</span></span>
+        </div>
+        <div class="amt-row" id="points-row" style="display:none;">
+          <span class="al">🪙 ポイント</span>
+          <span class="av" style="color:var(--amb);"><span class="yen">-¥</span><span id="points-val">0</span></span>
+        </div>
+        <div class="amt-row received">
+          <span class="al">お預かり</span>
+          <span class="av"><span class="yen">¥</span><span id="received-val">0</span></span>
+        </div>
+        <div class="amt-row change">
+          <span class="al">おつり</span>
+          <span class="av"><span class="yen">¥</span><span id="change-val">0</span></span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="thanks-screen">
+    <div class="emoji">🙏</div>
+    <h2>ありがとうございました</h2>
+    <p>またお越しください</p>
+  </div>
+
+  <script src="supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    document.addEventListener('dblclick', function (e) {
+      e.preventDefault();
+    }, { passive: false });
+
+    var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    // デバッグログ（無効化。問題発生時にコメントアウトを外して調査）
+    var dbgEl = document.createElement('div');
+    dbgEl.style.cssText = 'display:none;';
+    document.body.appendChild(dbgEl);
+    function dlog(msg) {
+      dbgEl.textContent += new Date().toLocaleTimeString('ja-JP') + ' ' + msg + '\n';
+      dbgEl.scrollTop = dbgEl.scrollHeight;
+    }
+    dlog('起動 v=' + Date.now());
+
+    function renderState(state) {
+      try {
+        dlog('[1] renderState開始');
+        if (!state) { dlog('[1a] state is null'); return; }
+        dlog('[2] cart=' + JSON.stringify(state.cart) + ' typeof=' + typeof state.cart + ' thanks=' + state.thanks);
+
+        if (state.thanks) {
+          document.getElementById('thanks-screen').classList.add('show');
+          dlog('[3] thanks表示してreturn');
+          return;
+        } else {
+          document.getElementById('thanks-screen').classList.remove('show');
+        }
+        dlog('[4] thanks処理完了');
+
+        var cart = state.cart;
+        if (typeof cart === 'string') { cart = JSON.parse(cart); dlog('[4a] cartを文字列からパース'); }
+        if (!Array.isArray(cart)) cart = [];
+        dlog('[5] cart正規化後 length=' + cart.length);
+
+        var wrap = document.getElementById('list-wrap');
+        if (!cart.length) {
+          wrap.innerHTML = '<div class="empty-msg" id="empty-msg">スマホでバーコードを<br>読み取ってください</div>';
+        } else {
+          wrap.innerHTML = cart.map(function (it) {
+            if (it.isDivider) {
+              return '<div class="divider-row">'
+                + '<div class="dname">👤 ' + it.name + ' (' + (it.count || 0) + '点)</div>'
+                + '<div class="dsub">¥' + (it.subtotal || 0).toLocaleString() + '</div>'
+                + '</div>';
+            }
+            return '<div class="item-row">'
+              + '<div class="iname">' + it.name + (it.qty > 1 ? ' ×' + it.qty : '') + '</div>'
+              + '<div class="iprice">¥' + ((it.price || 0) * (it.qty || 0)).toLocaleString() + '</div>'
+              + '</div>';
+          }).join('');
+          wrap.scrollTop = wrap.scrollHeight;
+        }
+        dlog('[6] リスト更新完了');
+
+        var total = cart.reduce(function (s, it) { return s + (it.isDivider ? 0 : (it.price || 0) * (it.qty || 0)); }, 0);
+        dlog('[7] total計算=' + total);
+        document.getElementById('total-val').textContent = total.toLocaleString();
+        var points = state.points || 0;
+        var pointsRow = document.getElementById('points-row');
+        if (points > 0) {
+          document.getElementById('points-val').textContent = points.toLocaleString();
+          pointsRow.style.display = '';
+        } else {
+          pointsRow.style.display = 'none';
+        }
+        document.getElementById('received-val').textContent = (state.received || 0).toLocaleString();
+        document.getElementById('change-val').textContent = Math.max(0, (state.change || 0)).toLocaleString();
+        dlog('[8] 金額表示更新完了 total-val=' + document.getElementById('total-val').textContent);
+      } catch (e) {
+        dlog('[ERROR] ' + e.message + ' / ' + e.stack);
+      }
+    }
+
+    function fetchState() {
+      sb.from('display_state').select('*').eq('id', 1).single().then(function (res) {
+        if (res.error) { dlog('fetchState ERROR: ' + JSON.stringify(res.error)); return; }
+        if (res.data) renderState(res.data);
+        else dlog('fetchState: no data');
+      });
+    }
+
+    function initListener() {
+      fetchState();
+      sb.channel('display_state_channel')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'display_state', filter: 'id=eq.1' }, function (payload) {
+          dlog('Realtime UPDATE受信');
+          renderState(payload.new);
+        })
+        .subscribe(function (status) {
+          dlog('channel status: ' + status);
+          if (status === 'SUBSCRIBED') {
+            fetchState();
+          }
+        });
+      // Realtimeを主軸とし、フォールバックとして60秒周期チェック＆画面表示復帰時に取得
+      setInterval(fetchState, 60000);
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) fetchState();
+      });
+    }
+
+    initListener();
+  </script>
 </body>
+
 </html>
