@@ -361,6 +361,7 @@
     }, { passive: false });
 
     var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    if (sb && sb.auth) { sb.auth.getSession().then(function (r) { if (!r || !r.data || !r.data.session) sb.auth.signInAnonymously(); }); }
 
     // デバッグログ（無効化。問題発生時にコメントアウトを外して調査）
     var dbgEl = document.createElement('div');
