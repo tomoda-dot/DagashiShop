@@ -625,6 +625,7 @@
 
     dlog('メインスクリプト開始');
     var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    if (sb && sb.auth) { sb.auth.getSession().then(function (r) { if (!r || !r.data || !r.data.session) sb.auth.signInAnonymously(); }); }
     var mode = 'regi'; // 'regi' | 'register'
     var deviceId = localStorage.getItem('scanner_device_id');
     if (!deviceId) {
