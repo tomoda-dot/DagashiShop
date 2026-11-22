@@ -1162,8 +1162,7 @@
       headerSelector: 'header',
       titleSelector: '.htl',
       fullBleed: true,
-      noSubbar: true,
-      moveSelectors: ['.hsub', '.nav-links a[href="inventory.html"]']
+      noSubbar: true
     });
   </script>
   <!-- HITOTSUGI_UNIFIED_HEADER_END -->
@@ -2259,6 +2258,7 @@
     function updateSyncStatus(ok, msg) {
       var dot = document.getElementById('syncDot');
       var txt = document.getElementById('syncStatus');
+      if (!dot || !txt) return;
       if (ok) {
         dot.className = 'dot ok';
         txt.textContent = 'Supabase 接続OK';
