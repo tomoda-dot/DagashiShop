@@ -2,34 +2,36 @@
 <html lang="ja">
 
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>駄菓子 仕入れ・賞味期限・価格管理 | HITOTSUGI SHOP</title>
-<link rel="icon" type="image/jpeg" href="favicon-kuma.jpg">
-<link rel="apple-touch-icon" href="favicon-kuma.jpg">
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg: #FBF3E8;
-  --sf: #FFFFFF;
-  --bd: #E8D9C5;
-  --bh: #C9B59E;
-  --tx: #2D1F10;
-  --t2: #7A6248;
-  --t3: #A8917A;
-  --red: #D97252;
-  --rbg: #FDF0EB;
-  --amb: #D4963A;
-  --abg: #FDF5E6;
-  --grn: #5BA88C;
-  --gbg: #EDF6F1;
-  --blu: #4A90E2;
-  --bbg: #EEF5FC;
-  --r: 12px;
-  --rl: 20px;
-  --shadow: 0 4px 20px rgba(45, 31, 16, 0.06);
-  --shadow-lg: 0 10px 30px rgba(45, 31, 16, 0.12);
-}
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>駄菓子 仕入れ・賞味期限・価格管理 | HITOTSUGI SHOP</title>
+  <link rel="icon" type="image/jpeg" href="favicon-kuma.jpg">
+  <link rel="apple-touch-icon" href="favicon-kuma.jpg">
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #FBF3E8;
+      --sf: #FFFFFF;
+      --bd: #E8D9C5;
+      --bh: #C9B59E;
+      --tx: #2D1F10;
+      --t2: #7A6248;
+      --t3: #A8917A;
+      --red: #D97252;
+      --rbg: #FDF0EB;
+      --amb: #D4963A;
+      --abg: #FDF5E6;
+      --grn: #5BA88C;
+      --gbg: #EDF6F1;
+      --blu: #4A90E2;
+      --bbg: #EEF5FC;
+      --r: 12px;
+      --rl: 20px;
+      --shadow: 0 4px 20px rgba(45, 31, 16, 0.06);
+      --shadow-lg: 0 10px 30px rgba(45, 31, 16, 0.12);
+    }
 
     * {
       box-sizing: border-box;
@@ -2179,8 +2181,12 @@
           }
         }
 
-        // 3. ルート（最前の状態）で「戻る」が押された場合は確認なしでTOP画面へ戻る
-        location.href = 'index.html';
+        // 3. ルート（最前の状態）で「戻る」が押された場合は前のページへ戻る（直接開いた場合のみTOPへ）
+        if (document.referrer || history.length > 2) {
+          history.back();
+        } else {
+          location.href = 'index.html';
+        }
       });
     }
 
