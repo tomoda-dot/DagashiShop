@@ -2179,15 +2179,8 @@
           }
         }
 
-        // 3. ルート（最前の状態）で「戻る」が押された場合は誤離脱防止の確認
-        var doLeave = confirm('🏠 TOP画面に戻りますか？\n（キャンセルを押すとこの管理画面にとどまります）');
-        if (doLeave) {
-          location.href = 'index.html';
-        } else {
-          try {
-            history.pushState({ type: 'tab', tabId: CURRENT_ACTIVE_TAB || 'expTab' }, '', location.pathname + '#' + (CURRENT_ACTIVE_TAB || 'expTab'));
-          } catch (err) { }
-        }
+        // 3. ルート（最前の状態）で「戻る」が押された場合は確認なしでTOP画面へ戻る
+        location.href = 'index.html';
       });
     }
 
