@@ -1,625 +1,909 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>バーコードスキャナー | 駄菓子屋</title>
-<link rel="icon" type="image/jpeg" href="favicon-kuma.jpg">
-<link rel="apple-touch-icon" href="favicon-kuma.jpg">
-<style>
-  * { touch-action: manipulation; }
-  :root{
-    --bg:#fbf3e8; --tx:#3d4036; --t2:#696b60; --t3:#9a9c8f;
-    --card:#ffffff; --bd:#ece4d6; --red:#f49576; --grn:#7bbf8c; --amb:#e8a854;
-    --r:14px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;font-family:'Hiragino Maru Gothic ProN','Rounded Mplus 1c','Meiryo',sans-serif;touch-action:manipulation;}
-  body{background:var(--bg);color:var(--tx);min-height:100vh;padding-bottom:90px;touch-action:manipulation;}
-  header{background:#fff;border-bottom:1px solid var(--bd);padding:14px 16px;position:sticky;top:0;z-index:50;
-    display:flex;align-items:center;justify-content:space-between;}
-  header h1{font-size:17px;font-weight:800;}
-  .container{padding:14px 16px;max-width:520px;margin:0 auto;}
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>バーコードスキャナー | 駄菓子屋</title>
+  <link rel="icon" type="image/jpeg" href="favicon-kuma.jpg">
+  <link rel="apple-touch-icon" href="favicon-kuma.jpg">
+  <style>
+    * {
+      touch-action: manipulation;
+    }
 
-  /* モード切替 */
-  .mode-tabs{display:flex;gap:8px;margin-bottom:14px;}
-  .mode-tab{flex:1;padding:12px;border-radius:var(--r);border:2px solid var(--bd);background:#fff;
-    font-size:14px;font-weight:700;color:var(--t2);cursor:pointer;text-align:center;transition:.15s;}
-  .mode-tab.active{border-color:var(--red);color:var(--red);background:#fff7f3;}
+    :root {
+      --bg: #fbf3e8;
+      --tx: #3d4036;
+      --t2: #696b60;
+      --t3: #9a9c8f;
+      --card: #ffffff;
+      --bd: #ece4d6;
+      --red: #f49576;
+      --grn: #7bbf8c;
+      --amb: #e8a854;
+      --r: 14px;
+    }
 
-  /* カメラ */
-  #reader-wrap{position:relative;border-radius:var(--r);overflow:hidden;background:#000;
-    box-shadow:0 4px 16px rgba(0,0,0,0.12);margin-bottom:14px;min-height:240px;}
-  #reader{width:100%;}
-  #reader video{width:100%!important;border-radius:var(--r);}
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', 'Meiryo', sans-serif;
+      touch-action: manipulation;
+    }
 
-  /* 結果表示 */
-  .result-card{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:16px;
-    margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
-  .result-card .barcode{font-size:13px;color:var(--t3);font-family:monospace;margin-bottom:6px;}
-  .result-card .pname{font-size:18px;font-weight:800;margin-bottom:4px;}
-  .result-card .pprice{font-size:15px;color:var(--red);font-weight:700;}
-  .result-card.notfound .pname{color:var(--amb);}
+    body {
+      background: var(--bg);
+      color: var(--tx);
+      min-height: 100vh;
+      padding-bottom: 90px;
+      touch-action: manipulation;
+    }
 
-  /* 商品登録モード：商品選択 */
-  .search-box{margin-bottom:10px;}
-  .search-box input{width:100%;padding:12px 14px;border:1px solid var(--bd);border-radius:var(--r);
-    font-size:15px;background:#fff;}
-  .plist{max-height:40vh;overflow-y:auto;background:#fff;border:1px solid var(--bd);border-radius:var(--r);}
-  .plist-item{padding:12px 14px;border-bottom:1px solid var(--bd);cursor:pointer;display:flex;
-    justify-content:space-between;align-items:center;font-size:14px;}
-  .plist-item:last-child{border-bottom:none;}
-  .plist-item:active{background:#f5f0e6;}
-  .plist-item .pn{font-weight:700;}
-  .plist-item .pb{font-size:11px;color:var(--t3);font-family:monospace;}
+    header {
+      background: #fff;
+      border-bottom: 1px solid var(--bd);
+      padding: 14px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
 
-  /* ログ */
-  .log-title{font-size:12px;color:var(--t3);font-weight:700;margin:18px 0 8px;}
-  .log-item{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:10px 14px;
-    margin-bottom:6px;font-size:13px;display:flex;justify-content:space-between;}
-  .log-item .lc{color:var(--t3);font-size:11px;}
+    header h1 {
+      font-size: 17px;
+      font-weight: 800;
+    }
 
-  /* 読み込んだ商品リスト（表示専用・タップで選択） */
-  .sent-item{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:12px 14px;
-    margin-bottom:6px;font-size:15px;display:flex;align-items:center;justify-content:space-between;gap:10px;
-    cursor:pointer;-webkit-user-select:none;user-select:none;transition:.15s;}
-  .sent-item:active{background:#f5f0e6;}
-  .sent-item.selected{border-color:var(--red);background:#fff7f3;}
-  .sent-item .sname{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;}
-  .sent-item .sqty-display{font-size:15px;font-weight:800;color:var(--t2);min-width:32px;text-align:center;}
-  .sent-item .sprice{font-weight:800;color:var(--red);white-space:nowrap;min-width:72px;text-align:right;font-size:16px;}
-  .sent-item .sdel{width:30px;height:30px;border-radius:50%;border:1px solid var(--bd);background:var(--bg);
-    font-size:17px;font-weight:800;color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .container {
+      padding: 14px 16px;
+      max-width: 520px;
+      margin: 0 auto;
+    }
 
-  /* 区切り線 */
-  .sent-divider{background:#fdf6e3;border:2px dashed var(--amb);border-radius:10px;padding:10px 14px;
-    margin:10px 0 6px;font-size:14px;font-weight:800;color:#8a6d3b;display:flex;align-items:center;justify-content:space-between;gap:8px;}
-  .sent-divider .sname{font-weight:800;flex:1;font-size:14px;color:#8a6d3b;}
-  .sent-divider .ssub{font-size:15px;font-weight:900;color:var(--red);margin-left:auto;}
+    /* モード切替 */
+    .mode-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
 
-  /* 選択中の商品パネル */
-  .sel-name{font-size:19px;font-weight:800;margin-bottom:12px;}
-  .sel-ctrl{display:flex;align-items:center;gap:14px;}
-  .sel-btn{width:46px;height:46px;border-radius:50%;border:1px solid var(--bd);background:var(--bg);
-    font-size:24px;font-weight:800;color:var(--tx);display:flex;align-items:center;justify-content:center;
-    cursor:pointer;-webkit-user-select:none;user-select:none;flex-shrink:0;}
-  .sel-btn:active{background:var(--bd);}
-  .sel-qty{font-size:24px;font-weight:900;min-width:40px;text-align:center;}
-  .sel-price{margin-left:auto;font-size:24px;font-weight:900;color:var(--red);}
+    .mode-tab {
+      flex: 1;
+      padding: 12px;
+      border-radius: var(--r);
+      border: 2px solid var(--bd);
+      background: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--t2);
+      cursor: pointer;
+      text-align: center;
+      transition: .15s;
+    }
 
-  .quick-amt-btn{padding:12px 4px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);
-    font-size:14px;font-weight:800;color:var(--tx);cursor:pointer;-webkit-user-select:none;user-select:none;}
-  .quick-amt-btn:active{background:var(--bd);}
+    .mode-tab.active {
+      border-color: var(--red);
+      color: var(--red);
+      background: #fff7f3;
+    }
 
-  /* トースト */
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-    background:rgba(30,30,30,0.92);color:#fff;padding:12px 24px;border-radius:999px;
-    font-size:15px;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.25);
-    max-width:90vw;text-align:center;opacity:1;transition:opacity .4s;}
-  .toast.out{opacity:0;}
-  .toast.ok{background:rgba(123,191,140,0.95);}
-  .toast.warn{background:rgba(232,168,84,0.95);}
+    /* カメラ */
+    #reader-wrap {
+      position: relative;
+      border-radius: var(--r);
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      margin-bottom: 14px;
+      min-height: 240px;
+    }
 
-  /* デバイスID表示 */
-  .device-id{font-size:11px;color:var(--t3);text-align:center;margin-top:14px;}
-  .top-back-btn {
-    position: fixed; bottom: 20px; right: 20px; z-index: 9999;
-    background: #f49576; color: white; border: none;
-    padding: 14px 24px; border-radius: 50px; font-weight: bold;
-    font-size: 14px; text-decoration: none; font-family: sans-serif;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3); opacity: 0.85; transition: 0.3s;
-    display: inline-flex; align-items: center; justify-content: center;
-  }
-  .top-back-btn:hover { opacity: 1; transform: scale(1.05); }
-</style>
+    #reader {
+      width: 100%;
+    }
+
+    #reader video {
+      width: 100% !important;
+      border-radius: var(--r);
+    }
+
+    /* 結果表示 */
+    .result-card {
+      background: var(--card);
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .result-card .barcode {
+      font-size: 13px;
+      color: var(--t3);
+      font-family: monospace;
+      margin-bottom: 6px;
+    }
+
+    .result-card .pname {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .result-card .pprice {
+      font-size: 15px;
+      color: var(--red);
+      font-weight: 700;
+    }
+
+    .result-card.notfound .pname {
+      color: var(--amb);
+    }
+
+    /* 商品登録モード：商品選択 */
+    .search-box {
+      margin-bottom: 10px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+      font-size: 15px;
+      background: #fff;
+    }
+
+    .plist {
+      max-height: 40vh;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid var(--bd);
+      border-radius: var(--r);
+    }
+
+    .plist-item {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--bd);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .plist-item:last-child {
+      border-bottom: none;
+    }
+
+    .plist-item:active {
+      background: #f5f0e6;
+    }
+
+    .plist-item .pn {
+      font-weight: 700;
+    }
+
+    .plist-item .pb {
+      font-size: 11px;
+      color: var(--t3);
+      font-family: monospace;
+    }
+
+    /* ログ */
+    .log-title {
+      font-size: 12px;
+      color: var(--t3);
+      font-weight: 700;
+      margin: 18px 0 8px;
+    }
+
+    .log-item {
+      background: #fff;
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .log-item .lc {
+      color: var(--t3);
+      font-size: 11px;
+    }
+
+    /* 読み込んだ商品リスト（表示専用・タップで選択） */
+    .sent-item {
+      background: #fff;
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 6px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+      transition: .15s;
+    }
+
+    .sent-item:active {
+      background: #f5f0e6;
+    }
+
+    .sent-item.selected {
+      border-color: var(--red);
+      background: #fff7f3;
+    }
+
+    .sent-item .sname {
+      font-weight: 700;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 16px;
+    }
+
+    .sent-item .sqty-display {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--t2);
+      min-width: 32px;
+      text-align: center;
+    }
+
+    .sent-item .sprice {
+      font-weight: 800;
+      color: var(--red);
+      white-space: nowrap;
+      min-width: 72px;
+      text-align: right;
+      font-size: 16px;
+    }
+
+    .sent-item .sdel {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid var(--bd);
+      background: var(--bg);
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--red);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* 区切り線 */
+    .sent-divider {
+      background: #fdf6e3;
+      border: 2px dashed var(--amb);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin: 10px 0 6px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #8a6d3b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .sent-divider .sname {
+      font-weight: 800;
+      flex: 1;
+      font-size: 14px;
+      color: #8a6d3b;
+    }
+
+    .sent-divider .ssub {
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--red);
+      margin-left: auto;
+    }
+
+    /* 選択中の商品パネル */
+    .sel-name {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .sel-ctrl {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .sel-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 1px solid var(--bd);
+      background: var(--bg);
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--tx);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .sel-btn:active {
+      background: var(--bd);
+    }
+
+    .sel-qty {
+      font-size: 24px;
+      font-weight: 900;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .sel-price {
+      margin-left: auto;
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--red);
+    }
+
+    .quick-amt-btn {
+      padding: 12px 4px;
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      background: var(--bg);
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--tx);
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .quick-amt-btn:active {
+      background: var(--bd);
+    }
+
+    /* トースト */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30, 30, 30, 0.92);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 700;
+      z-index: 9999;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+      max-width: 90vw;
+      text-align: center;
+      opacity: 1;
+      transition: opacity .4s;
+    }
+
+    .toast.out {
+      opacity: 0;
+    }
+
+    .toast.ok {
+      background: rgba(123, 191, 140, 0.95);
+    }
+
+    .toast.warn {
+      background: rgba(232, 168, 84, 0.95);
+    }
+
+    /* デバイスID表示 */
+    .device-id {
+      font-size: 11px;
+      color: var(--t3);
+      text-align: center;
+      margin-top: 14px;
+    }
+
+    .top-back-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      background: #f49576;
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 50px;
+      font-weight: bold;
+      font-size: 14px;
+      text-decoration: none;
+      font-family: sans-serif;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      opacity: 0.85;
+      transition: 0.3s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .top-back-btn:hover {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+  </style>
+  <!-- HITOTSUGI_UNIFIED_HEADER_START -->
+  <script src="https://tomoda-dot.github.io/Porte/hitotsugi-unified-header.js"></script>
+  <script>
+    HitotsugiUnifiedHeader.init({
+      appId: 'scanner',
+      headerSelector: 'header',
+      title: '📷 バーコードスキャナー',
+      noSubbar: true,
+      moveSelectors: ['#device-badge']
+    });
+    document.addEventListener('DOMContentLoaded', function () {
+      var h = document.querySelector('header');
+      if (h) {
+        h.style.setProperty('background', 'linear-gradient(135deg, #f5e2cb 0%, #edd2b5 100%)', 'important');
+        h.style.setProperty('color', '#3d4036', 'important');
+        h.style.setProperty('border-bottom', '1px solid #d8bca0', 'important');
+      }
+    });
+  </script>
+  <!-- HITOTSUGI_UNIFIED_HEADER_END -->
 </head>
+
 <body>
 
 
-<header>
-  <h1>📷 バーコードスキャナー</h1>
-  <span class="device-id" id="device-badge"></span>
-</header>
+  <header>
+    <h1>📷 バーコードスキャナー</h1>
+    <span class="device-id" id="device-badge"></span>
+  </header>
 
-<div class="container">
+  <div class="container">
 
-  <div id="debug-log" style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:8px 12px;
-    margin-bottom:10px;font-size:11px;font-family:monospace;color:var(--t2);max-height:120px;overflow-y:auto;white-space:pre-wrap;"></div>
-
-  <div class="mode-tabs">
-    <div class="mode-tab active" id="tab-regi" onclick="switchMode('regi')">🛒 レジ送信</div>
-    <div class="mode-tab" id="tab-register" onclick="switchMode('register')">🏷️ 商品登録</div>
-  </div>
-
-  <div id="reader-wrap">
-    <div id="reader"></div>
-    <div id="camera-start-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(61,64,54,0.85);">
-      <button id="camera-start-btn" style="background:var(--red);color:#fff;border:none;border-radius:999px;padding:16px 32px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.25);">📷 カメラを起動</button>
+    <div id="debug-log"
+      style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:8px 12px;
+    margin-bottom:10px;font-size:11px;font-family:monospace;color:var(--t2);max-height:120px;overflow-y:auto;white-space:pre-wrap;">
     </div>
-    <div id="add-popup" style="position:absolute;top:10px;left:50%;transform:translateX(-50%) translateY(-20px);
+
+    <div class="mode-tabs">
+      <div class="mode-tab active" id="tab-regi" onclick="switchMode('regi')">🛒 レジ送信</div>
+      <div class="mode-tab" id="tab-register" onclick="switchMode('register')">🏷️ 商品登録</div>
+    </div>
+
+    <div id="reader-wrap">
+      <div id="reader"></div>
+      <div id="camera-start-overlay"
+        style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(61,64,54,0.85);">
+        <button id="camera-start-btn"
+          style="background:var(--red);color:#fff;border:none;border-radius:999px;padding:16px 32px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.25);">📷
+          カメラを起動</button>
+      </div>
+      <div id="add-popup" style="position:absolute;top:10px;left:50%;transform:translateX(-50%) translateY(-20px);
       background:rgba(123,191,140,0.96);color:#fff;padding:10px 20px;border-radius:999px;
       font-size:15px;font-weight:800;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,0.2);
       opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:10;"></div>
-  </div>
+    </div>
 
-  <button id="scan-trigger-btn" style="width:100%;padding:18px;margin-bottom:14px;border:none;border-radius:var(--r);
+    <button id="scan-trigger-btn" style="width:100%;padding:18px;margin-bottom:14px;border:none;border-radius:var(--r);
     background:var(--grn);color:#fff;font-size:17px;font-weight:800;letter-spacing:2px;cursor:pointer;
     box-shadow:0 4px 14px rgba(123,191,140,0.35);-webkit-user-select:none;user-select:none;touch-action:none;">
-    👇 押している間だけ読み取り
-  </button>
+      👇 押している間だけ読み取り
+    </button>
 
-  <!-- 選択中の商品（操作パネル） -->
-  <div id="selected-panel" class="result-card" style="display:none;">
-    <div class="sel-name" id="selected-name"></div>
-    <div class="sel-ctrl">
-      <button class="sel-btn" id="selected-dec">−</button>
-      <span class="sel-qty" id="selected-qty">0</span>
-      <button class="sel-btn" id="selected-inc">＋</button>
-      <span class="sel-price" id="selected-price">¥0</span>
+    <!-- 選択中の商品（操作パネル） -->
+    <div id="selected-panel" class="result-card" style="display:none;">
+      <div class="sel-name" id="selected-name"></div>
+      <div class="sel-ctrl">
+        <button class="sel-btn" id="selected-dec">−</button>
+        <span class="sel-qty" id="selected-qty">0</span>
+        <button class="sel-btn" id="selected-inc">＋</button>
+        <span class="sel-price" id="selected-price">¥0</span>
+      </div>
     </div>
-  </div>
-  <div id="selected-empty" style="text-align:center;color:var(--t3);font-size:13px;padding:14px;">
-    商品をスキャンまたはタップすると<br>ここに表示されます
-  </div>
+    <div id="selected-empty" style="text-align:center;color:var(--t3);font-size:13px;padding:14px;">
+      商品をスキャンまたはタップすると<br>ここに表示されます
+    </div>
 
-  <!-- 商品登録モード -->
-  <div id="register-panel" style="display:none;">
-    <div class="result-card" id="register-barcode-card" style="display:none;">
-      <div class="barcode" id="register-barcode-val"></div>
-      <div class="pname">この内容で商品にバーコードを登録します</div>
+    <!-- 商品登録モード -->
+    <div id="register-panel" style="display:none;">
+      <div class="result-card" id="register-barcode-card" style="display:none;">
+        <div class="barcode" id="register-barcode-val"></div>
+        <div class="pname">この内容で商品にバーコードを登録します</div>
+      </div>
+      <div class="search-box">
+        <input type="text" id="product-search" placeholder="商品名で検索..." oninput="renderProductList()">
+      </div>
+      <div class="plist" id="product-list"></div>
     </div>
-    <div class="search-box">
-      <input type="text" id="product-search" placeholder="商品名で検索..." oninput="renderProductList()">
-    </div>
-    <div class="plist" id="product-list"></div>
-  </div>
 
-  <div style="position:sticky;top:48px;z-index:40;background:var(--bg);padding:10px 0 8px;margin:8px 0;border-bottom:1.5px solid var(--bd);display:flex;justify-content:space-between;align-items:center;gap:6px;">
-    <div class="log-title" style="margin:0;">読み込んだ商品</div>
-    <div style="display:flex;gap:6px;">
-      <button onclick="addPersonDivider()" style="padding:5px 11px;border-radius:8px;border:1.5px solid var(--amb);background:#fff9f0;font-size:12px;font-weight:800;color:#856404;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.05);">➕ 区切り</button>
-      <button onclick="clearAllItems()" style="padding:5px 11px;border-radius:8px;border:1px solid var(--bd);background:#fff;font-size:12px;font-weight:700;color:var(--red);cursor:pointer;">🗑️ リセット</button>
+    <div
+      style="position:sticky;top:48px;z-index:40;background:var(--bg);padding:10px 0 8px;margin:8px 0;border-bottom:1.5px solid var(--bd);display:flex;justify-content:space-between;align-items:center;gap:6px;">
+      <div class="log-title" style="margin:0;">読み込んだ商品</div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="addPersonDivider()"
+          style="padding:5px 11px;border-radius:8px;border:1.5px solid var(--amb);background:#fff9f0;font-size:12px;font-weight:800;color:#856404;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.05);">➕
+          区切り</button>
+        <button onclick="clearAllItems()"
+          style="padding:5px 11px;border-radius:8px;border:1px solid var(--bd);background:#fff;font-size:12px;font-weight:700;color:var(--red);cursor:pointer;">🗑️
+          リセット</button>
+      </div>
     </div>
-  </div>
-  <div id="sent-list"></div>
-  <div id="sent-total" style="text-align:right;font-size:16px;font-weight:800;margin-top:6px;"></div>
+    <div id="sent-list"></div>
+    <div id="sent-total" style="text-align:right;font-size:16px;font-weight:800;margin-top:6px;"></div>
 
-  <!-- 預り金・お釣り -->
-  <div class="result-card" style="margin-top:14px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <span style="font-size:14px;font-weight:700;color:var(--t2);">合計</span>
-      <span style="font-size:22px;font-weight:900;" id="checkout-total">¥0</span>
+    <!-- 預り金・お釣り -->
+    <div class="result-card" style="margin-top:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:14px;font-weight:700;color:var(--t2);">合計</span>
+        <span style="font-size:22px;font-weight:900;" id="checkout-total">¥0</span>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:13px;font-weight:700;color:var(--amb);display:block;margin-bottom:6px;">🪙
+          ポイント使用（P）</label>
+        <input type="number" id="point-input" inputmode="numeric" placeholder="0"
+          style="width:100%;padding:10px 14px;border:1px solid var(--amb);border-radius:var(--r);font-size:18px;font-weight:800;text-align:right;">
+      </div>
+      <div
+        style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:8px 0;border-top:1px solid var(--bd);">
+        <span style="font-size:13px;font-weight:700;color:var(--t2);">現金支払い額</span>
+        <span style="font-size:18px;font-weight:900;" id="cash-amount">¥0</span>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:6px;">お預かり（現金）</label>
+        <input type="number" id="received-input" inputmode="numeric" placeholder="0"
+          style="width:100%;padding:14px;border:1px solid var(--bd);border-radius:var(--r);font-size:22px;font-weight:800;text-align:right;">
+      </div>
+      <!-- クイック金額ボタン -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;">
+        <button class="quick-amt-btn" data-amt="100">100</button>
+        <button class="quick-amt-btn" data-amt="500">500</button>
+        <button class="quick-amt-btn" data-amt="1000">1000</button>
+        <button class="quick-amt-btn" data-amt="exact">ぴったり</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:14px;font-weight:700;color:var(--t2);">おつり</span>
+        <span style="font-size:26px;font-weight:900;color:var(--grn);" id="checkout-change">¥0</span>
+      </div>
     </div>
-    <div style="margin-bottom:10px;">
-      <label style="font-size:13px;font-weight:700;color:var(--amb);display:block;margin-bottom:6px;">🪙 ポイント使用（P）</label>
-      <input type="number" id="point-input" inputmode="numeric" placeholder="0"
-        style="width:100%;padding:10px 14px;border:1px solid var(--amb);border-radius:var(--r);font-size:18px;font-weight:800;text-align:right;">
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:8px 0;border-top:1px solid var(--bd);">
-      <span style="font-size:13px;font-weight:700;color:var(--t2);">現金支払い額</span>
-      <span style="font-size:18px;font-weight:900;" id="cash-amount">¥0</span>
-    </div>
-    <div style="margin-bottom:10px;">
-      <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:6px;">お預かり（現金）</label>
-      <input type="number" id="received-input" inputmode="numeric" placeholder="0"
-        style="width:100%;padding:14px;border:1px solid var(--bd);border-radius:var(--r);font-size:22px;font-weight:800;text-align:right;">
-    </div>
-    <!-- クイック金額ボタン -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;">
-      <button class="quick-amt-btn" data-amt="100">100</button>
-      <button class="quick-amt-btn" data-amt="500">500</button>
-      <button class="quick-amt-btn" data-amt="1000">1000</button>
-      <button class="quick-amt-btn" data-amt="exact">ぴったり</button>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-size:14px;font-weight:700;color:var(--t2);">おつり</span>
-      <span style="font-size:26px;font-weight:900;color:var(--grn);" id="checkout-change">¥0</span>
-    </div>
-  </div>
 
-  <button id="checkout-done-btn" onclick="completeCheckout()" style="width:100%;margin-top:14px;padding:16px;border:none;border-radius:var(--r);
+    <button id="checkout-done-btn" onclick="completeCheckout()" style="width:100%;margin-top:14px;padding:16px;border:none;border-radius:var(--r);
     background:var(--grn);color:#fff;font-size:16px;font-weight:800;letter-spacing:2px;cursor:pointer;
     box-shadow:0 4px 14px rgba(123,191,140,0.35);">✅ 会計確定</button>
-</div>
+  </div>
 
-<script src="supabase-config.js"></script>
-<script>
-function dlog(msg) {
-  var el = document.getElementById('debug-log');
-  if (!el) return;
-  el.textContent += msg + '\n';
-  el.scrollTop = el.scrollHeight;
-}
-window.addEventListener('error', function(e) {
-  dlog('❌ ' + (e.message || e) + (e.filename ? ' @' + e.filename.split('/').pop() + ':' + e.lineno : ''));
-});
-dlog('読み込み開始...');
-dlog('supabase-config.js: ' + (typeof SUPABASE_URL !== 'undefined' ? 'OK' : 'NG'));
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" onload="dlog('supabase-js: OK')" onerror="dlog('❌ supabase-js: 読み込み失敗')"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" onload="dlog('html5-qrcode: OK')" onerror="dlog('❌ html5-qrcode: 読み込み失敗')"></script>
-<script src="supabase-adapter.js" onload="dlog('supabase-adapter: OK')" onerror="dlog('❌ supabase-adapter: 読み込み失敗')"></script>
-<script>
-document.addEventListener('dblclick', function(e) {
-  e.preventDefault();
-}, { passive: false });
-
-dlog('メインスクリプト開始');
-var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-var mode = 'regi'; // 'regi' | 'register'
-var deviceId = localStorage.getItem('scanner_device_id');
-if (!deviceId) {
-  deviceId = 'dev-' + Math.random().toString(36).slice(2, 8);
-  localStorage.setItem('scanner_device_id', deviceId);
-}
-document.getElementById('device-badge').textContent = deviceId;
-
-var allProducts = []; // {id, name, barcode, price}
-var barcodeMap = {}; // barcode -> {name, price}
-var sentCart = []; // 読み込んだ商品リスト [{barcode, name, price, qty}]
-var selectedItem = null; // 現在「選択中の商品」パネルに表示中のアイテム（sentCartの要素への参照）
-var pendingBarcode = null; // 商品登録モードで読み取った直近のバーコード
-var lastScan = '';
-var lastScanTime = 0;
-
-function showToast(msg, type) {
-  var t = document.createElement('div');
-  t.className = 'toast' + (type ? ' ' + type : '');
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(function(){ t.classList.add('out'); setTimeout(function(){t.remove();}, 400); }, 2000);
-}
-
-var addPopupTimer = null;
-function showAddPopup(msg) {
-  var el = document.getElementById('add-popup');
-  el.textContent = msg;
-  el.style.opacity = '1';
-  el.style.transform = 'translateX(-50%) translateY(0)';
-  if (addPopupTimer) clearTimeout(addPopupTimer);
-  addPopupTimer = setTimeout(function() {
-    el.style.opacity = '0';
-    el.style.transform = 'translateX(-50%) translateY(-20px)';
-  }, 900);
-}
-
-function switchMode(m) {
-  mode = m;
-  document.getElementById('tab-regi').classList.toggle('active', m === 'regi');
-  document.getElementById('tab-register').classList.toggle('active', m === 'register');
-  document.getElementById('selected-panel').style.display = (m === 'regi' && selectedItem) ? '' : 'none';
-  document.getElementById('selected-empty').style.display = (m === 'regi' && !selectedItem) ? '' : 'none';
-  document.getElementById('register-panel').style.display = (m === 'register') ? '' : 'none';
-  if (m === 'register') renderProductList();
-}
-
-// ── 商品一覧（バーコードマップ・登録モード検索の両方で使用） ──
-function loadProducts() {
-  sb.from('products').select('id,name,name_kana,barcode,price,sell_price').eq('status', 'active')
-    .order('name', { ascending: true })
-    .then(function(res) {
-      allProducts = res.data || [];
-      barcodeMap = {};
-      allProducts.forEach(function(p) {
-        if (p.barcode) {
-          barcodeMap[p.barcode] = { name: p.name, price: p.sell_price || p.price || 0 };
-        }
-      });
-      renderProductList();
+  <script src="supabase-config.js"></script>
+  <script>
+    function dlog(msg) {
+      var el = document.getElementById('debug-log');
+      if (!el) return;
+      el.textContent += msg + '\n';
+      el.scrollTop = el.scrollHeight;
+    }
+    window.addEventListener('error', function (e) {
+      dlog('❌ ' + (e.message || e) + (e.filename ? ' @' + e.filename.split('/').pop() + ':' + e.lineno : ''));
     });
-}
-loadProducts();
+    dlog('読み込み開始...');
+    dlog('supabase-config.js: ' + (typeof SUPABASE_URL !== 'undefined' ? 'OK' : 'NG'));
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"
+    onload="dlog('supabase-js: OK')" onerror="dlog('❌ supabase-js: 読み込み失敗')"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" onload="dlog('html5-qrcode: OK')"
+    onerror="dlog('❌ html5-qrcode: 読み込み失敗')"></script>
+  <script src="supabase-adapter.js" onload="dlog('supabase-adapter: OK')"
+    onerror="dlog('❌ supabase-adapter: 読み込み失敗')"></script>
+  <script>
+    document.addEventListener('dblclick', function (e) {
+      e.preventDefault();
+    }, { passive: false });
 
-// ひらがな⇔カタカナを統一（カタカナに正規化）
-function toKatakana(str){
-  return (str||'').replace(/[\u3041-\u3096]/g, function(ch){
-    return String.fromCharCode(ch.charCodeAt(0) + 0x60);
-  });
-}
+    dlog('メインスクリプト開始');
+    var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    var mode = 'regi'; // 'regi' | 'register'
+    var deviceId = localStorage.getItem('scanner_device_id');
+    if (!deviceId) {
+      deviceId = 'dev-' + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem('scanner_device_id', deviceId);
+    }
+    document.getElementById('device-badge').textContent = deviceId;
 
-function renderProductList() {
-  var qRaw = (document.getElementById('product-search').value || '').toLowerCase();
-  var q = toKatakana(qRaw);
-  var list = document.getElementById('product-list');
-  var filtered = allProducts.filter(function(p) {
-    if (!qRaw) return true;
-    var nameMatch = p.name.toLowerCase().indexOf(qRaw) >= 0;
-    var kanaMatch = toKatakana(p.name_kana || '').indexOf(q) >= 0;
-    return nameMatch || kanaMatch;
-  });
-  if (!filtered.length) { list.innerHTML = '<div class="plist-item">商品が見つかりません</div>'; return; }
-  list.innerHTML = filtered.map(function(p) {
-    return '<div class="plist-item" data-pid="' + p.id + '">'
-      + '<div><div class="pn">' + p.name + '</div>'
-      + (p.barcode ? '<div class="pb">登録済み: ' + p.barcode + '</div>' : '<div class="pb">未登録</div>')
-      + '</div><div>›</div></div>';
-  }).join('');
-  Array.prototype.forEach.call(list.querySelectorAll('.plist-item'), function(el, idx) {
-    el.addEventListener('click', function() {
-      var pid = parseInt(el.getAttribute('data-pid'));
-      var p = filtered.find(function(x){ return x.id === pid; });
-      if (p) registerBarcode(p.id, p.name);
-    });
-  });
-}
+    var allProducts = []; // {id, name, barcode, price}
+    var barcodeMap = {}; // barcode -> {name, price}
+    var sentCart = []; // 読み込んだ商品リスト [{barcode, name, price, qty}]
+    var selectedItem = null; // 現在「選択中の商品」パネルに表示中のアイテム（sentCartの要素への参照）
+    var pendingBarcode = null; // 商品登録モードで読み取った直近のバーコード
+    var lastScan = '';
+    var lastScanTime = 0;
 
-function registerBarcode(productId, productName) {
-  if (!pendingBarcode) { showToast('先にバーコードを読み取ってください', 'warn'); return; }
-  sb.from('products').update({ barcode: pendingBarcode }).eq('id', productId).then(function(res) {
-    if (res.error) { showToast('登録エラー: ' + res.error.message, 'warn'); return; }
-    showToast('✅ ' + productName + ' にバーコードを登録しました', 'ok');
-    pendingBarcode = null;
-    document.getElementById('register-barcode-card').style.display = 'none';
+    function showToast(msg, type) {
+      var t = document.createElement('div');
+      t.className = 'toast' + (type ? ' ' + type : '');
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function () { t.classList.add('out'); setTimeout(function () { t.remove(); }, 400); }, 2000);
+    }
+
+    var addPopupTimer = null;
+    function showAddPopup(msg) {
+      var el = document.getElementById('add-popup');
+      el.textContent = msg;
+      el.style.opacity = '1';
+      el.style.transform = 'translateX(-50%) translateY(0)';
+      if (addPopupTimer) clearTimeout(addPopupTimer);
+      addPopupTimer = setTimeout(function () {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(-50%) translateY(-20px)';
+      }, 900);
+    }
+
+    function switchMode(m) {
+      mode = m;
+      document.getElementById('tab-regi').classList.toggle('active', m === 'regi');
+      document.getElementById('tab-register').classList.toggle('active', m === 'register');
+      document.getElementById('selected-panel').style.display = (m === 'regi' && selectedItem) ? '' : 'none';
+      document.getElementById('selected-empty').style.display = (m === 'regi' && !selectedItem) ? '' : 'none';
+      document.getElementById('register-panel').style.display = (m === 'register') ? '' : 'none';
+      if (m === 'register') renderProductList();
+    }
+
+    // ── 商品一覧（バーコードマップ・登録モード検索の両方で使用） ──
+    function loadProducts() {
+      sb.from('products').select('id,name,name_kana,barcode,price,sell_price').eq('status', 'active')
+        .order('name', { ascending: true })
+        .then(function (res) {
+          allProducts = res.data || [];
+          barcodeMap = {};
+          allProducts.forEach(function (p) {
+            if (p.barcode) {
+              barcodeMap[p.barcode] = { name: p.name, price: p.sell_price || p.price || 0 };
+            }
+          });
+          renderProductList();
+        });
+    }
     loadProducts();
-  });
-}
 
-// ── タブレット表示の更新（display_state） ──
-function pushDisplayState(thanks) {
-  var cart = sentCart.filter(function(it){ return it.isDivider || (it.qty > 0); })
-    .map(function(it){
-      if (it.isDivider) {
-        return { isDivider: true, name: (it.groupName || '区切り') + ' 小計', subtotal: it.subtotal || 0, count: it.count || 0 };
-      }
-      return { name: it.name, price: it.price, qty: it.qty };
-    });
-  var total = getCartTotal();
-  var points = getUsedPoints();
-  var cash = Math.max(0, total - points);
-  var received = parseInt(document.getElementById('received-input').value) || 0;
-  var change = received - cash;
-  sb.from('display_state').update({
-    cart: cart,
-    received: received,
-    change: change,
-    points: points,
-    cash_amount: cash,
-    thanks: !!thanks,
-    updated_at: new Date().toISOString()
-  }).eq('id', 1).then(function(res) {
-    if (res.error) showToast('表示更新エラー: ' + res.error.message, 'warn');
-  });
-}
-
-// ── 区切り（小計）挿入 ──
-function addPersonDivider() {
-  sentCart.unshift({
-    isDivider: true,
-    id: 'div-' + Date.now()
-  });
-  renderSentList();
-  updateCheckoutAmounts();
-  pushDisplayState(false);
-}
-
-// ── 読み込んだ商品リスト（sentCart） ──
-function addToSentCart(barcode, name, price, qty) {
-  var existing = sentCart.find(function(it){ return !it.isDivider && it.barcode === barcode; });
-  if (existing) {
-    existing.qty = Math.max(0, existing.qty + qty);
-    selectItem(existing);
-  } else if (qty > 0) {
-    var newItem = { barcode: barcode, name: name, price: price, qty: qty };
-    sentCart.unshift(newItem);
-    selectItem(newItem);
-  }
-  renderSentList();
-  updateCheckoutAmounts();
-  pushDisplayState(false);
-}
-
-// ── 選択中の商品パネル ──
-function selectItem(it) {
-  if (it && it.isDivider) return;
-  selectedItem = it;
-  renderSelectedPanel();
-  renderSentList(); // 選択ハイライト更新のため再描画
-}
-
-function renderSelectedPanel() {
-  var panel = document.getElementById('selected-panel');
-  var empty = document.getElementById('selected-empty');
-  if (!selectedItem || mode !== 'regi' || selectedItem.isDivider) {
-    panel.style.display = 'none';
-    empty.style.display = (mode === 'regi') ? '' : 'none';
-    return;
-  }
-  empty.style.display = 'none';
-  panel.style.display = '';
-  document.getElementById('selected-name').textContent = selectedItem.name;
-  document.getElementById('selected-qty').textContent = selectedItem.qty;
-  document.getElementById('selected-price').textContent = '¥' + (selectedItem.price * selectedItem.qty).toLocaleString();
-}
-
-document.getElementById('selected-dec').addEventListener('click', function() {
-  if (!selectedItem || selectedItem.isDivider) return;
-  if (selectedItem.qty > 0) selectedItem.qty -= 1;
-  renderSelectedPanel();
-  renderSentList();
-  updateCheckoutAmounts();
-  pushDisplayState(false);
-});
-document.getElementById('selected-inc').addEventListener('click', function() {
-  if (!selectedItem || selectedItem.isDivider) return;
-  selectedItem.qty += 1;
-  renderSelectedPanel();
-  renderSentList();
-  updateCheckoutAmounts();
-  pushDisplayState(false);
-});
-
-function renderSentList() {
-  var list = document.getElementById('sent-list');
-  var totalEl = document.getElementById('sent-total');
-  if (!sentCart.length) {
-    list.innerHTML = '<div class="sent-item" style="color:var(--t3);justify-content:center;cursor:default;">まだ読み取りがありません</div>';
-    totalEl.textContent = '';
-    return;
-  }
-
-  // 各区切りの小計・件数計算 (古い順：配列の後ろから前へ)
-  var groupSum = 0;
-  var groupQty = 0;
-  var dividerCount = 0;
-  for (var i = sentCart.length - 1; i >= 0; i--) {
-    if (sentCart[i].isDivider) dividerCount++;
-  }
-  var currentDividerNum = 1;
-  for (var i = sentCart.length - 1; i >= 0; i--) {
-    var it = sentCart[i];
-    if (it.isDivider) {
-      it.subtotal = groupSum;
-      it.count = groupQty;
-      it.groupName = currentDividerNum + '人目';
-      currentDividerNum++;
-      groupSum = 0;
-      groupQty = 0;
-    } else {
-      groupSum += (it.price || 0) * (it.qty || 0);
-      groupQty += (it.qty || 0);
+    // ひらがな⇔カタカナを統一（カタカナに正規化）
+    function toKatakana(str) {
+      return (str || '').replace(/[\u3041-\u3096]/g, function (ch) {
+        return String.fromCharCode(ch.charCodeAt(0) + 0x60);
+      });
     }
-  }
 
-  list.innerHTML = sentCart.map(function(it, idx) {
-    if (it.isDivider) {
-      return '<div class="sent-divider" data-idx="' + idx + '">'
-        + '<div class="sname">👤 ' + it.groupName + ' 小計 (' + it.count + '点)</div>'
-        + '<div class="ssub">¥' + (it.subtotal || 0).toLocaleString() + '</div>'
-        + '<button class="sdel" data-idx="' + idx + '" data-act="del">×</button>'
-        + '</div>';
+    function renderProductList() {
+      var qRaw = (document.getElementById('product-search').value || '').toLowerCase();
+      var q = toKatakana(qRaw);
+      var list = document.getElementById('product-list');
+      var filtered = allProducts.filter(function (p) {
+        if (!qRaw) return true;
+        var nameMatch = p.name.toLowerCase().indexOf(qRaw) >= 0;
+        var kanaMatch = toKatakana(p.name_kana || '').indexOf(q) >= 0;
+        return nameMatch || kanaMatch;
+      });
+      if (!filtered.length) { list.innerHTML = '<div class="plist-item">商品が見つかりません</div>'; return; }
+      list.innerHTML = filtered.map(function (p) {
+        return '<div class="plist-item" data-pid="' + p.id + '">'
+          + '<div><div class="pn">' + p.name + '</div>'
+          + (p.barcode ? '<div class="pb">登録済み: ' + p.barcode + '</div>' : '<div class="pb">未登録</div>')
+          + '</div><div>›</div></div>';
+      }).join('');
+      Array.prototype.forEach.call(list.querySelectorAll('.plist-item'), function (el, idx) {
+        el.addEventListener('click', function () {
+          var pid = parseInt(el.getAttribute('data-pid'));
+          var p = filtered.find(function (x) { return x.id === pid; });
+          if (p) registerBarcode(p.id, p.name);
+        });
+      });
     }
-    var sel = (selectedItem === it) ? ' selected' : '';
-    return '<div class="sent-item' + sel + '" data-idx="' + idx + '" data-act="select">'
-      + '<div class="sname">' + it.name + '</div>'
-      + '<div class="sqty-display">' + it.qty + '</div>'
-      + '<div class="sprice">¥' + (it.price * it.qty).toLocaleString() + '</div>'
-      + '<button class="sdel" data-idx="' + idx + '" data-act="del">×</button>'
-      + '</div>';
-  }).join('');
 
-  var total = getCartTotal();
-  var totalQty = sentCart.reduce(function(s, it){ return s + (it.isDivider ? 0 : (it.qty || 0)); }, 0);
-  totalEl.textContent = '計 ' + totalQty + '点　合計 ¥' + total.toLocaleString();
+    function registerBarcode(productId, productName) {
+      if (!pendingBarcode) { showToast('先にバーコードを読み取ってください', 'warn'); return; }
+      sb.from('products').update({ barcode: pendingBarcode }).eq('id', productId).then(function (res) {
+        if (res.error) { showToast('登録エラー: ' + res.error.message, 'warn'); return; }
+        showToast('✅ ' + productName + ' にバーコードを登録しました', 'ok');
+        pendingBarcode = null;
+        document.getElementById('register-barcode-card').style.display = 'none';
+        loadProducts();
+      });
+    }
 
-  Array.prototype.forEach.call(list.querySelectorAll('[data-act="select"]'), function(row) {
-    row.addEventListener('click', function(e) {
-      if (e.target.closest('[data-act="del"]')) return;
-      var idx = parseInt(row.getAttribute('data-idx'));
-      if (sentCart[idx] && !sentCart[idx].isDivider) {
-        selectItem(sentCart[idx]);
+    // ── タブレット表示の更新（display_state） ──
+    function pushDisplayState(thanks) {
+      var cart = sentCart.filter(function (it) { return it.isDivider || (it.qty > 0); })
+        .map(function (it) {
+          if (it.isDivider) {
+            return { isDivider: true, name: (it.groupName || '区切り') + ' 小計', subtotal: it.subtotal || 0, count: it.count || 0 };
+          }
+          return { name: it.name, price: it.price, qty: it.qty };
+        });
+      var total = getCartTotal();
+      var points = getUsedPoints();
+      var cash = Math.max(0, total - points);
+      var received = parseInt(document.getElementById('received-input').value) || 0;
+      var change = received - cash;
+      sb.from('display_state').update({
+        cart: cart,
+        received: received,
+        change: change,
+        points: points,
+        cash_amount: cash,
+        thanks: !!thanks,
+        updated_at: new Date().toISOString()
+      }).eq('id', 1).then(function (res) {
+        if (res.error) showToast('表示更新エラー: ' + res.error.message, 'warn');
+      });
+    }
+
+    // ── 区切り（小計）挿入 ──
+    function addPersonDivider() {
+      sentCart.unshift({
+        isDivider: true,
+        id: 'div-' + Date.now()
+      });
+      renderSentList();
+      updateCheckoutAmounts();
+      pushDisplayState(false);
+    }
+
+    // ── 読み込んだ商品リスト（sentCart） ──
+    function addToSentCart(barcode, name, price, qty) {
+      var existing = sentCart.find(function (it) { return !it.isDivider && it.barcode === barcode; });
+      if (existing) {
+        existing.qty = Math.max(0, existing.qty + qty);
+        selectItem(existing);
+      } else if (qty > 0) {
+        var newItem = { barcode: barcode, name: name, price: price, qty: qty };
+        sentCart.unshift(newItem);
+        selectItem(newItem);
       }
-    });
-  });
-  Array.prototype.forEach.call(list.querySelectorAll('[data-act="del"]'), function(btn) {
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      var idx = parseInt(btn.getAttribute('data-idx'));
-      var it = sentCart[idx];
-      if (selectedItem === it) {
-        selectedItem = null;
-        renderSelectedPanel();
+      renderSentList();
+      updateCheckoutAmounts();
+      pushDisplayState(false);
+    }
+
+    // ── 選択中の商品パネル ──
+    function selectItem(it) {
+      if (it && it.isDivider) return;
+      selectedItem = it;
+      renderSelectedPanel();
+      renderSentList(); // 選択ハイライト更新のため再描画
+    }
+
+    function renderSelectedPanel() {
+      var panel = document.getElementById('selected-panel');
+      var empty = document.getElementById('selected-empty');
+      if (!selectedItem || mode !== 'regi' || selectedItem.isDivider) {
+        panel.style.display = 'none';
+        empty.style.display = (mode === 'regi') ? '' : 'none';
+        return;
       }
-      sentCart.splice(idx, 1);
+      empty.style.display = 'none';
+      panel.style.display = '';
+      document.getElementById('selected-name').textContent = selectedItem.name;
+      document.getElementById('selected-qty').textContent = selectedItem.qty;
+      document.getElementById('selected-price').textContent = '¥' + (selectedItem.price * selectedItem.qty).toLocaleString();
+    }
+
+    document.getElementById('selected-dec').addEventListener('click', function () {
+      if (!selectedItem || selectedItem.isDivider) return;
+      if (selectedItem.qty > 0) selectedItem.qty -= 1;
+      renderSelectedPanel();
       renderSentList();
       updateCheckoutAmounts();
       pushDisplayState(false);
     });
-  });
-}
-renderSentList();
+    document.getElementById('selected-inc').addEventListener('click', function () {
+      if (!selectedItem || selectedItem.isDivider) return;
+      selectedItem.qty += 1;
+      renderSelectedPanel();
+      renderSentList();
+      updateCheckoutAmounts();
+      pushDisplayState(false);
+    });
 
-function clearAllItems() {
-  sentCart = [];
-  selectedItem = null;
-  document.getElementById('received-input').value = '';
-  document.getElementById('point-input').value = '';
-  renderSentList();
-  renderSelectedPanel();
-  updateCheckoutAmounts();
-  pushDisplayState(false);
-  showToast('表示をリセットしました', 'ok');
-}
+    function renderSentList() {
+      var list = document.getElementById('sent-list');
+      var totalEl = document.getElementById('sent-total');
+      if (!sentCart.length) {
+        list.innerHTML = '<div class="sent-item" style="color:var(--t3);justify-content:center;cursor:default;">まだ読み取りがありません</div>';
+        totalEl.textContent = '';
+        return;
+      }
 
-// ── 合計・お釣り表示の更新 ──
-function getCartTotal() {
-  return sentCart.reduce(function(s, it){ return s + (it.isDivider ? 0 : (it.price || 0) * (it.qty || 0)); }, 0);
-}
+      // 各区切りの小計・件数計算 (古い順：配列の後ろから前へ)
+      var groupSum = 0;
+      var groupQty = 0;
+      var dividerCount = 0;
+      for (var i = sentCart.length - 1; i >= 0; i--) {
+        if (sentCart[i].isDivider) dividerCount++;
+      }
+      var currentDividerNum = 1;
+      for (var i = sentCart.length - 1; i >= 0; i--) {
+        var it = sentCart[i];
+        if (it.isDivider) {
+          it.subtotal = groupSum;
+          it.count = groupQty;
+          it.groupName = currentDividerNum + '人目';
+          currentDividerNum++;
+          groupSum = 0;
+          groupQty = 0;
+        } else {
+          groupSum += (it.price || 0) * (it.qty || 0);
+          groupQty += (it.qty || 0);
+        }
+      }
 
-function getUsedPoints() {
-  return Math.max(0, parseInt(document.getElementById('point-input').value) || 0);
-}
+      list.innerHTML = sentCart.map(function (it, idx) {
+        if (it.isDivider) {
+          return '<div class="sent-divider" data-idx="' + idx + '">'
+            + '<div class="sname">👤 ' + it.groupName + ' 小計 (' + it.count + '点)</div>'
+            + '<div class="ssub">¥' + (it.subtotal || 0).toLocaleString() + '</div>'
+            + '<button class="sdel" data-idx="' + idx + '" data-act="del">×</button>'
+            + '</div>';
+        }
+        var sel = (selectedItem === it) ? ' selected' : '';
+        return '<div class="sent-item' + sel + '" data-idx="' + idx + '" data-act="select">'
+          + '<div class="sname">' + it.name + '</div>'
+          + '<div class="sqty-display">' + it.qty + '</div>'
+          + '<div class="sprice">¥' + (it.price * it.qty).toLocaleString() + '</div>'
+          + '<button class="sdel" data-idx="' + idx + '" data-act="del">×</button>'
+          + '</div>';
+      }).join('');
 
-function getCashAmount() {
-  return Math.max(0, getCartTotal() - getUsedPoints());
-}
+      var total = getCartTotal();
+      var totalQty = sentCart.reduce(function (s, it) { return s + (it.isDivider ? 0 : (it.qty || 0)); }, 0);
+      totalEl.textContent = '計 ' + totalQty + '点　合計 ¥' + total.toLocaleString();
 
-function updateCheckoutAmounts() {
-  var total = getCartTotal();
-  var points = getUsedPoints();
-  var cash = Math.max(0, total - points);
-  var received = parseInt(document.getElementById('received-input').value) || 0;
-  var change = received - cash;
-  document.getElementById('checkout-total').textContent = '¥' + total.toLocaleString();
-  document.getElementById('cash-amount').textContent = '¥' + cash.toLocaleString();
-  document.getElementById('checkout-change').textContent = '¥' + Math.max(0, change).toLocaleString();
-}
-
-document.getElementById('received-input').addEventListener('input', function() {
-  updateCheckoutAmounts();
-  pushDisplayState(false);
-});
-
-document.getElementById('point-input').addEventListener('input', function() {
-  updateCheckoutAmounts();
-  pushDisplayState(false);
-});
-
-// クイック金額ボタン
-Array.prototype.forEach.call(document.querySelectorAll('.quick-amt-btn'), function(btn) {
-  btn.addEventListener('click', function() {
-    var amt = btn.getAttribute('data-amt');
-    var input = document.getElementById('received-input');
-    if (amt === 'exact') {
-      input.value = getCashAmount();
-    } else {
-      input.value = (parseInt(input.value) || 0) + parseInt(amt);
+      Array.prototype.forEach.call(list.querySelectorAll('[data-act="select"]'), function (row) {
+        row.addEventListener('click', function (e) {
+          if (e.target.closest('[data-act="del"]')) return;
+          var idx = parseInt(row.getAttribute('data-idx'));
+          if (sentCart[idx] && !sentCart[idx].isDivider) {
+            selectItem(sentCart[idx]);
+          }
+        });
+      });
+      Array.prototype.forEach.call(list.querySelectorAll('[data-act="del"]'), function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var idx = parseInt(btn.getAttribute('data-idx'));
+          var it = sentCart[idx];
+          if (selectedItem === it) {
+            selectedItem = null;
+            renderSelectedPanel();
+          }
+          sentCart.splice(idx, 1);
+          renderSentList();
+          updateCheckoutAmounts();
+          pushDisplayState(false);
+        });
+      });
     }
-    updateCheckoutAmounts();
-    pushDisplayState(false);
-  });
-});
+    renderSentList();
 
-// ── 会計確定（order_itemsに保存し、タブレットに「ありがとう」表示） ──
-function completeCheckout() {
-  if (!sentCart.length || !sentCart.some(function(it){ return !it.isDivider && it.qty > 0; })) {
-    showToast('リストは空です', 'warn'); return;
-  }
-  var total = getCartTotal();
-  var points = getUsedPoints();
-  var cash = Math.max(0, total - points);
-  var received = parseInt(document.getElementById('received-input').value) || 0;
-  if (received < cash) { showToast('お預かり金額が不足しています', 'warn'); return; }
-  var change = received - cash;
-
-  // order_items用：商品行 + ポイント割引行（区切り線は除外）
-  var orders = sentCart.filter(function(it){ return !it.isDivider && it.qty > 0; }).map(function(it) {
-    return { label: it.name, price: it.price, qty: it.qty, subtotal: it.price * it.qty };
-  });
-  if (points > 0) {
-    orders.push({ label: '🪙 マチカネポイント', price: -points, qty: 1, subtotal: -points });
-  }
-
-  // receivedは現金のみ、売上合計はポイント含む商品合計
-  GAS.saveOrderFromRegi({ orders: orders, received: received, change: change }).then(function() {
-    sb.from('display_state').update({
-      cart: sentCart.filter(function(it){ return !it.isDivider && it.qty > 0; }).map(function(it){ return { name: it.name, price: it.price, qty: it.qty }; }),
-      received: received,
-      change: change,
-      points: points,
-      cash_amount: cash,
-      thanks: true,
-      updated_at: new Date().toISOString()
-    }).eq('id', 1).then(function() {
-      showToast('✅ 会計確定（保存しました）', 'ok');
+    function clearAllItems() {
       sentCart = [];
       selectedItem = null;
       document.getElementById('received-input').value = '';
@@ -627,163 +911,256 @@ function completeCheckout() {
       renderSentList();
       renderSelectedPanel();
       updateCheckoutAmounts();
-      setTimeout(function() {
-        sb.from('display_state').update({
-          cart: [], received: 0, change: 0, points: 0, cash_amount: 0, thanks: false,
-          updated_at: new Date().toISOString()
-        }).eq('id', 1).then(function(){});
-      }, 3000);
+      pushDisplayState(false);
+      showToast('表示をリセットしました', 'ok');
+    }
+
+    // ── 合計・お釣り表示の更新 ──
+    function getCartTotal() {
+      return sentCart.reduce(function (s, it) { return s + (it.isDivider ? 0 : (it.price || 0) * (it.qty || 0)); }, 0);
+    }
+
+    function getUsedPoints() {
+      return Math.max(0, parseInt(document.getElementById('point-input').value) || 0);
+    }
+
+    function getCashAmount() {
+      return Math.max(0, getCartTotal() - getUsedPoints());
+    }
+
+    function updateCheckoutAmounts() {
+      var total = getCartTotal();
+      var points = getUsedPoints();
+      var cash = Math.max(0, total - points);
+      var received = parseInt(document.getElementById('received-input').value) || 0;
+      var change = received - cash;
+      document.getElementById('checkout-total').textContent = '¥' + total.toLocaleString();
+      document.getElementById('cash-amount').textContent = '¥' + cash.toLocaleString();
+      document.getElementById('checkout-change').textContent = '¥' + Math.max(0, change).toLocaleString();
+    }
+
+    document.getElementById('received-input').addEventListener('input', function () {
+      updateCheckoutAmounts();
+      pushDisplayState(false);
     });
-  }).catch(function(e) {
-    showToast('保存エラー: ' + (e.message || e), 'warn');
-  });
-}
 
-// ── スキャン処理 ──
-var scanTriggerHeld = false;
-var scanConsumed = false; // ボタンを押している間に1回だけ処理
+    document.getElementById('point-input').addEventListener('input', function () {
+      updateCheckoutAmounts();
+      pushDisplayState(false);
+    });
 
-function onScanSuccess(decodedText) {
-  if (!scanTriggerHeld || scanConsumed) return; // ボタンを押していない、または既に読み取り済み
-  scanConsumed = true;
-
-  var now = Date.now();
-  lastScan = decodedText;
-  lastScanTime = now;
-
-  // バイブレーション + 読み取り音
-  if (navigator.vibrate) navigator.vibrate(80);
-  playBeep();
-
-  if (mode === 'regi') {
-    var discMatch = decodedText.match(/^DISC(\d{4})$/);
-    if (discMatch) {
-      // 割引券（DISC0010 = 10円引き）
-      var amt = parseInt(discMatch[1], 10);
-      addToSentCart(decodedText, '🎟 ' + amt + '円割引', -amt, 1);
-      showAddPopup('🎟 ' + amt + '円割引を追加しました');
-    } else if (decodedText === 'ATARI') {
-      // 当たり券：直前にスキャンした商品を無料にする
-      if (selectedItem && selectedItem.price > 0 && selectedItem.qty > 0) {
-        // 1個分を「当たり（無料）」として分離
-        selectedItem.qty -= 1;
-        var freeItem = sentCart.find(function(it){
-          return it.name === '🎀 ' + selectedItem.name + '（当たり）';
-        });
-        if (freeItem) {
-          freeItem.qty += 1;
+    // クイック金額ボタン
+    Array.prototype.forEach.call(document.querySelectorAll('.quick-amt-btn'), function (btn) {
+      btn.addEventListener('click', function () {
+        var amt = btn.getAttribute('data-amt');
+        var input = document.getElementById('received-input');
+        if (amt === 'exact') {
+          input.value = getCashAmount();
         } else {
-          freeItem = { barcode: 'ATARI_' + selectedItem.barcode, name: '🎀 ' + selectedItem.name + '（当たり）', price: 0, qty: 1 };
-          sentCart.unshift(freeItem);
+          input.value = (parseInt(input.value) || 0) + parseInt(amt);
         }
-        if (selectedItem.qty <= 0) {
-          var idx = sentCart.indexOf(selectedItem);
-          if (idx >= 0) sentCart.splice(idx, 1);
-        }
-        selectItem(freeItem);
-        renderSentList();
         updateCheckoutAmounts();
         pushDisplayState(false);
-        showAddPopup('🎀 ' + selectedItem.name + ' が当たり！無料になりました');
-      } else {
-        showAddPopup('⚠ 対象の商品がありません');
-        showToast('⚠ 直前に商品をスキャンしてから当たり券を読んでください', 'warn');
+      });
+    });
+
+    // ── 会計確定（order_itemsに保存し、タブレットに「ありがとう」表示） ──
+    function completeCheckout() {
+      if (!sentCart.length || !sentCart.some(function (it) { return !it.isDivider && it.qty > 0; })) {
+        showToast('リストは空です', 'warn'); return;
       }
-    } else {
-      var p = barcodeMap[decodedText];
-      if (p) {
-        addToSentCart(decodedText, p.name, p.price, 1);
-        showAddPopup('✅ ' + p.name + ' ¥' + p.price.toLocaleString());
+      var total = getCartTotal();
+      var points = getUsedPoints();
+      var cash = Math.max(0, total - points);
+      var received = parseInt(document.getElementById('received-input').value) || 0;
+      if (received < cash) { showToast('お預かり金額が不足しています', 'warn'); return; }
+      var change = received - cash;
+
+      // order_items用：商品行 + ポイント割引行（区切り線は除外）
+      var orders = sentCart.filter(function (it) { return !it.isDivider && it.qty > 0; }).map(function (it) {
+        return { label: it.name, price: it.price, qty: it.qty, subtotal: it.price * it.qty };
+      });
+      if (points > 0) {
+        orders.push({ label: '🪙 マチカネポイント', price: -points, qty: 1, subtotal: -points });
+      }
+
+      // receivedは現金のみ、売上合計はポイント含む商品合計
+      GAS.saveOrderFromRegi({ orders: orders, received: received, change: change }).then(function () {
+        sb.from('display_state').update({
+          cart: sentCart.filter(function (it) { return !it.isDivider && it.qty > 0; }).map(function (it) { return { name: it.name, price: it.price, qty: it.qty }; }),
+          received: received,
+          change: change,
+          points: points,
+          cash_amount: cash,
+          thanks: true,
+          updated_at: new Date().toISOString()
+        }).eq('id', 1).then(function () {
+          showToast('✅ 会計確定（保存しました）', 'ok');
+          sentCart = [];
+          selectedItem = null;
+          document.getElementById('received-input').value = '';
+          document.getElementById('point-input').value = '';
+          renderSentList();
+          renderSelectedPanel();
+          updateCheckoutAmounts();
+          setTimeout(function () {
+            sb.from('display_state').update({
+              cart: [], received: 0, change: 0, points: 0, cash_amount: 0, thanks: false,
+              updated_at: new Date().toISOString()
+            }).eq('id', 1).then(function () { });
+          }, 3000);
+        });
+      }).catch(function (e) {
+        showToast('保存エラー: ' + (e.message || e), 'warn');
+      });
+    }
+
+    // ── スキャン処理 ──
+    var scanTriggerHeld = false;
+    var scanConsumed = false; // ボタンを押している間に1回だけ処理
+
+    function onScanSuccess(decodedText) {
+      if (!scanTriggerHeld || scanConsumed) return; // ボタンを押していない、または既に読み取り済み
+      scanConsumed = true;
+
+      var now = Date.now();
+      lastScan = decodedText;
+      lastScanTime = now;
+
+      // バイブレーション + 読み取り音
+      if (navigator.vibrate) navigator.vibrate(80);
+      playBeep();
+
+      if (mode === 'regi') {
+        var discMatch = decodedText.match(/^DISC(\d{4})$/);
+        if (discMatch) {
+          // 割引券（DISC0010 = 10円引き）
+          var amt = parseInt(discMatch[1], 10);
+          addToSentCart(decodedText, '🎟 ' + amt + '円割引', -amt, 1);
+          showAddPopup('🎟 ' + amt + '円割引を追加しました');
+        } else if (decodedText === 'ATARI') {
+          // 当たり券：直前にスキャンした商品を無料にする
+          if (selectedItem && selectedItem.price > 0 && selectedItem.qty > 0) {
+            // 1個分を「当たり（無料）」として分離
+            selectedItem.qty -= 1;
+            var freeItem = sentCart.find(function (it) {
+              return it.name === '🎀 ' + selectedItem.name + '（当たり）';
+            });
+            if (freeItem) {
+              freeItem.qty += 1;
+            } else {
+              freeItem = { barcode: 'ATARI_' + selectedItem.barcode, name: '🎀 ' + selectedItem.name + '（当たり）', price: 0, qty: 1 };
+              sentCart.unshift(freeItem);
+            }
+            if (selectedItem.qty <= 0) {
+              var idx = sentCart.indexOf(selectedItem);
+              if (idx >= 0) sentCart.splice(idx, 1);
+            }
+            selectItem(freeItem);
+            renderSentList();
+            updateCheckoutAmounts();
+            pushDisplayState(false);
+            showAddPopup('🎀 ' + selectedItem.name + ' が当たり！無料になりました');
+          } else {
+            showAddPopup('⚠ 対象の商品がありません');
+            showToast('⚠ 直前に商品をスキャンしてから当たり券を読んでください', 'warn');
+          }
+        } else {
+          var p = barcodeMap[decodedText];
+          if (p) {
+            addToSentCart(decodedText, p.name, p.price, 1);
+            showAddPopup('✅ ' + p.name + ' ¥' + p.price.toLocaleString());
+          } else {
+            showAddPopup('⚠ 未登録: ' + decodedText);
+            showToast('⚠ 未登録のバーコードです: ' + decodedText, 'warn');
+          }
+        }
       } else {
-        showAddPopup('⚠ 未登録: ' + decodedText);
-        showToast('⚠ 未登録のバーコードです: ' + decodedText, 'warn');
+        // 商品登録モード
+        pendingBarcode = decodedText;
+        var card = document.getElementById('register-barcode-card');
+        document.getElementById('register-barcode-val').textContent = decodedText;
+        card.style.display = '';
       }
     }
-  } else {
-    // 商品登録モード
-    pendingBarcode = decodedText;
-    var card = document.getElementById('register-barcode-card');
-    document.getElementById('register-barcode-val').textContent = decodedText;
-    card.style.display = '';
-  }
-}
 
-function onScanFailure() { /* 無視（連続スキャンのため） */ }
+    function onScanFailure() { /* 無視（連続スキャンのため） */ }
 
-// ── 読み取り音（ビープ） ──
-var audioCtx = null;
-function initAudio() {
-  if (!audioCtx) {
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
-  }
-}
-function playBeep() {
-  if (!audioCtx) return;
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  var osc = audioCtx.createOscillator();
-  var gain = audioCtx.createGain();
-  osc.type = 'sine';
-  osc.frequency.value = 1800;
-  gain.gain.value = 0.25;
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start();
-  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.12);
-  osc.stop(audioCtx.currentTime + 0.12);
-}
+    // ── 読み取り音（ビープ） ──
+    var audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) {
+        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { }
+      }
+    }
+    function playBeep() {
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 1800;
+      gain.gain.value = 0.25;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.12);
+      osc.stop(audioCtx.currentTime + 0.12);
+    }
 
-var html5QrCode = (typeof Html5Qrcode !== 'undefined') ? new Html5Qrcode('reader') : null;
-var config = { fps: 10, qrbox: { width: 250, height: 150 } };
-var cameraStarted = false;
+    var html5QrCode = (typeof Html5Qrcode !== 'undefined') ? new Html5Qrcode('reader') : null;
+    var config = { fps: 10, qrbox: { width: 250, height: 150 } };
+    var cameraStarted = false;
 
-function startCamera() {
-  dlog('カメラ起動ボタン押下');
-  initAudio();
-  if (cameraStarted) { dlog('既に起動済み'); return; }
-  if (typeof Html5Qrcode === 'undefined') { dlog('❌ Html5Qrcodeが未定義です（ライブラリ読込失敗）'); return; }
-  dlog('html5QrCode.start() 呼び出し...');
-  html5QrCode.start(
-    { facingMode: 'environment' },
-    config,
-    onScanSuccess,
-    onScanFailure
-  ).then(function() {
-    dlog('✅ カメラ起動成功');
-    cameraStarted = true;
-    var overlay = document.getElementById('camera-start-overlay');
-    if (overlay) overlay.style.display = 'none';
-  }).catch(function(err) {
-    dlog('❌ カメラ起動失敗: ' + err);
-    showToast('カメラ起動エラー: ' + err, 'warn');
-  });
-}
+    function startCamera() {
+      dlog('カメラ起動ボタン押下');
+      initAudio();
+      if (cameraStarted) { dlog('既に起動済み'); return; }
+      if (typeof Html5Qrcode === 'undefined') { dlog('❌ Html5Qrcodeが未定義です（ライブラリ読込失敗）'); return; }
+      dlog('html5QrCode.start() 呼び出し...');
+      html5QrCode.start(
+        { facingMode: 'environment' },
+        config,
+        onScanSuccess,
+        onScanFailure
+      ).then(function () {
+        dlog('✅ カメラ起動成功');
+        cameraStarted = true;
+        var overlay = document.getElementById('camera-start-overlay');
+        if (overlay) overlay.style.display = 'none';
+      }).catch(function (err) {
+        dlog('❌ カメラ起動失敗: ' + err);
+        showToast('カメラ起動エラー: ' + err, 'warn');
+      });
+    }
 
-document.getElementById('camera-start-btn').addEventListener('click', startCamera);
+    document.getElementById('camera-start-btn').addEventListener('click', startCamera);
 
-// ── 読み取りボタン（押している間だけスキャン有効） ──
-var triggerBtn = document.getElementById('scan-trigger-btn');
-function triggerPressStart(e) {
-  e.preventDefault();
-  scanTriggerHeld = true;
-  scanConsumed = false;
-  triggerBtn.style.background = 'var(--red)';
-  triggerBtn.textContent = '📷 読み取り中...';
-}
-function triggerPressEnd(e) {
-  e.preventDefault();
-  scanTriggerHeld = false;
-  scanConsumed = false;
-  triggerBtn.style.background = 'var(--grn)';
-  triggerBtn.textContent = '👇 押している間だけ読み取り';
-}
-triggerBtn.addEventListener('pointerdown', triggerPressStart);
-triggerBtn.addEventListener('pointerup', triggerPressEnd);
-triggerBtn.addEventListener('pointercancel', triggerPressEnd);
-triggerBtn.addEventListener('pointerleave', triggerPressEnd);
-renderSelectedPanel();
-updateCheckoutAmounts();
-pushDisplayState(false);
-dlog('初期化完了。カメラ起動ボタンを押してください');
-</script>
+    // ── 読み取りボタン（押している間だけスキャン有効） ──
+    var triggerBtn = document.getElementById('scan-trigger-btn');
+    function triggerPressStart(e) {
+      e.preventDefault();
+      scanTriggerHeld = true;
+      scanConsumed = false;
+      triggerBtn.style.background = 'var(--red)';
+      triggerBtn.textContent = '📷 読み取り中...';
+    }
+    function triggerPressEnd(e) {
+      e.preventDefault();
+      scanTriggerHeld = false;
+      scanConsumed = false;
+      triggerBtn.style.background = 'var(--grn)';
+      triggerBtn.textContent = '👇 押している間だけ読み取り';
+    }
+    triggerBtn.addEventListener('pointerdown', triggerPressStart);
+    triggerBtn.addEventListener('pointerup', triggerPressEnd);
+    triggerBtn.addEventListener('pointercancel', triggerPressEnd);
+    triggerBtn.addEventListener('pointerleave', triggerPressEnd);
+    renderSelectedPanel();
+    updateCheckoutAmounts();
+    pushDisplayState(false);
+    dlog('初期化完了。カメラ起動ボタンを押してください');
+  </script>
 </body>
+
 </html>
