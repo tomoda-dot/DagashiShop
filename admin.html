@@ -802,9 +802,11 @@
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.5);
-      z-index: 200;
+      z-index: 1000;
       align-items: center;
       justify-content: center;
+      padding: 16px;
+      overflow-y: auto;
     }
 
     .edit-modal-overlay.show {
@@ -818,6 +820,10 @@
       width: 90vw;
       max-width: 500px;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      margin: auto;
+      max-height: calc(100vh - 32px);
+      display: flex;
+      flex-direction: column;
     }
 
     .edit-modal h3 {
@@ -1401,232 +1407,6 @@
       </div>
     </section>
 
-    <!-- 小口現金 編集モーダル -->
-    <div id="pettycash-edit-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
-      <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
-        <h3 class="font-bold text-lg mb-4" id="pettycash-edit-title">✏️ 編集</h3>
-        <input type="hidden" id="pettycash-edit-id">
-        <input type="hidden" id="pettycash-edit-type">
-        <div class="space-y-3">
-          <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">日付</label>
-            <input type="date" id="pettycash-edit-date"
-              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
-          </div>
-          <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">金額（円）</label>
-            <input type="number" id="pettycash-edit-amount" min="0"
-              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
-          </div>
-          <div id="pettycash-edit-category-wrap">
-            <label class="text-xs font-bold text-slate-500 block mb-1">内訳</label>
-            <select id="pettycash-edit-category"
-              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
-              <option value="消耗品費">消耗品費</option>
-              <option value="旅費交通費">旅費交通費</option>
-              <option value="通信費">通信費</option>
-              <option value="水道光熱費">水道光熱費</option>
-              <option value="新聞図書費">新聞図書費</option>
-              <option value="雑費">雑費</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">内容（摘要）</label>
-            <textarea id="pettycash-edit-memo" rows="2"
-              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none"></textarea>
-          </div>
-        </div>
-        <div class="flex gap-2 mt-5">
-          <button onclick="deletePettyCashRowById()"
-            class="bg-red-500 hover:bg-red-400 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition">削除</button>
-          <button onclick="closePettyCashEditModal()"
-            class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
-          <button onclick="savePettyCashEdit()"
-            class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 小口現金 入出金モーダル -->
-    <div id="pettycash-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
-      <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
-        <h3 class="font-bold text-lg mb-4" id="pettycash-modal-title">入金を追加</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">日付</label>
-            <input type="date" id="pettycash-date"
-              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
-          </div>
-          <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">金額（円）</label>
-            <input type="number" id="pettycash-amount" min="0"
-              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="0">
-          </div>
-          <div id="pettycash-category-wrap">
-            <label class="text-xs font-bold text-slate-500 block mb-1">内訳</label>
-            <select id="pettycash-category"
-              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
-              <option value="消耗品費">消耗品費</option>
-              <option value="旅費交通費">旅費交通費</option>
-              <option value="通信費">通信費</option>
-              <option value="水道光熱費">水道光熱費</option>
-              <option value="新聞図書費">新聞図書費</option>
-              <option value="雑費">雑費</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">内容（摘要）</label>
-            <input type="text" id="pettycash-memo"
-              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
-              placeholder="例：コピー用紙購入、タクシー代など">
-          </div>
-          <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">支払先</label>
-            <div class="flex gap-2">
-              <select id="pettycash-supplier-select"
-                class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
-                onchange="onPettyCashSupplierSelect()">
-                <option value="">-- 選択 --</option>
-                <option>やまや（ダイソー）</option>
-                <option>スギ薬局</option>
-                <option>コーナン</option>
-                <option>セブンイレブン</option>
-                <option>業務スーパー</option>
-                <option>Amazon</option>
-                <option>サンディ</option>
-                <option>ダイソー</option>
-                <option>京屋</option>
-                <option>ライフ</option>
-                <option>成城石井</option>
-                <option>その他（直接入力）</option>
-              </select>
-            </div>
-            <input type="text" id="pettycash-supplier"
-              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none mt-1"
-              placeholder="支払先を入力">
-          </div>
-          <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">備考（任意）</label>
-            <textarea id="pettycash-note" rows="2"
-              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none"
-              placeholder="その他メモ"></textarea>
-          </div>
-        </div>
-        <div class="flex gap-2 mt-5">
-          <button onclick="closePettyCashModal()"
-            class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
-          <button onclick="savePettyCashRow()"
-            class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- クレジットカード レシート登録・編集モーダル -->
-    <div id="creditcard-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
-      <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl" onclick="event.stopPropagation()">
-        <h3 class="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2" id="creditcard-modal-title">
-          <span class="material-icons text-blue-600">receipt</span>
-          <span>レシートを記録</span>
-        </h3>
-        <input type="hidden" id="creditcard-edit-id">
-
-        <div class="space-y-3 text-sm">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs font-bold text-slate-500 block mb-1">給油・利用日</label>
-              <input type="date" id="creditcard-date"
-                class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-mono">
-            </div>
-            <div>
-              <label class="text-xs font-bold text-slate-500 block mb-1">レシート状況</label>
-              <select id="creditcard-status-select"
-                class="w-full border-2 border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none">
-                <option value="🧾 保管済">🧾 保管済（手元）</option>
-                <option value="📤 事務提出済">📤 事務方へ提出済</option>
-                <option value="⚠️ レシート未着">⚠️ レシート未着</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">レシート金額（税込）<span
-                class="text-red-500">*</span></label>
-            <div class="relative">
-              <span class="absolute left-3 top-2 text-slate-400 font-bold font-mono">¥</span>
-              <input type="number" id="creditcard-amount" min="1" placeholder="4700"
-                class="w-full border-2 border-slate-200 rounded-lg pl-7 pr-3 py-2 text-base font-bold font-mono outline-none">
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs font-bold text-slate-500 block mb-1">対象車両</label>
-              <select id="creditcard-vehicle"
-                class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-medium">
-                <option value="N-BOX">N-BOX (軽自動車)</option>
-                <option value="事業所一般">事業所一般</option>
-                <option value="なし">なし</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-xs font-bold text-slate-500 block mb-1">給油量（L）<span
-                  class="text-slate-400 font-normal">※任意</span></label>
-              <input type="number" step="0.01" id="creditcard-fuel-qty" placeholder="例: 28.5"
-                class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-mono">
-            </div>
-          </div>
-
-          <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">給油所・支払先</label>
-            <div class="flex gap-2 mb-1">
-              <select id="creditcard-supplier-select"
-                class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
-                onchange="onCreditCardSupplierSelect()">
-                <option value="">-- 定番先から選択 --</option>
-                <option value="エネオス（ENEOS）">エネオス（ENEOS）</option>
-                <option value="出光・アポロステーション">出光・アポロステーション</option>
-                <option value="コスモ石油">コスモ石油</option>
-                <option value="キグナス石油">キグナス石油</option>
-                <option value="ETC（阪神高速等）">ETC（阪神高速等）</option>
-                <option value="Amazon">Amazon</option>
-                <option value="その他">その他（直接入力）</option>
-              </select>
-            </div>
-            <input type="text" id="creditcard-supplier"
-              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
-              placeholder="支払先を入力（例：エネオス 豊中SS）">
-          </div>
-
-          <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">内訳（科目）</label>
-            <select id="creditcard-category"
-              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
-              <option value="旅費交通費">旅費交通費（ガソリン代・高速代等）</option>
-              <option value="車両費">車両費（洗車・オイル・点検等）</option>
-              <option value="消耗品費">消耗品費</option>
-              <option value="通信費">通信費・事務用品</option>
-              <option value="雑費">雑費・その他</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">内容・メモ（摘要 / レシートNo.など）</label>
-            <input type="text" id="creditcard-memo"
-              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
-              placeholder="例：レギュラー満タン、洗車など">
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2 mt-5">
-          <button id="creditcard-btn-delete" onclick="deleteCreditCardRowById()"
-            class="bg-red-500 hover:bg-red-600 text-white px-3.5 py-2.5 rounded-lg text-sm font-bold transition hidden">削除</button>
-          <button onclick="closeCreditCardModal()"
-            class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
-          <button id="creditcard-btn-save" onclick="saveCreditCardRow()"
-            class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
-        </div>
-      </div>
-    </div>
     <section id="content-config" class="hidden h-full overflow-y-auto p-4 max-w-4xl mx-auto">
 
       <!-- データアーカイブ -->
@@ -1749,12 +1529,241 @@
 
   </main>
 
+  <!-- 小口現金 編集モーダル -->
+  <div id="pettycash-edit-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 overflow-y-auto z-[1000]" style="z-index: 1000;">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-auto my-auto shadow-2xl flex flex-col max-h-[calc(100vh-32px)]">
+      <h3 class="font-bold text-lg mb-4 shrink-0 text-slate-800" id="pettycash-edit-title">✏️ 編集</h3>
+      <input type="hidden" id="pettycash-edit-id">
+      <input type="hidden" id="pettycash-edit-type">
+      <div class="space-y-3 overflow-y-auto flex-1 pr-1">
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">日付</label>
+          <input type="date" id="pettycash-edit-date"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">金額（円）</label>
+          <input type="number" id="pettycash-edit-amount" min="0"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+        </div>
+        <div id="pettycash-edit-category-wrap">
+          <label class="text-xs font-bold text-slate-500 block mb-1">内訳</label>
+          <select id="pettycash-edit-category"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+            <option value="消耗品費">消耗品費</option>
+            <option value="旅費交通費">旅費交通費</option>
+            <option value="通信費">通信費</option>
+            <option value="水道光熱費">水道光熱費</option>
+            <option value="新聞図書費">新聞図書費</option>
+            <option value="雑費">雑費</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">内容（摘要）</label>
+          <textarea id="pettycash-edit-memo" rows="2"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none"></textarea>
+        </div>
+      </div>
+      <div class="flex gap-2 mt-5 shrink-0">
+        <button onclick="deletePettyCashRowById()"
+          class="bg-red-500 hover:bg-red-400 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition">削除</button>
+        <button onclick="closePettyCashEditModal()"
+          class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
+        <button onclick="savePettyCashEdit()"
+          class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 小口現金 入出金モーダル -->
+  <div id="pettycash-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 overflow-y-auto z-[1000]" style="z-index: 1000;">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-auto my-auto shadow-2xl flex flex-col max-h-[calc(100vh-32px)]">
+      <h3 class="font-bold text-lg mb-4 shrink-0 text-slate-800" id="pettycash-modal-title">入金を追加</h3>
+      <div class="space-y-3 overflow-y-auto flex-1 pr-1">
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">日付</label>
+          <input type="date" id="pettycash-date"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">金額（円）</label>
+          <input type="number" id="pettycash-amount" min="0"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="0">
+        </div>
+        <div id="pettycash-category-wrap">
+          <label class="text-xs font-bold text-slate-500 block mb-1">内訳</label>
+          <select id="pettycash-category"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+            <option value="消耗品費">消耗品費</option>
+            <option value="旅費交通費">旅費交通費</option>
+            <option value="通信費">通信費</option>
+            <option value="水道光熱費">水道光熱費</option>
+            <option value="新聞図書費">新聞図書費</option>
+            <option value="雑費">雑費</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">内容（摘要）</label>
+          <input type="text" id="pettycash-memo"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
+            placeholder="例：コピー用紙購入、タクシー代など">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">支払先</label>
+          <div class="flex gap-2">
+            <select id="pettycash-supplier-select"
+              class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
+              onchange="onPettyCashSupplierSelect()">
+              <option value="">-- 選択 --</option>
+              <option>やまや（ダイソー）</option>
+              <option>スギ薬局</option>
+              <option>コーナン</option>
+              <option>セブンイレブン</option>
+              <option>業務スーパー</option>
+              <option>Amazon</option>
+              <option>サンディ</option>
+              <option>ダイソー</option>
+              <option>京屋</option>
+              <option>ライフ</option>
+              <option>成城石井</option>
+              <option>その他（直接入力）</option>
+            </select>
+          </div>
+          <input type="text" id="pettycash-supplier"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none mt-1"
+            placeholder="支払先を入力">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">備考（任意）</label>
+          <textarea id="pettycash-note" rows="2"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none resize-none"
+            placeholder="その他メモ"></textarea>
+        </div>
+      </div>
+      <div class="flex gap-2 mt-5 shrink-0">
+        <button onclick="closePettyCashModal()"
+          class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
+        <button onclick="savePettyCashRow()"
+          class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- クレジットカード レシート登録・編集モーダル -->
+  <div id="creditcard-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 overflow-y-auto z-[1000]" style="z-index: 1000;">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-auto my-auto shadow-2xl flex flex-col max-h-[calc(100vh-32px)]" onclick="event.stopPropagation()">
+      <h3 class="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2 shrink-0" id="creditcard-modal-title">
+        <span class="material-icons text-blue-600">receipt</span>
+        <span>レシートを記録</span>
+      </h3>
+      <input type="hidden" id="creditcard-edit-id">
+
+      <div class="space-y-3 text-sm overflow-y-auto flex-1 pr-1">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">給油・利用日</label>
+            <input type="date" id="creditcard-date"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-mono">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">レシート状況</label>
+            <select id="creditcard-status-select"
+              class="w-full border-2 border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none">
+              <option value="🧾 保管済">🧾 保管済（手元）</option>
+              <option value="📤 事務提出済">📤 事務方へ提出済</option>
+              <option value="⚠️ レシート未着">⚠️ レシート未着</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">レシート金額（税込）<span
+              class="text-red-500">*</span></label>
+          <div class="relative">
+            <span class="absolute left-3 top-2 text-slate-400 font-bold font-mono">¥</span>
+            <input type="number" id="creditcard-amount" min="1" placeholder="4700"
+              class="w-full border-2 border-slate-200 rounded-lg pl-7 pr-3 py-2 text-base font-bold font-mono outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">対象車両</label>
+            <select id="creditcard-vehicle"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-medium">
+              <option value="N-BOX">N-BOX (軽自動車)</option>
+              <option value="事業所一般">事業所一般</option>
+              <option value="なし">なし</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">給油量（L）<span
+                class="text-slate-400 font-normal">※任意</span></label>
+            <input type="number" step="0.01" id="creditcard-fuel-qty" placeholder="例: 28.5"
+              class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">給油所・支払先</label>
+          <div class="flex gap-2 mb-1">
+            <select id="creditcard-supplier-select"
+              class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
+              onchange="onCreditCardSupplierSelect()">
+              <option value="">-- 定番先から選択 --</option>
+              <option value="エネオス（ENEOS）">エネオス（ENEOS）</option>
+              <option value="出光・アポロステーション">出光・アポロステーション</option>
+              <option value="コスモ石油">コスモ石油</option>
+              <option value="キグナス石油">キグナス石油</option>
+              <option value="ETC（阪神高速等）">ETC（阪神高速等）</option>
+              <option value="Amazon">Amazon</option>
+              <option value="その他">その他（直接入力）</option>
+            </select>
+          </div>
+          <input type="text" id="creditcard-supplier"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
+            placeholder="支払先を入力（例：エネオス 豊中SS）">
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">内訳（科目）</label>
+          <select id="creditcard-category"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+            <option value="旅費交通費">旅費交通費（ガソリン代・高速代等）</option>
+            <option value="車両費">車両費（洗車・オイル・点検等）</option>
+            <option value="消耗品費">消耗品費</option>
+            <option value="通信費">通信費・事務用品</option>
+            <option value="雑費">雑費・その他</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 block mb-1">内容・メモ（摘要 / レシートNo.など）</label>
+          <input type="text" id="creditcard-memo"
+            class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"
+            placeholder="例：レギュラー満タン、洗車など">
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 mt-5 shrink-0">
+        <button id="creditcard-btn-delete" onclick="deleteCreditCardRowById()"
+          class="bg-red-500 hover:bg-red-600 text-white px-3.5 py-2.5 rounded-lg text-sm font-bold transition hidden">削除</button>
+        <button onclick="closeCreditCardModal()"
+          class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">キャンセル</button>
+        <button id="creditcard-btn-save" onclick="saveCreditCardRow()"
+          class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg text-sm font-bold transition">保存</button>
+      </div>
+    </div>
+  </div>
+
+
+
   <!-- 積立金 編集モーダル -->
-  <div id="savings-edit-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
-      <h3 class="font-bold text-lg mb-4">✏️ 出金データを編集</h3>
+  <div id="savings-edit-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 overflow-y-auto z-[1000]" style="z-index: 1000;">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-auto my-auto shadow-2xl flex flex-col max-h-[calc(100vh-32px)]">
+      <h3 class="font-bold text-lg mb-4 shrink-0 text-slate-800">✏️ 出金データを編集</h3>
       <input type="hidden" id="savings-edit-id">
-      <div class="space-y-3">
+      <div class="space-y-3 overflow-y-auto flex-1 pr-1">
         <div>
           <label class="text-xs font-bold text-slate-500 block mb-1">日付</label>
           <input type="date" id="savings-edit-date"
