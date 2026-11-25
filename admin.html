@@ -1957,19 +1957,26 @@
     }
 
     // ── 月選択 ───────────────────────────────────
-    function initMonthSelector() {
-      const sel = document.getElementById('month-selector');
+    function _initMonthSelect(id) {
+      const sel = document.getElementById(id);
+      if (!sel) return;
       const now = new Date();
+      const curY = now.getFullYear(), curM = now.getMonth() + 1;
+      const start = new Date(2026, 3, 1); // 2026年4月〜
+      const end = new Date(curY, now.getMonth() + 1, 1); // 来月まで
       sel.innerHTML = '';
-      for (let i = -6; i <= 1; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      for (let d = new Date(start); d <= end; d.setMonth(d.getMonth() + 1)) {
         const y = d.getFullYear(), m = d.getMonth() + 1;
-        const val = `${y}-${m.toString().padStart(2, '0')}`;  // ハイフン形式（daily_summaryのdate列に合わせる）
+        const val = `${y}-${String(m).padStart(2, '0')}`;
         const opt = document.createElement('option');
         opt.value = val; opt.innerText = `${y}年 ${m}月`;
-        if (i === 0) opt.selected = true;
+        if (y === curY && m === curM) opt.selected = true;
         sel.appendChild(opt);
       }
+    }
+
+    function initMonthSelector() {
+      _initMonthSelect('month-selector');
     }
 
     // ── 日計表 ───────────────────────────────────
@@ -2441,18 +2448,7 @@
     // ── 積立金管理 ───────────────────────────────
     // ── 積立金管理 ───────────────────────────────
     function initSavingsMonthSelector() {
-      const sel = document.getElementById('savings-month-selector');
-      const now = new Date();
-      sel.innerHTML = '';
-      for (let i = -6; i <= 1; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-        const y = d.getFullYear(), m = d.getMonth() + 1;
-        const val = `${y}-${m.toString().padStart(2, '0')}`;  // ハイフン形式（daily_summaryのdate列に合わせる）
-        const opt = document.createElement('option');
-        opt.value = val; opt.innerText = `${y}年 ${m}月`;
-        if (i === 0) opt.selected = true;
-        sel.appendChild(opt);
-      }
+      _initMonthSelect('savings-month-selector');
     }
 
     let g_allSavingsData = [];
@@ -2635,18 +2631,7 @@
     }
     // ── 小口現金タブ ──────────────────────────────
     function initPettyCashMonthSelector() {
-      const sel = document.getElementById('pettycash-month-selector');
-      const now = new Date();
-      sel.innerHTML = '';
-      for (let i = -6; i <= 1; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-        const y = d.getFullYear(), m = d.getMonth() + 1;
-        const val = `${y}-${m.toString().padStart(2, '0')}`;
-        const opt = document.createElement('option');
-        opt.value = val; opt.innerText = `${y}年 ${m}月`;
-        if (i === 0) opt.selected = true;
-        sel.appendChild(opt);
-      }
+      _initMonthSelect('pettycash-month-selector');
     }
 
     let g_allPettyCashData = [];
@@ -3430,19 +3415,7 @@
     let g_allCreditCardData = [];
 
     function initCreditCardMonthSelector() {
-      const sel = document.getElementById('creditcard-month-selector');
-      const now = new Date();
-      sel.innerHTML = '';
-      for (let i = -6; i <= 1; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-        const y = d.getFullYear(), m = d.getMonth() + 1;
-        const val = y + '-' + String(m).padStart(2, '0');
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.innerText = y + '年 ' + m + '月';
-        if (i === 0) opt.selected = true;
-        sel.appendChild(opt);
-      }
+      _initMonthSelect('creditcard-month-selector');
     }
 
     function loadCreditCardData() {
