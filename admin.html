@@ -919,7 +919,14 @@
     }
 
     input[type="date"].jp-date-enhanced {
-      padding-right: 2.2rem !important;
+      padding-right: 0.75rem !important;
+    }
+
+    input[type="date"].jp-date-enhanced::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      margin-left: auto;
+      padding: 0;
+      flex-shrink: 0;
     }
 
     input[type="date"].jp-date-enhanced::-webkit-datetime-edit,
@@ -935,7 +942,7 @@
     .jp-date-overlay {
       position: absolute;
       left: 12px;
-      right: 30px;
+      right: 38px;
       top: 50%;
       transform: translateY(-50%);
       pointer-events: none;
@@ -3334,13 +3341,13 @@
         inp.parentNode.insertBefore(wrap, inp);
         wrap.appendChild(inp);
 
-        // カレンダーアイコンと文字が重ならないよう最小幅と右余白を確保
+        // カレンダーアイコンと文字が重ならないよう最小幅を確保（padding-rightが大きいとアイコンが左に押し出されるため控えめにする）
         if (inp.id === 'target-date-input') {
-          inp.style.minWidth = '225px';
-          inp.style.paddingRight = '2.2rem';
+          inp.style.minWidth = '248px';
+          inp.style.paddingRight = '0.75rem';
         } else if (!inp.classList.contains('w-full')) {
-          inp.style.minWidth = '195px';
-          inp.style.paddingRight = '2rem';
+          inp.style.minWidth = '210px';
+          inp.style.paddingRight = '0.75rem';
         }
 
         const overlay = document.createElement('span');
